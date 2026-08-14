@@ -3,12 +3,13 @@ import { Panel } from '../components/ui'
 import { SPACES, spaceOf, type SpaceId } from './meta'
 import { META_LAYERS, SPACE_META, metaValue } from './impactmeta'
 import { spaceBehavior, useQuarantine, type SpaceBehavior } from './quarantine'
+import type { Jump } from './nav'
 
 /**
  * ⑤ 액티브 메타데이터 — 노드마다 따라다니는 4계층 12속성.
  * "이 데이터를 얼마나 믿을 수 있고, 얼마나 조심해서 다뤄야 하나"를 값으로 들고 다닌다.
  */
-export default function ActiveMeta({ onGoto }: { onGoto: (s: 'quarantine') => void }) {
+export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
   const [pick, setPick] = useState<SpaceId>('evidence')
   const sp = spaceOf(pick)
   const pii = SPACE_META[pick].pii

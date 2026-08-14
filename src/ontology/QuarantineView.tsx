@@ -8,14 +8,19 @@ import {
   qStats,
   reopen,
   resolve,
+  ruleChange,
   ruleFeedback,
   useQuarantine,
+  validatorPreset,
   waiverBlock,
   type QAction,
   type QItem,
   type RuleFeedback,
 } from './quarantine'
+import { analyse } from './impactmeta'
+import { spaceOf } from './meta'
 import type { SimSnapshot } from '../sim/types'
+import type { Jump } from './nav'
 
 /**
  * ⑩ 격리 큐 — SHACL이 잡은 레코드가 실제로 보류되는 곳.
@@ -33,7 +38,7 @@ const STATUS_TONE: Record<string, string> = {
 
 const hhmm = (s: number) => `${String(Math.floor(s / 3600) + 5).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
 
-export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto: (s: 'live') => void }) {
+export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto: Jump }) {
   const list = useQuarantine()
   const [openId, setOpenId] = useState<string | null>(null)
   const [tab, setTab] = useState<'held' | 'done'>('held')
@@ -166,7 +171,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
         </Panel>
       )}
 
-      {s.done > 0 && <Feedback rows={ruleFeedback(list)} />}
+      {s.done > 0 && <Feedback rows={ruleFeedback(list)} onGoto={onGoto} />}
 
       <Drawer
         open={!!open}
@@ -305,8 +310,9 @@ const VERDICT_TONE: Record<RuleFeedback['verdict'], string> = {
  * 규칙 역제안 — 큐가 문법에게 말을 건다.
  * 여기까지 와야 고리가 닫힌다: 문법이 데이터를 막고, 막힌 이력이 문법을 고치자고 제안한다.
  */
-function Feedback({ rows }: { rows: RuleFeedback[] }) {
+function Feedback({ rows, onGoto }: { rows: RuleFeedback[]; onGoto: Jump }) {
   const live = rows.filter((r) => r.verdict !== '관찰 중')
+  const [openKey, setOpenKey] = useState<string | null>(null)
   return (
     <Panel
       title="규칙 역제안 — 큐가 문법에게 말을 건다"
@@ -364,6 +370,18 @@ function Feedback({ rows }: { rows: RuleFeedback[] }) {
                       담당자 사유: {r.notes.map((n) => `“${n}”`).join(' · ')}
                     </div>
                   )}
+                  {r.verdict === '규칙 재검토' && (
+                    <>
+                      <button
+                        onClick={() => setOpenKey(openKey === r.key ? null : r.key)}
+                        aria-expanded={openKey === r.key}
+                        className="mt-1.5 rounded-md border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-[11px] font-bold text-rose-200 hover:bg-rose-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+                      >
+                        {openKey === r.key ? '▾' : '▸'} 이렇게 고치면 무엇이 흔들리나
+                      </button>
+                      {openKey === r.key && <RippleOfFix r={r} onGoto={onGoto} />}
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
@@ -382,6 +400,79 @@ function Feedback({ rows }: { rows: RuleFeedback[] }) {
         )}
       </div>
     </Panel>
+  )
+}
+
+/**
+ * 「고치자」와 「고치면 이만큼 흔들린다」를 같은 자리에 붙인다.
+ * 규칙 완화 제안을 ⑦이 이해하는 «스페이스 × 변경 유형»으로 환산해 같은 전파 엔진에 넣는다 —
+ * 별도 계산을 새로 만들면 ⑦과 답이 갈라진다.
+ */
+function RippleOfFix({ r, onGoto }: { r: RuleFeedback; onGoto: Jump }) {
+  const ch = ruleChange(r)
+  if (!ch) return null
+  const a = analyse(ch.space, ch.change)
+  const preset = validatorPreset(r)
+
+  return (
+    <div className="mt-1.5 rounded-lg border border-rose-400/25 bg-rose-400/[0.07] px-3 py-2.5">
+      <div className="text-[11.5px] font-bold text-rose-200">
+        제안하는 문법 변경 — {spaceOf(ch.space).ko} · {ch.ko}
+      </div>
+      <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-gray-400">{ch.note}</div>
+
+      <div className="mt-2 space-y-1.5 text-[11px]">
+        <Line label="영향 범주">
+          <span className="flex flex-wrap gap-1">
+            {a.ids.map((i) => (
+              <span key={i.id} title={i.q} className="cursor-help rounded bg-gray-800 px-1.5 py-0.5 font-semibold text-gray-300">
+                {i.id} {i.ko}
+              </span>
+            ))}
+          </span>
+        </Line>
+        <Line label="전파 스페이스">
+          <span className="text-gray-300">
+            {spaceOf(ch.space).ko}
+            {a.spaces.length > 0 && <span className="text-gray-500"> → {a.spaces.map((s) => spaceOf(s).ko).join(' · ')}</span>}
+          </span>
+        </Line>
+        <Line label="흔들리는 화면">
+          <span className="text-gray-300">{a.services.map((s) => s.name).join(' · ')}</span>
+        </Line>
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <button
+          onClick={() => onGoto('impact', { impact: { space: ch.space, change: ch.change } })}
+          className="rounded-md border border-violet-400/40 bg-violet-400/10 px-2 py-1 text-[11px] font-bold text-violet-200 hover:bg-violet-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+        >
+          ⑦ 영향 분석에서 자세히 →
+        </button>
+        {preset && (
+          <button
+            onClick={() => onGoto('validator', { validator: preset })}
+            className="rounded-md border border-sky-400/40 bg-sky-400/10 px-2 py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            ④ 문법 검증에서 이 조합 눌러보기 →
+          </button>
+        )}
+      </div>
+
+      <div className="mt-2 break-keep text-[10.5px] leading-relaxed text-gray-500">
+        ⓘ 이 표는 ⑦ 영향 분석과 <b className="text-gray-400">같은 전파 엔진</b>으로 계산합니다 — 여기서만 쓰는 별도 계산을 만들면 두 화면의 답이
+        갈라집니다.
+      </div>
+    </div>
+  )
+}
+
+function Line({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+      <span className="w-[68px] shrink-0 font-semibold text-gray-500">{label}</span>
+      {children}
+    </div>
   )
 }
 

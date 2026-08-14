@@ -7,10 +7,11 @@ import { CHANGES, IMPACTS, SCENARIOS, SPACE_IMPACTS, analyse, type ChangeKind } 
  * ④ 영향 분석 — "이걸 바꾸면 어디까지 흔들리나".
  * 스페이스 × 변경 유형에서 I1~I7 범주를 트리거하고, 관계를 타고 전파 범위와 영향 화면을 낸다.
  */
-export default function Impact({ onNavigate }: { onNavigate?: (tab: string) => void }) {
-  const [space, setSpace] = useState<SpaceId>('evidence')
-  const [change, setChange] = useState<ChangeKind>('schema')
-  const [scenario, setScenario] = useState<string | null>('dtg')
+export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: string) => void; preset?: { space: SpaceId; change: ChangeKind } }) {
+  // 격리 큐의 «이렇게 고치면»에서 넘어온 경우, 그 조합을 초기값으로 연다
+  const [space, setSpace] = useState<SpaceId>(preset?.space ?? 'evidence')
+  const [change, setChange] = useState<ChangeKind>(preset?.change ?? 'schema')
+  const [scenario, setScenario] = useState<string | null>(preset ? null : 'dtg')
 
   const r = analyse(space, change)
   const sp = spaceOf(space)

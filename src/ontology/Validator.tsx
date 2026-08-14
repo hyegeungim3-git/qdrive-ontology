@@ -47,11 +47,12 @@ const CASES: { ko: string; from: SpaceId; to: SpaceId; rel: string; why: string 
   { ko: '주체 → 성과 직접 연결', from: 'subject', to: 'outcome', rel: '기여한다', why: '사람을 성과에 직접 잇는 순간 개인 평가 도구가 된다 — 규정 위반' },
 ]
 
-export default function Validator() {
-  const [from, setFrom] = useState<SpaceId>('evidence')
-  const [to, setTo] = useState<SpaceId>('outcome')
-  const [rel, setRel] = useState<string>('기여한다')
-  const [caseKey, setCaseKey] = useState<string | null>(CASES[0].ko)
+export default function Validator({ preset }: { preset?: { from: SpaceId; to: SpaceId; rel: string } }) {
+  // 격리 큐에서 «이 조합 눌러보기»로 넘어온 경우, 그 조합을 초기값으로 연다
+  const [from, setFrom] = useState<SpaceId>(preset?.from ?? 'evidence')
+  const [to, setTo] = useState<SpaceId>(preset?.to ?? 'outcome')
+  const [rel, setRel] = useState<string>(preset?.rel ?? '기여한다')
+  const [caseKey, setCaseKey] = useState<string | null>(preset ? null : CASES[0].ko)
 
   const all = [...new Set(META_EDGES.flatMap((e) => e.relations))]
   const v = validate(from, to, rel)

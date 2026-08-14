@@ -3,6 +3,7 @@ import { Panel } from '../components/ui'
 import { FAULTS, type FaultId } from './rdf'
 import { enqueue, qStats, useQuarantine } from './quarantine'
 import { runValidation, type Finding, type RunResult } from './validate'
+import type { Jump } from './nav'
 import type { SimSnapshot } from '../sim/types'
 
 /**
@@ -20,8 +21,18 @@ const SEV: Record<Finding['severity'], { ko: string; fg: string; bg: string; bd:
 
 const FAMILY_TONE: Record<string, string> = { 속성: '#22d3ee', 관계: '#34d399', 문법: '#a78bfa', 도메인: '#fb7185' }
 
-export default function Live({ snap, onGoto }: { snap: SimSnapshot; onGoto: (s: 'quarantine') => void }) {
-  const [faults, setFaults] = useState<Set<FaultId>>(new Set())
+export default function Live({
+  snap,
+  onGoto,
+  faults,
+  setFaults,
+}: {
+  snap: SimSnapshot
+  onGoto: Jump
+  // ⑩에 갔다 돌아와도 주입한 결함이 남아 있어야 한다 — 이 화면은 왕복을 전제로 만들어져 있다
+  faults: Set<FaultId>
+  setFaults: (f: Set<FaultId>) => void
+}) {
   const [res, setRes] = useState<RunResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(0)
@@ -41,8 +52,8 @@ export default function Live({ snap, onGoto }: { snap: SimSnapshot; onGoto: (s: 
   }, [])
 
   useEffect(() => {
-    void run(new Set())
-    // 최초 1회만 — 이후는 사용자가 누를 때
+    // 마운트 시 1회 — 돌아왔을 때는 남아 있던 결함 그대로 다시 검증한다
+    void run(faults)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

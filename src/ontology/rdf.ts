@@ -144,7 +144,7 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(iri, 'qd:driverPseudoId', str(pseudo))
     add(iri, 'qd:operatorId', str('OP-대구1'))
     // 결함 주입: 가명 처리를 거치지 않은 실명이 분석셋에 흘러들어온 상황
-    if (on('realName') && i === 0) add(iri, 'qd:driverName', str(d))
+    if (on('realName') && i < 2) add(iri, 'qd:driverName', str(d))
     const mine = vehicles.filter((v) => v.driverName === d).map((v) => `qdi:veh-${key(v.id)}`)
     add(iri, P('운전한다'), mine.join(', '))
   })
@@ -193,26 +193,30 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
   /* ── 관측 · 판정 · 조치 ──
      관측은 반드시 «분류된다»(어떤 표준 코드인가)와 «뒷받침한다»(무슨 판정의 근거인가)를 달고 다닌다.
      이 둘이 문법에서 필수로 선언돼 있어, 빠지면 SHACL이 잡는다. */
+  // 결함은 한 건만 나지 않는다. 원천이 잘못되면 여러 레코드가 같이 틀린다 —
+  // 그래야 「같은 규칙이 반복해서 걸린다」는 규칙 역제안의 전제도 실제로 성립한다.
+  const hit = (f: FaultId, i: number, n = 2) => on(f) && i < n
+
   const events = snap.events.slice(0, 14)
   events.forEach((e, i) => {
     const ev = `qdi:evt-${i + 1}`
     const cl = `qdi:jv-${i + 1}`
     node(ev, 'RiskEvent', 'Evidence', `${e.vehicleId} ${e.eventType}`)
-    add(ev, 'qd:eventType', str(on('badEventType') && i === 0 ? '급브레이크' : e.eventType))
-    add(ev, 'qd:speedKmh', dec(on('speedOver') && i === 0 ? 137 : e.speedKmh))
+    add(ev, 'qd:eventType', str(hit('badEventType', i, 3) ? '급브레이크' : e.eventType))
+    add(ev, 'qd:speedKmh', dec(hit('speedOver', i) ? 137 + i : e.speedKmh))
     add(ev, 'qd:rpm', int(e.rpm))
     add(ev, 'qd:occurredAt', dt(e.simTime))
-    if (!(on('noClassify') && i === 0)) add(ev, P('분류된다'), `qdi:rt-${key(e.eventType)}`)
+    if (!hit('noClassify', i)) add(ev, P('분류된다'), `qdi:rt-${key(e.eventType)}`)
     add(ev, P('뒷받침한다'), cl)
     // 결함 주입: 판정을 건너뛰고 관측을 성과에 바로 잇는다 — 문법에 없는 방향
-    if (on('illegalRelation') && i === 0) add(ev, P('반영된다'), `qdi:score-${key(e.vehicleId)}`)
+    if (hit('illegalRelation', i)) add(ev, P('반영된다'), `qdi:score-${key(e.vehicleId)}`)
     add(`qdi:veh-${key(e.vehicleId)}`, P('생성한다'), ev)
 
     node(cl, 'JustifyVerdict', 'Claim', `${e.vehicleId} 정당 판정`)
     add(cl, 'qd:verdict', str(e.justified ? '정당 인정' : '감점'))
     add(cl, 'qd:confidence', dec(e.justified ? 0.86 : 0.74))
     // 결함 주입: 불이익(감점)을 사람 확인 없이 확정
-    if (!(on('autoAdverse') && i === 0)) add(cl, 'qd:decidedBy', str('관제 담당 1'))
+    if (!hit('autoAdverse', i)) add(cl, 'qd:decidedBy', str('관제 담당 1'))
     add(cl, P('반영된다'), `qdi:score-${key(e.vehicleId)}`)
 
     const co = `qdi:coach-${i + 1}`
@@ -223,11 +227,14 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
 
   // 결함 주입: 근거 관측이 하나도 없는 감점 판정
   if (on('claimNoEvidence')) {
-    node('qdi:jv-orphan', 'JustifyVerdict', 'Claim', '근거 없는 감점 판정')
-    add('qdi:jv-orphan', 'qd:verdict', str('감점'))
-    add('qdi:jv-orphan', 'qd:confidence', dec(0.55))
-    add('qdi:jv-orphan', 'qd:decidedBy', str('관제 담당 1'))
-    add('qdi:jv-orphan', P('반영된다'), `qdi:score-${key(vehicles[0]?.id ?? 'x')}`)
+    vehicles.slice(0, 2).forEach((v, k) => {
+      const iri = `qdi:jv-orphan-${k + 1}`
+      node(iri, 'JustifyVerdict', 'Claim', `${v.id} 근거 없는 감점 판정`)
+      add(iri, 'qd:verdict', str('감점'))
+      add(iri, 'qd:confidence', dec(0.55))
+      add(iri, 'qd:decidedBy', str('관제 담당 1'))
+      add(iri, P('반영된다'), `qdi:score-${key(v.id)}`)
+    })
   }
 
   // 회차는 시간이 지나야 쌓인다. 누적값 결함은 회차 2건 이상이라야 드러나므로, 아직 덜 쌓였으면

@@ -17,6 +17,8 @@ import SpaceGraph from './ontology/SpaceGraph'
 import Validator from './ontology/Validator'
 import { LEVERS, META_EDGES, SPACES } from './ontology/meta'
 import { qStats, useQuarantine } from './ontology/quarantine'
+import type { Jump, Preset, StepId } from './ontology/nav'
+import type { FaultId } from './ontology/rdf'
 import { fmt } from './ontology/util'
 
 /**
@@ -56,7 +58,6 @@ const GROUPS = [
     ],
   },
 ] as const
-type StepId = 'spaces' | 'grammar' | 'standards' | 'validator' | 'chain' | 'sim' | 'impact' | 'meta' | 'live' | 'quarantine' | 'export'
 
 const PLATFORM = 'https://hyegeungim3-git.github.io/qdrive-unified/'
 
@@ -64,6 +65,16 @@ export default function App() {
   const snap = useSim()
   const theme = useTheme()
   const [step, setStep] = useState<StepId>('spaces')
+  // 화면 이동 시 조건까지 들고 간다. seq는 같은 화면으로 다시 넘어와도 프리셋이 다시 먹게 하는 리마운트 키.
+  const [preset, setPreset] = useState<Preset>({})
+  // ⑨에서 주입한 결함은 ⑩을 다녀와도 유지된다
+  const [faults, setFaults] = useState<Set<FaultId>>(new Set())
+  const [seq, setSeq] = useState(0)
+  const jump: Jump = (s, p) => {
+    setPreset(p ?? {})
+    setSeq((n) => n + 1)
+    setStep(s)
+  }
 
   const held = qStats(useQuarantine()).held
   const typeCount = SPACES.reduce((n, s) => n + s.types.length, 0)
@@ -178,13 +189,13 @@ export default function App() {
         {step === 'spaces' && <SpaceGraph snap={snap} />}
         {step === 'grammar' && <Grammar />}
         {step === 'standards' && <StdAlign />}
-        {step === 'validator' && <Validator />}
+        {step === 'validator' && <Validator key={`v${seq}`} preset={preset.validator} />}
         {step === 'chain' && <Chain snap={snap} />}
         {step === 'sim' && <Simulator snap={snap} />}
-        {step === 'impact' && <Impact />}
-        {step === 'meta' && <ActiveMeta onGoto={setStep} />}
-        {step === 'live' && <Live snap={snap} onGoto={setStep} />}
-        {step === 'quarantine' && <Quarantine snap={snap} onGoto={setStep} />}
+        {step === 'impact' && <Impact key={`i${seq}`} preset={preset.impact} />}
+        {step === 'meta' && <ActiveMeta onGoto={jump} />}
+        {step === 'live' && <Live snap={snap} onGoto={jump} faults={faults} setFaults={setFaults} />}
+        {step === 'quarantine' && <Quarantine snap={snap} onGoto={jump} />}
         {step === 'export' && <Export />}
 
         <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">

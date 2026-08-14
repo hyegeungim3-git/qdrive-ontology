@@ -4,6 +4,7 @@ import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf } from './meta'
 import { META_LAYERS, SPACE_IMPACTS } from './impactmeta'
 import { buildShacl } from './shacl'
 import { REL_META, SPACE_ALIGN, STANDARDS, TYPE_ALIGN } from './standards'
+import { ruleFeedback, useQuarantine, waiverBlock, type QItem } from './quarantine'
 
 /**
  * ⑧ 내보내기 — 문법을 표준 형식으로 꺼낸다.
@@ -186,19 +187,95 @@ function buildMarkdown() {
   return L.join('\n')
 }
 
+/**
+ * 감사 제출용 격리 이력.
+ *
+ * 다른 형식은 전부 «문법»을 낸다. 이것만 «실제로 있었던 일»을 낸다.
+ * 감사에서 물어보는 것은 셋이다 — 무엇이 막혔나, 누가 어떻게 풀었나,
+ * 그리고 **규정에서 온 규칙이 예외로 우회되지 않았나**. 셋을 순서대로 답한다.
+ */
+function buildAudit(q: QItem[] = []): string {
+  const hhmm = (s: number) => `${String(Math.floor(s / 3600) + 5).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
+  const L: string[] = ['# Qdrive 품질 격리 이력', '', '데이터 적재 시점 SHACL 검증에서 걸려 하류로 내려보내지 않은 레코드와 그 처리 내역입니다.', '']
+
+  if (!q.length) {
+    L.push('## 이력 없음', '', '격리된 레코드가 없습니다. ⑨ SHACL 실검증을 실행하면 위반 레코드가 큐에 쌓이고 여기에 기록됩니다.', '')
+    L.push('격리 건수가 0이라는 것은 «검사를 안 했다»는 뜻일 수도 있으므로, 검증 실행 여부를 함께 확인해야 합니다.')
+    return L.join('\n')
+  }
+
+  const held = q.filter((i) => i.status === '격리')
+  const n = (s: string) => q.filter((i) => i.status === s).length
+  const protectedItems = q.filter((i) => !!waiverBlock(i))
+  const bypassed = protectedItems.filter((i) => i.status === '예외 승인')
+
+  L.push('## 1. 요약', '')
+  L.push('| 항목 | 건수 |', '|---|---|')
+  L.push(`| 격리 총계 | ${q.length} |`)
+  L.push(`| 보류 중 (하류 미전달) | ${held.length} |`)
+  L.push(`| 재처리 | ${n('재처리')} |`)
+  L.push(`| 예외 승인 | ${n('예외 승인')} |`)
+  L.push(`| 원천 수정 요청 | ${n('원천 수정 요청')} |`)
+  L.push('')
+
+  L.push('## 2. 규정 보호 규칙의 우회 여부', '')
+  L.push('「불이익 결정 자동화 금지」·「가명 처리」에서 온 규칙은 예외 승인으로 통과시킬 수 없도록 시스템이 막습니다.')
+  L.push('')
+  L.push(`- 해당 규칙으로 격리된 레코드: **${protectedItems.length}건**`)
+  L.push(`- 그중 예외 승인으로 우회된 건: **${bypassed.length}건**${bypassed.length === 0 ? ' — 우회 없음' : ' ⚠ 확인 필요'}`)
+  if (protectedItems.length) {
+    L.push('')
+    L.push('| 레코드 | 규칙 | 처리 | 담당자 |', '|---|---|---|---|')
+    protectedItems.forEach((i) => L.push(`| ${i.focus} | sh:${i.constraint} ${i.path} | ${i.status} | ${i.decidedBy ?? '—'} |`))
+  }
+  L.push('')
+
+  L.push('## 3. 격리 레코드 전체', '')
+  L.push('| 격리 시각 | 레코드 | 스페이스 | 걸린 규칙 | 심각도 | 처리 | 담당자 | 처리 시각 | 사유 | 보류 시 흔들리는 성과 |')
+  L.push('|---|---|---|---|---|---|---|---|---|---|')
+  q.forEach((i) =>
+    L.push(
+      `| ${hhmm(i.at)} | ${i.focus}${i.focusLabel ? ` (${i.focusLabel})` : ''} | ${i.focusSpace} | sh:${i.constraint} \`${i.path}\` | ${i.severity} | ${i.status} | ${i.decidedBy ?? '—'} | ${i.doneAt !== undefined ? hhmm(i.doneAt) : '—'} | ${i.note ?? '—'} | ${i.downstream.join(' · ') || '없음'} |`,
+    ),
+  )
+  L.push('')
+
+  L.push('## 4. 규칙별 진단', '')
+  L.push('처리 방식의 분포에서 나온 진단입니다. 예외 승인이 많으면 규칙을, 재처리가 많으면 원천을, 원천 수정 요청이 많으면 커넥터를 봐야 합니다.')
+  L.push('')
+  L.push('| 규칙 | 격리 | 재처리 | 예외 승인 | 수정 요청 | 진단 | 제안 |', '|---|---|---|---|---|---|---|')
+  ruleFeedback(q).forEach((r) =>
+    L.push(
+      `| sh:${r.constraint} \`${r.path}\` | ${r.held} | ${r.reprocessed} | ${r.waived} | ${r.sourceFix} | ${r.verdict}${r.protectedBy ? ' (규정 보호)' : ''} | ${r.suggestion} |`,
+    ),
+  )
+  L.push('')
+
+  L.push('## 5. 처리 원칙', '')
+  L.push('- **격리는 삭제가 아닙니다.** 원본 레코드는 그대로 보관하고 하류(정제 저장소·분석셋)로만 내려보내지 않습니다.')
+  L.push('- 처리해도 레코드는 지워지지 않고 상태·담당자·사유만 붙습니다 — 「왜 이게 통과했나」에 답할 수 있어야 하기 때문입니다.')
+  L.push('- 예외 승인에는 사유가 반드시 남습니다. 규정에서 온 규칙은 예외 승인 자체가 차단됩니다.')
+  L.push('- 진단이 «규칙 재검토»로 나와도 규정에서 온 규칙은 완화 대상에 올리지 않습니다 — 규칙이 아니라 현실을 고쳐야 합니다.')
+
+  return L.join('\n')
+}
+
 const FORMATS = [
   { key: 'jsonld', ko: 'JSON-LD', ext: 'jsonld', mime: 'application/ld+json', desc: '연결 데이터 표준 — 그대로 트리플 스토어에 적재', build: buildJsonLd },
   { key: 'ttl', ko: 'Turtle (OWL)', ext: 'ttl', mime: 'text/turtle', desc: 'RDF/OWL — domain·range로 문법이 강제된다', build: buildTurtle },
   { key: 'cypher', ko: 'Cypher', ext: 'cypher', mime: 'text/plain', desc: 'Neo4j 제약조건 + 문법 위반 감사 질의', build: buildCypher },
   { key: 'shacl', ko: 'SHACL 제약', ext: 'shacl.ttl', mime: 'text/turtle', desc: '실제로 막는 규칙 — 적재 시점 검사', build: buildShacl },
   { key: 'md', ko: '문법 명세서', ext: 'md', mime: 'text/markdown', desc: '사람이 읽는 문서 — 협약·제안서 첨부용', build: buildMarkdown },
+  { key: 'audit', ko: '격리 이력', ext: 'md', mime: 'text/markdown', desc: '감사 제출용 — 무엇이 막혔고 누가 어떻게 풀었나', build: buildAudit, live: true },
 ] as const
 
 export default function Export() {
   const [key, setKey] = useState<(typeof FORMATS)[number]['key']>('jsonld')
   const [copied, setCopied] = useState(false)
+  const queue = useQuarantine()
   const f = FORMATS.find((x) => x.key === key)!
-  const text = f.build()
+  // 격리 이력만 라이브 상태를 받는다 — 나머지는 문법에서만 나온다
+  const text = f.key === 'audit' ? buildAudit(queue) : f.build()
 
   const copy = async () => {
     try {
@@ -218,7 +295,7 @@ export default function Export() {
     const blob = new Blob([text], { type: f.mime })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = `qdrive-ontology-v1.0.${f.ext}`
+    a.download = f.key === 'audit' ? `qdrive-격리이력.${f.ext}` : `qdrive-ontology-v1.0.${f.ext}`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -229,7 +306,7 @@ export default function Export() {
         title="내보내기 — 우리끼리만 아는 구조가 아니다"
         right={<span className="text-[11px] text-gray-500">{text.split('\n').length}줄 · {(text.length / 1024).toFixed(1)}KB</span>}
       >
-        <div className="grid grid-cols-5 gap-2 max-[1000px]:grid-cols-3 max-[640px]:grid-cols-2">
+        <div className="grid grid-cols-6 gap-2 max-[1200px]:grid-cols-3 max-[640px]:grid-cols-2">
           {FORMATS.map((x) => {
             const on = x.key === key
             return (
@@ -240,7 +317,12 @@ export default function Export() {
                   on ? 'border-emerald-400/60 bg-emerald-400/10' : 'border-gray-800 bg-gray-900/60 hover:border-gray-700'
                 }`}
               >
-                <div className={`text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{x.ko}</div>
+                <div className="flex items-center gap-1">
+                  <span className={`text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{x.ko}</span>
+                  {'live' in x && x.live && (
+                    <span className="rounded bg-rose-400/15 px-1 py-px text-[9px] font-black text-rose-300">라이브</span>
+                  )}
+                </div>
                 <div className="mt-0.5 break-keep text-[10.5px] leading-relaxed text-gray-500">{x.desc}</div>
                 <div className="mt-1 font-mono text-[10px] text-gray-600">.{x.ext}</div>
               </button>

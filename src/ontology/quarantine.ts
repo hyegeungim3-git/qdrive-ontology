@@ -1,4 +1,7 @@
 import { useSyncExternalStore } from 'react'
+import { META_EDGES, SPACES, type SpaceId } from './meta'
+import type { ChangeKind } from './impactmeta'
+import { REL_META } from './standards'
 import type { Finding } from './validate'
 
 /**
@@ -213,6 +216,45 @@ const SUGGEST: Record<string, string> = {
   MaxCount: '카디널리티가 현실과 다릅니다. 문법의 1:N·N:M 지정을 다시 보세요.',
   Closed: '문법에 없는 술어가 반복 유입됩니다. 관계 어휘에 추가할지, 원천에서 뺄지 결정해야 합니다.',
   SPARQL: '임계값을 실측 분포로 재산정하세요. 규칙의 방향은 맞지만 경계가 어긋난 경우입니다.',
+}
+
+/* ── 규칙을 고친다는 것은 문법을 고친다는 것 ──
+   「임계값을 올리자」는 말은 듣기엔 작지만, 문법에서 보면 값 수정이고 그 스페이스에서 시작하는 전파가 있다.
+   제안을 ⑦ 영향 분석이 이해하는 «스페이스 × 변경 유형»으로 환산해, 같은 전파 엔진에 그대로 넣는다.
+   그래야 «고치자»와 «고치면 이만큼 흔들린다»가 같은 화면에서 붙는다. */
+export type RuleChange = { change: ChangeKind; ko: string; space: SpaceId; note: string }
+
+const CHANGE_OF: Record<string, { change: ChangeKind; ko: string; space?: SpaceId; note: string }> = {
+  In: { change: 'create', ko: '개념 스페이스에 코드값 추가', space: 'concept', note: '표준 코드 목록을 늘리는 일 — 다른 도시·기관과의 호환이 함께 흔들린다' },
+  MaxInclusive: { change: 'update', ko: '값 범위 상한 조정', note: '기준값을 고치는 일 — 이미 이 기준으로 만든 판정·집계를 다시 계산해야 한다' },
+  MinInclusive: { change: 'update', ko: '값 범위 하한 조정', note: '기준값을 고치는 일 — 이미 이 기준으로 만든 판정·집계를 다시 계산해야 한다' },
+  SPARQL: { change: 'update', ko: '도메인 규칙 임계값 재산정', note: '규칙의 방향은 두고 경계만 옮기는 일 — 과거 판정의 재평가 범위를 정해야 한다' },
+  MinCount: { change: 'relRemove', ko: '필수 지정 해제 — 없어도 통과', note: '필수를 풀면 이 관계가 빈 레코드가 생긴다 — 그걸 전제로 짠 하류 계산이 흔들린다' },
+  MaxCount: { change: 'relAdd', ko: '카디널리티 완화 — 여러 개 허용', note: '하나만 오던 자리에 여러 개가 온다 — 집계·조인 방식을 다시 봐야 한다' },
+  Closed: { change: 'relAdd', ko: '관계 어휘에 추가 — 문법 확장', note: '문법에 새 방향을 여는 일 — 문법 v1.1로 올려야 하고 내보내기 산출물이 전부 바뀐다' },
+}
+
+const spaceIdOf = (en: string): SpaceId => SPACES.find((s) => s.en === en)?.id ?? 'evidence'
+
+export function ruleChange(f: RuleFeedback): RuleChange | null {
+  const c = CHANGE_OF[f.constraint]
+  if (!c) return null
+  return { change: c.change, ko: c.ko, space: c.space ?? spaceIdOf(f.spaces[0] ?? ''), note: c.note }
+}
+
+/**
+ * 문법 밖 술어가 반복 유입될 때, ④ 문법 검증에서 눌러 볼 조합을 만든다.
+ * 「이 관계를 여기서 쓰면 정말 막히나」를 큐에서 바로 확인할 수 있어야 한다.
+ */
+export function validatorPreset(f: RuleFeedback): { from: SpaceId; to: SpaceId; rel: string } | null {
+  if (f.constraint !== 'Closed') return null
+  const ko = Object.keys(REL_META).find((k) => REL_META[k].en === f.path)
+  if (!ko) return null
+  const from = spaceIdOf(f.spaces[0] ?? '')
+  // 이 관계가 원래 허용된 방향의 도착지 — 출발만 바꿔 놓으면 ④가 «이 방향은 문법에 없다»고 답한다
+  const to = META_EDGES.find((e) => e.relations.includes(ko))?.to
+  if (!to || to === from) return null
+  return { from, to, rel: ko }
 }
 
 export function ruleFeedback(list: QItem[]): RuleFeedback[] {
