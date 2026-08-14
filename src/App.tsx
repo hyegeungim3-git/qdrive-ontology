@@ -4,10 +4,13 @@ import DemoControls from './components/DemoControls'
 import { toggleTheme, useTheme } from './theme'
 import { useSim } from './sim/store'
 import ActiveMeta from './ontology/ActiveMeta'
+import Chain from './ontology/Chain'
+import Export from './ontology/Export'
 import Grammar from './ontology/Grammar'
 import Impact from './ontology/Impact'
 import Simulator from './ontology/Simulator'
 import SpaceGraph from './ontology/SpaceGraph'
+import Validator from './ontology/Validator'
 import { LEVERS, META_EDGES, SPACES } from './ontology/meta'
 import { fmt } from './ontology/util'
 
@@ -20,14 +23,32 @@ import { fmt } from './ontology/util'
  * 핵심 사슬:  관측 ─뒷받침→ 판정 ─반영→ 성과 ←올림─ 조치
  */
 
-const STEPS = [
-  { id: 'spaces', n: '①', label: '스페이스', desc: '데이터가 서 있는 9개 자리' },
-  { id: 'grammar', n: '②', label: '관계 문법', desc: '허용된 관계만 만든다' },
-  { id: 'sim', n: '③', label: '조치 시뮬레이션', desc: '손잡이를 당기면 성과가' },
-  { id: 'impact', n: '④', label: '영향 분석', desc: '바꾸면 어디까지 흔들리나' },
-  { id: 'meta', n: '⑤', label: '액티브 메타데이터', desc: '값에 대한 값 4계층 12속성' },
+const GROUPS = [
+  {
+    ko: '정의', desc: '무엇이 무엇과 어떻게 연결되나',
+    steps: [
+      { id: 'spaces', n: '①', label: '스페이스', desc: '데이터가 서 있는 9개 자리' },
+      { id: 'grammar', n: '②', label: '관계 문법', desc: '허용된 관계만 만든다' },
+      { id: 'validator', n: '③', label: '문법 검증', desc: '정말 막히는지 눌러보기' },
+    ],
+  },
+  {
+    ko: '활용', desc: '그래서 무엇에 쓰나',
+    steps: [
+      { id: 'chain', n: '④', label: '근거 사슬', desc: '이 숫자가 어디서 왔나' },
+      { id: 'sim', n: '⑤', label: '조치 시뮬레이션', desc: '손잡이를 당기면 성과가' },
+      { id: 'impact', n: '⑥', label: '영향 분석', desc: '바꾸면 어디까지 흔들리나' },
+    ],
+  },
+  {
+    ko: '운영', desc: '어떻게 관리하고 넘기나',
+    steps: [
+      { id: 'meta', n: '⑦', label: '액티브 메타데이터', desc: '값에 대한 값 4계층 12속성' },
+      { id: 'export', n: '⑧', label: '내보내기', desc: 'JSON-LD · OWL · Cypher' },
+    ],
+  },
 ] as const
-type StepId = (typeof STEPS)[number]['id']
+type StepId = 'spaces' | 'grammar' | 'validator' | 'chain' | 'sim' | 'impact' | 'meta' | 'export'
 
 const PLATFORM = 'https://hyegeungim3-git.github.io/qdrive-unified/'
 
@@ -101,40 +122,52 @@ export default function App() {
           <button onClick={() => setStep('sim')} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
             <KpiCard label="조치 → 성과" value={`${LEVERS.length}`} unit="개 조치" sub={`성과 연결 ${targets}건 · 시뮬레이션 가능`} accent="text-amber-400" />
           </button>
-          <button onClick={() => setStep('impact')} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
-            <KpiCard label="영향 범주 · 메타속성" value="7 / 12" sub="I1~I7 전파 분석 · 4계층 12속성" accent="text-violet-400" />
+          <button onClick={() => setStep('chain')} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
+            <KpiCard label="근거 사슬 · 영향" value="4단" unit="역추적" sub="관측→판정→성과 · I1~I7 전파" accent="text-violet-400" />
           </button>
         </div>
 
         <div className="-mx-1 overflow-x-auto px-1">
-          <div className="grid min-w-[820px] grid-cols-5 gap-2">
-            {STEPS.map((s, i) => {
-              const on = step === s.id
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setStep(s.id)}
-                  className={`rounded-xl border px-3 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
-                    on ? 'border-pink-400/60 bg-pink-400/10' : 'border-gray-800 bg-gray-900/60 hover:border-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-sm font-black ${on ? 'text-pink-300' : 'text-gray-600'}`}>{s.n}</span>
-                    <span className={`text-[13px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{s.label}</span>
-                    {i < STEPS.length - 1 && <span className="ml-auto text-[11px] text-gray-700">→</span>}
-                  </div>
-                  <div className="mt-0.5 truncate text-[11px] leading-tight text-gray-500">{s.desc}</div>
-                </button>
-              )
-            })}
+          <div className="flex min-w-[900px] gap-3">
+            {GROUPS.map((g) => (
+              <div key={g.ko} className="min-w-0 flex-1">
+                <div className="mb-1 flex items-baseline gap-1.5 px-0.5">
+                  <span className="text-[11px] font-black text-pink-300">{g.ko}</span>
+                  <span className="truncate text-[10.5px] text-gray-600">{g.desc}</span>
+                </div>
+                <div className={`grid gap-2 ${g.steps.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  {g.steps.map((s) => {
+                    const on = step === s.id
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => setStep(s.id)}
+                        className={`rounded-xl border px-2.5 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                          on ? 'border-pink-400/60 bg-pink-400/10' : 'border-gray-800 bg-gray-900/60 hover:border-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[13px] font-black ${on ? 'text-pink-300' : 'text-gray-600'}`}>{s.n}</span>
+                          <span className={`truncate text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{s.label}</span>
+                        </div>
+                        <div className="mt-0.5 truncate text-[10.5px] leading-tight text-gray-500">{s.desc}</div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {step === 'spaces' && <SpaceGraph snap={snap} />}
         {step === 'grammar' && <Grammar />}
+        {step === 'validator' && <Validator />}
+        {step === 'chain' && <Chain snap={snap} />}
         {step === 'sim' && <Simulator snap={snap} />}
         {step === 'impact' && <Impact />}
         {step === 'meta' && <ActiveMeta />}
+        {step === 'export' && <Export />}
 
         <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
           🧭 <b className="text-gray-300">왜 문법을 먼저 정하나</b> — 데이터가 늘어날 때 관계 어휘를 그때그때 만들면, 나중에 다른 도시·다른 사업자
