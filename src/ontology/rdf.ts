@@ -48,7 +48,44 @@ const int = (n: number) => `"${Math.round(n)}"^^xsd:integer`
 const dt = (n: number) => `"${iso(n)}"^^xsd:dateTime`
 const str = (s: string) => `"${esc(s)}"`
 
-export type GraphResult = { turtle: string; triples: number; subjects: number; byClass: { ko: string; n: number }[] }
+/**
+ * 그래프 색인 — 격리된 레코드의 하류 영향을 계산하려면 관계를 걸어야 한다.
+ * Turtle 문자열을 다시 파싱하지 않고, 만드는 김에 인접 정보를 같이 낸다.
+ */
+export type GraphIndex = {
+  label: Record<string, string>
+  /** 노드 타입 (RiskEvent 등) */
+  type: Record<string, string>
+  /** 스페이스 (Evidence 등) */
+  space: Record<string, string>
+  /** 나가는 간선 */
+  out: Record<string, { p: string; o: string }[]>
+}
+
+export type GraphResult = { turtle: string; triples: number; subjects: number; byClass: { ko: string; n: number }[]; index: GraphIndex }
+
+/**
+ * 이 레코드가 보류되면 어디까지 흔들리나 — 관계를 따라 성과까지 걸어간다.
+ * 관측 ─뒷받침한다→ 판정 ─반영된다→ 성과 가 기본 경로이고, 자산·주체는 자기가 만든 관측을 거쳐 닿는다.
+ */
+export function downstream(ix: GraphIndex, iri: string, maxDepth = 4): string[] {
+  const seen = new Set<string>([iri])
+  const hit = new Set<string>()
+  let frontier = [iri]
+  for (let d = 0; d < maxDepth && frontier.length; d++) {
+    const next: string[] = []
+    frontier.forEach((n) => {
+      ;(ix.out[n] ?? []).forEach(({ o }) => {
+        if (seen.has(o)) return
+        seen.add(o)
+        if (ix.space[o] === 'Outcome') hit.add(ix.label[o] ?? o)
+        else next.push(o)
+      })
+    })
+    frontier = next
+  }
+  return [...hit]
+}
 
 export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set()): GraphResult {
   const T: [string, string, string][] = []
@@ -313,9 +350,24 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
   bySubject.forEach((ts, s) => body.push(`${s} ${ts.map(([p, o]) => `${p} ${o}`).join(' ;\n  ')} .`))
 
   const classCount = new Map<string, number>()
-  T.filter((t) => t[1] === 'a').forEach((t) => {
-    const c = t[2].split(',')[0].trim().replace('qd:', '')
-    classCount.set(c, (classCount.get(c) ?? 0) + 1)
+  const index: GraphIndex = { label: {}, type: {}, space: {}, out: {} }
+  T.forEach(([s, p, o]) => {
+    if (p === 'a') {
+      const [t, sp] = o.split(',').map((x) => x.trim().replace('qd:', ''))
+      index.type[s] = t
+      index.space[s] = sp
+      classCount.set(t, (classCount.get(t) ?? 0) + 1)
+    } else if (p === 'rdfs:label') {
+      index.label[s] = o.slice(1, -1)
+    } else {
+      // 관계만 색인한다 — 리터럴은 걸어갈 수 없다
+      o.split(',')
+        .map((x) => x.trim())
+        .filter((x) => x.startsWith('qdi:'))
+        .forEach((target) => {
+          ;(index.out[s] ??= []).push({ p, o: target })
+        })
+    }
   })
 
   return {
@@ -323,6 +375,7 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     triples: T.length,
     subjects: bySubject.size,
     byClass: [...classCount.entries()].map(([ko, n]) => ({ ko, n })).sort((a, b) => b.n - a.n),
+    index,
   }
 }
 

@@ -2,7 +2,7 @@ import D from '@rdfjs/dataset'
 import { Parser, type Quad } from 'n3'
 import SHACLValidator from 'rdf-validate-shacl'
 import { buildShacl } from './shacl'
-import { buildDataGraph, checkFuelPerKm, type FaultId, type GraphResult } from './rdf'
+import { buildDataGraph, checkFuelPerKm, downstream, type FaultId, type GraphResult } from './rdf'
 import type { SimSnapshot } from '../sim/types'
 
 /**
@@ -16,14 +16,20 @@ import type { SimSnapshot } from '../sim/types'
  */
 
 export type Finding = {
+  /** 격리 큐가 그래프를 되짚을 수 있게 원 IRI를 남긴다 */
+  focusIri: string
   focus: string
   focusLabel: string
+  /** 노드 타입 — 격리 큐에서 «어떤 종류의 레코드인가» */
+  focusType: string
   path: string
   constraint: string
   severity: 'Violation' | 'Warning' | 'Info'
   message: string
   /** SHACL 엔진이 낸 것인가, 보조 검사인가 */
   engine: 'SHACL' | 'JS'
+  /** 이 레코드를 보류하면 흔들리는 성과 */
+  downstream: string[]
 }
 
 export type RunResult = {
@@ -82,27 +88,34 @@ export async function runValidation(snap: SimSnapshot, faults: Set<FaultId>): Pr
       const pathTerm = r.path as { value?: string; termType?: string } | undefined
       const raw = pathTerm?.value ?? ''
       const path = pathTerm?.termType === 'BlankNode' ? `← ${inverse.get(raw) ?? '역경로'}` : short(raw)
+      const iri = (r.focusNode?.value ?? '').replace('https://qdrive.ai/id/', 'qdi:')
       return {
+        focusIri: iri,
         focus: short(r.focusNode?.value),
         focusLabel: labels.get(r.focusNode?.value ?? '') ?? '',
+        focusType: graph.index.type[iri] ?? '',
         path,
         constraint: short(r.sourceConstraintComponent?.value).replace(/ConstraintComponent$/, ''),
         severity: (short(r.severity?.value) || 'Violation') as Finding['severity'],
         message: r.message.map((m) => m.value).join(' ') || '(메시지 없음)',
         engine: 'SHACL',
+        downstream: downstream(graph.index, iri),
       }
     })
 
     // sh:sparql 대체 — 엔진이 못 도는 규칙을 JS로
     checkFuelPerKm(graph.turtle).forEach((c) =>
       findings.push({
-        focus: short(c.focus).replace('qdi:', ''),
+        focusIri: c.focus,
+        focus: c.focus.replace('qdi:', ''),
         focusLabel: c.label,
+        focusType: graph.index.type[c.focus] ?? 'Trip',
         path: 'fuelM3',
         constraint: 'SPARQL',
         severity: 'Violation',
         message: c.msg,
         engine: 'JS',
+        downstream: downstream(graph.index, c.focus),
       }),
     )
 

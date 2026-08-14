@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Panel } from '../components/ui'
 import { FAULTS, type FaultId } from './rdf'
+import { enqueue, qStats, useQuarantine } from './quarantine'
 import { runValidation, type Finding, type RunResult } from './validate'
 import type { SimSnapshot } from '../sim/types'
 
@@ -19,11 +20,13 @@ const SEV: Record<Finding['severity'], { ko: string; fg: string; bg: string; bd:
 
 const FAMILY_TONE: Record<string, string> = { 속성: '#22d3ee', 관계: '#34d399', 문법: '#a78bfa', 도메인: '#fb7185' }
 
-export default function Live({ snap }: { snap: SimSnapshot }) {
+export default function Live({ snap, onGoto }: { snap: SimSnapshot; onGoto: (s: 'quarantine') => void }) {
   const [faults, setFaults] = useState<Set<FaultId>>(new Set())
   const [res, setRes] = useState<RunResult | null>(null)
   const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(0)
   const [tab, setTab] = useState<'result' | 'data' | 'shapes'>('result')
+  const queue = useQuarantine()
   // 스냅샷은 250ms마다 바뀐다 — 검증은 누른 순간의 상태로만 돌린다(결과가 손안에서 흔들리지 않게)
   const latest = useRef(snap)
   latest.current = snap
@@ -32,6 +35,8 @@ export default function Live({ snap }: { snap: SimSnapshot }) {
     setBusy(true)
     const r = await runValidation(latest.current, f)
     setRes(r)
+    // 걸린 레코드는 말로 끝내지 않고 실제로 격리 큐에 넣는다 — 같은 레코드·같은 제약은 중복 적재되지 않는다
+    setSent(enqueue(r.findings, latest.current.simTime))
     setBusy(false)
   }, [])
 
@@ -108,6 +113,25 @@ export default function Live({ snap }: { snap: SimSnapshot }) {
           )}
           {res?.error && <div className="text-[11.5px] text-gray-300">{res.error}</div>}
         </div>
+
+        {/* 격리 큐로의 인계 — 「막았다」로 끝내지 않는다 */}
+        {qStats(queue).total > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-sky-400/30 bg-sky-400/10 px-4 py-2.5">
+            <span className="text-[12px] font-bold text-sky-200">
+              {sent > 0 ? `↳ 격리 큐로 ${sent}건 넘겼습니다` : '↳ 격리 큐에 쌓인 레코드가 있습니다'}
+            </span>
+            <span className="text-[11.5px] text-gray-400">
+              보류 중 <b className="text-gray-200">{qStats(queue).held}</b>건 · 처리 완료 <b className="text-gray-200">{qStats(queue).done}</b>건
+              {qStats(queue).blocked > 0 && <span className="ml-1 text-amber-300">· 예외 승인 불가 {qStats(queue).blocked}건</span>}
+            </span>
+            <button
+              onClick={() => onGoto('quarantine')}
+              className="ml-auto whitespace-nowrap rounded-md border border-sky-400/50 bg-sky-400/15 px-2.5 py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⑩ 격리 큐에서 처리 →
+            </button>
+          </div>
+        )}
 
         {/* 결함 주입 */}
         <div className="mb-1.5 flex items-baseline gap-2">

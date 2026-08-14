@@ -9,11 +9,14 @@ import Export from './ontology/Export'
 import Grammar from './ontology/Grammar'
 import Impact from './ontology/Impact'
 import Live from './ontology/Live'
+// 파일명 주의: 컴포넌트를 Quarantine.tsx로 두면 저장소 quarantine.ts와 Windows에서 충돌한다 (TS1149)
+import Quarantine from './ontology/QuarantineView'
 import Simulator from './ontology/Simulator'
 import StdAlign from './ontology/StdAlign'
 import SpaceGraph from './ontology/SpaceGraph'
 import Validator from './ontology/Validator'
 import { LEVERS, META_EDGES, SPACES } from './ontology/meta'
+import { qStats, useQuarantine } from './ontology/quarantine'
 import { fmt } from './ontology/util'
 
 /**
@@ -48,11 +51,12 @@ const GROUPS = [
     steps: [
       { id: 'meta', n: '⑧', label: '액티브 메타데이터', desc: '값에 대한 값 4계층 12속성' },
       { id: 'live', n: '⑨', label: 'SHACL 실검증', desc: '제약을 실제로 돌려본다' },
-      { id: 'export', n: '⑩', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
+      { id: 'quarantine', n: '⑩', label: '격리 큐', desc: '막힌 레코드는 어디로 가나' },
+      { id: 'export', n: '⑪', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
     ],
   },
 ] as const
-type StepId = 'spaces' | 'grammar' | 'standards' | 'validator' | 'chain' | 'sim' | 'impact' | 'meta' | 'live' | 'export'
+type StepId = 'spaces' | 'grammar' | 'standards' | 'validator' | 'chain' | 'sim' | 'impact' | 'meta' | 'live' | 'quarantine' | 'export'
 
 const PLATFORM = 'https://hyegeungim3-git.github.io/qdrive-unified/'
 
@@ -61,6 +65,7 @@ export default function App() {
   const theme = useTheme()
   const [step, setStep] = useState<StepId>('spaces')
 
+  const held = qStats(useQuarantine()).held
   const typeCount = SPACES.reduce((n, s) => n + s.types.length, 0)
   const instances = SPACES.reduce((n, s) => n + s.types.reduce((m, t) => m + t.count(snap), 0), 0)
   const relations = new Set(META_EDGES.flatMap((e) => e.relations)).size
@@ -132,7 +137,7 @@ export default function App() {
         </div>
 
         <div className="-mx-1 overflow-x-auto px-1">
-          <div className="flex min-w-[1180px] gap-3">
+          <div className="flex min-w-[1320px] gap-3">
             {GROUPS.map((g) => (
               <div key={g.ko} className="min-w-0 flex-1">
                 <div className="mb-1 flex items-baseline gap-1.5 px-0.5">
@@ -153,6 +158,11 @@ export default function App() {
                         <div className="flex items-center gap-1">
                           <span className={`text-[13px] font-black ${on ? 'text-pink-300' : 'text-gray-600'}`}>{s.n}</span>
                           <span className={`truncate text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{s.label}</span>
+                          {s.id === 'quarantine' && held > 0 && (
+                            <span className="ml-auto shrink-0 rounded-full border border-rose-400/50 bg-rose-400/15 px-1.5 text-[10px] font-black tabular-nums text-rose-300">
+                              {held}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-0.5 truncate text-[10.5px] leading-tight text-gray-500">{s.desc}</div>
                       </button>
@@ -172,7 +182,8 @@ export default function App() {
         {step === 'sim' && <Simulator snap={snap} />}
         {step === 'impact' && <Impact />}
         {step === 'meta' && <ActiveMeta />}
-        {step === 'live' && <Live snap={snap} />}
+        {step === 'live' && <Live snap={snap} onGoto={setStep} />}
+        {step === 'quarantine' && <Quarantine snap={snap} onGoto={setStep} />}
         {step === 'export' && <Export />}
 
         <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
