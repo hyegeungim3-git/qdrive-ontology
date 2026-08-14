@@ -8,6 +8,7 @@ import Chain from './ontology/Chain'
 import Export from './ontology/Export'
 import Grammar from './ontology/Grammar'
 import Impact from './ontology/Impact'
+import Live from './ontology/Live'
 import Simulator from './ontology/Simulator'
 import StdAlign from './ontology/StdAlign'
 import SpaceGraph from './ontology/SpaceGraph'
@@ -46,11 +47,12 @@ const GROUPS = [
     ko: '운영', desc: '어떻게 관리하고 넘기나',
     steps: [
       { id: 'meta', n: '⑧', label: '액티브 메타데이터', desc: '값에 대한 값 4계층 12속성' },
-      { id: 'export', n: '⑨', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
+      { id: 'live', n: '⑨', label: 'SHACL 실검증', desc: '제약을 실제로 돌려본다' },
+      { id: 'export', n: '⑩', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
     ],
   },
 ] as const
-type StepId = 'spaces' | 'grammar' | 'standards' | 'validator' | 'chain' | 'sim' | 'impact' | 'meta' | 'export'
+type StepId = 'spaces' | 'grammar' | 'standards' | 'validator' | 'chain' | 'sim' | 'impact' | 'meta' | 'live' | 'export'
 
 const PLATFORM = 'https://hyegeungim3-git.github.io/qdrive-unified/'
 
@@ -130,7 +132,7 @@ export default function App() {
         </div>
 
         <div className="-mx-1 overflow-x-auto px-1">
-          <div className="flex min-w-[1060px] gap-3">
+          <div className="flex min-w-[1180px] gap-3">
             {GROUPS.map((g) => (
               <div key={g.ko} className="min-w-0 flex-1">
                 <div className="mb-1 flex items-baseline gap-1.5 px-0.5">
@@ -170,6 +172,7 @@ export default function App() {
         {step === 'sim' && <Simulator snap={snap} />}
         {step === 'impact' && <Impact />}
         {step === 'meta' && <ActiveMeta />}
+        {step === 'live' && <Live snap={snap} />}
         {step === 'export' && <Export />}
 
         <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">

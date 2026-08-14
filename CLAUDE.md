@@ -121,9 +121,58 @@ OpenCrab 외에 조사한 표준 10종. 조사 근거는 W3C/OGC 규격 원문�
 근거 사슬 6종 전부 다른 사슬·근거 유형(실측·환산·미측정) 구분·문장 실조립 / SHACL에 NodeShape·targetClass·minCount·
 sh:in·sh:closed·sh:sparql·도메인 규칙 4종 확인 / 내보내기 5형식 상이 / 375px 오버플로 0 / pageerror 0.
 
+## 4차 발전 (2026-08-15) — SHACL을 브라우저에서 실제로 돌린다
+사용자 요청 "SHACL 브라우저에서 실제로 검증까지 돌려줘". 9단계 → **10단계**(⑨ 실검증 신설, 내보내기 ⑩으로).
+3차까지는 제약을 **생성**만 했다. 여기서부터는 데이터를 넣어 **실행**한다.
+
+### 라이브러리 선택 — 세 번 헛짚었다
+- `rdf-ext` v2.6은 clownface를 뺐다(grapoi로 대체) → `factory.clownface is not a function`.
+  **`rdf-validate-shacl`은 자체 defaultEnv를 갖고 있으니 factory를 넘기지 말 것.** 데이터셋만 `@rdfjs/dataset`로.
+- `import { dataset } from '@rdfjs/dataset'` 는 named export가 없다 → `import D from '@rdfjs/dataset'; D.dataset(...)`.
+- **`validator.validate()`는 async다**(0.6.5). await 없이 쓰면 `r.results`가 undefined.
+- 파서는 `n3`의 동기 `new Parser().parse(ttl)` — 스트림 폴리필이 필요 없어 브라우저에 적합.
+- 타입: `@types/n3`·`@types/rdfjs__dataset` 필요. `ReturnType<Parser['parse']>`는 오버로드 때문에 void로
+  추론된다 → `import { type Quad } from 'n3'` 를 직접 쓸 것.
+- 번들 250KB → 682KB(gzip 164KB). 백엔드 없이 W3C 검증기를 돌리는 값으로 수용.
+
+### 실행해 보고서야 드러난 셰이프 결함 3건 (전부 3차 산출물의 버그)
+- **`@prefix rdf:`·`rdfs:` 누락** — `sh:ignoredProperties ( rdf:type ... )`를 쓰면서 prefix를 선언 안 해
+  Turtle 파싱 자체가 깨졌다. 생성만 하고 파싱해 본 적이 없어서 몰랐던 것.
+- **닫힌 셰이프가 자료 속성을 몰수** — `sh:closed true` + `ignoredProperties(rdf:type, 관계들)`만 두면
+  `qd:vehicleId` 같은 **정상 속성이 전부 위반**이 된다. 그 스페이스 노드 타입들의 TYPE_PROPS를 전부 열거해야 한다.
+- **`TYPE_PROPS.WorkOrder`는 유령 셰이프** — 노드 타입 이름이 `PredictiveMaint`라 아무 인스턴스도 target되지 않았다.
+  키 이름 = 노드 타입 이름이어야 한다.
+- 필수 관계 누락이 Warning으로 나왔다 → `severityOf(core, required)`로 필수도 Violation.
+- 메시지 조사 오류("개념여야") → 받침 판정 헬퍼 `eoya()`.
+
+### 도메인 규칙 하나를 갈아엎었다 — 시각 조인 → 연비 비율
+누적값 탐지를 «직전 회차 대비 1.8배 증가»로 짰는데, 실제로 돌려 보니 **엔진의 첫 회차들이 startSimTime=0으로
+동률**이라 시각 정렬이 무의미했다. 실측을 재 보니 회차 연비가 **0.54~0.63 m³/km에 매우 조밀**하게 모인다.
+→ 규칙을 `fuelM3 / distanceKm > 1.0`(단일 노드, 조인 없음)로 교체. 물리적으로 방어 가능하고, 회차가
+2건만 있어도 걸리며, SPARQL도 훨씬 단순해졌다. `FUEL_PER_KM_MAX` 한 곳에서 셰이프·JS 보조검사·메시지가 함께 나온다.
+
+### 구현
+- **`rdf.ts`** — 스냅샷 → Turtle. 인스턴스는 **노드 타입 + 스페이스 이중 타이핑**(속성 셰이프는 노드 타입을,
+  관계·닫힘 셰이프는 스페이스를 target하므로 둘 다 필요). 관계 술어는 `P('기록된다')`로 REL_META에서 꺼낸다 —
+  손으로 적었다가 `recordedAs`/`loggedAs` 등 **5개가 실제 문법과 달랐다**. 결함 주입 8종 정의(FAULTS).
+- **`validate.ts`** — 셰이프 그래프는 스냅샷과 무관하니 파싱 결과를 모듈 캐시. 역경로(`sh:inversePath`)는
+  결과의 path가 공백 노드로 잡히므로 셰이프 그래프에서 실제 경로를 되찾아 «← supports»로 표시.
+  IRI 대신 `rdfs:label`을 붙여 사람이 읽는 이름으로 보인다.
+- **`Live.tsx`** — 판정 배너 / 결함 주입 8칸(제약 계열별 색) / 결과 표(심각도·대상·경로·제약·메시지) /
+  데이터 그래프·셰이프 원문 탭. 스냅샷은 250ms마다 바뀌므로 `useRef`로 **누른 순간의 상태만** 검증한다.
+- 회차가 덜 쌓인 초기 상태에서 누적값 결함을 누르면 아무 일도 안 일어나 규칙이 없는 것처럼 보였다
+  → 회차 3건 미만이면 현재 차량으로 채운다.
+
+### 검증 (브라우저 실행)
+정상 데이터 conforms=true (셰이프 813 트리플 · 데이터 567~655 트리플 · 98~111ms) /
+**결함 8종 전부 기대한 제약에 정확히 적중** — 실명 노출은 sh:closed와 sh:maxCount 두 규칙이 함께 잡는다 /
+내보내기 5형식 유지(SHACL 20,070자, 새 sparql 규칙·rdf/rdfs prefix·PredictiveMaintShape 확인) /
+375px 가로 오버플로 0 · 카드 겹침 0 · 텍스트 잘림 0 / 빌드 통과(682KB, gzip 164KB).
+
 ## 남은 후보
 - 스페이스 노드에서 운영 플랫폼의 해당 화면으로 딥링크(현재는 영향 분석에서만 화면 이름 표시)
 - 인스턴스 탐색기(레코드 사이를 걷는 그래프) 이식 — 현재 qdrive-unified의 데이터 관리자에 있음
 - 문법 v1.1: 관계에 시간 유효성(언제부터 언제까지 성립하는 관계인가) 추가
-- SHACL 검증을 브라우저에서 실제로 돌려보기 (rdf-validate-shacl 등)
 - 표준 정렬을 역방향으로도 — 외부 표준 데이터를 우리 문법으로 받아들이는 매핑
+- 결함 주입을 「데이터 관리자」 품질 격리 큐와 연결 — 위반 레코드가 실제로 보류되는 흐름까지
+- sh:sparql까지 도는 서버측 검증(pySHACL) 결과를 붙여 브라우저 검증과 대조

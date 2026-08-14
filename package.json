@@ -10,12 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@rdfjs/dataset": "^2.0.3",
+    "n3": "^2.2.0",
+    "rdf-validate-shacl": "^0.6.5",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
+    "@types/n3": "^1.26.1",
     "@types/node": "^24.13.2",
+    "@types/rdfjs__dataset": "^2.0.7",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",

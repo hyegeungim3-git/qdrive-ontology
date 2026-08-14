@@ -12,15 +12,38 @@ import { REL_META, TYPE_PROPS } from './standards'
 
 const slug = (en: string) => en.replace(/[^A-Za-z0-9]/g, '')
 
-/** 심각도 — 핵심 사슬을 어기면 Violation, 나머지는 Warning */
-const severityOf = (core: boolean) => (core ? 'sh:Violation' : 'sh:Warning')
+/**
+ * 회차 연비의 상식 범위 (m³/km). 시뮬레이터 실측 회차는 0.54~0.63에 모인다.
+ * 상한을 1.0으로 두면 정상 회차는 전부 통과하고, 누적값이 섞이면 바로 벗어난다.
+ */
+export const FUEL_PER_KM_MIN = 0.3
+export const FUEL_PER_KM_MAX = 1.0
+/** 메시지에 «1»이 아니라 «1.0»으로 보이게 — 임계값은 자릿수까지 규격이다 */
+export const perKm = (n: number) => n.toFixed(1)
 
-export function buildShacl(): string {
+/** 심각도 — 핵심 사슬이거나 필수 관계면 Violation, 나머지는 Warning */
+const severityOf = (core: boolean, required: boolean) => (core || required ? 'sh:Violation' : 'sh:Warning')
+
+/** 받침 유무에 따라 «이어야/여야» — 메시지가 어색하면 규칙도 대충 만든 것처럼 보인다 */
+const eoya = (ko: string) => {
+  const c = ko.charCodeAt(ko.length - 1) - 0xac00
+  return c >= 0 && c <= 11171 && c % 28 !== 0 ? '이어야' : '여야'
+}
+
+/**
+ * @param opts.sparql  sh:sparql 제약을 포함할지. 내보내기 파일에는 넣지만,
+ *                     브라우저 검증 엔진(rdf-validate-shacl)은 SPARQL 제약을 지원하지 않아
+ *                     실검증 화면에서는 빼고 같은 규칙을 JS로 따로 돌린다.
+ */
+export function buildShacl(opts: { sparql?: boolean } = {}): string {
+  const withSparql = opts.sparql !== false
   const L: string[] = [
     '@prefix qd:   <https://qdrive.ai/ontology/> .',
     '@prefix sh:   <http://www.w3.org/ns/shacl#> .',
     '@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .',
     '@prefix geo:  <http://www.opengis.net/ont/geosparql#> .',
+    '@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .',
+    '@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .',
     '',
     '# ═══════════════════════════════════════════════════════════',
     '# Qdrive 온톨로지 SHACL 제약 v1.0',
@@ -79,8 +102,8 @@ export function buildShacl(): string {
       L.push('    sh:nodeKind sh:IRI ;')
       if (m.required) L.push('    sh:minCount 1 ;')
       if (m.card === '1:1' || m.card === 'N:1') L.push('    sh:maxCount 1 ;')
-      L.push(`    sh:severity ${severityOf(!!e.core)} ;`)
-      L.push(`    sh:message "«${r}»의 도착은 ${spaceOf(e.to).ko}여야 합니다 (${m.card}${m.required ? ' · 필수' : ''})"@ko ;`)
+      L.push(`    sh:severity ${severityOf(!!e.core, m.required)} ;`)
+      L.push(`    sh:message "«${r}»의 도착은 ${spaceOf(e.to).ko}${eoya(spaceOf(e.to).ko)} 합니다 (${m.card}${m.required ? ' · 필수' : ''})"@ko ;`)
       L.push(`  ]${last ? ' .' : ' ;'}`)
     })
     L.push('')
@@ -92,12 +115,16 @@ export function buildShacl(): string {
   L.push('')
   SPACES.forEach((s) => {
     const outs = META_EDGES.filter((e) => e.from === s.id).flatMap((e) => e.relations.map((r) => `qd:${REL_META[r].en}`))
+    // 이 스페이스에 선 노드 타입들이 가질 수 있는 자료 속성 — 닫힌 셰이프는 관계뿐 아니라
+    // 속성까지 전부 열거해야 한다. 빠뜨리면 정상 레코드가 통째로 위반으로 잡힌다.
+    const props = [...new Set(s.types.flatMap((t) => (TYPE_PROPS[slug(t.en)] ?? []).map((p) => `qd:${p.name}`)))]
+    const allowed = ['rdf:type', 'rdfs:label', ...outs, ...props]
     L.push(`qd:${s.en}ClosedShape a sh:NodeShape ;`)
     L.push(`  sh:targetClass qd:${s.en} ;`)
     L.push('  sh:closed true ;')
-    L.push(`  sh:ignoredProperties ( rdf:type ${outs.join(' ')} ) ;`)
+    L.push(`  sh:ignoredProperties ( ${allowed.join(' ')} ) ;`)
     L.push(`  sh:severity sh:Violation ;`)
-    L.push(`  sh:message "${s.ko}에서 나갈 수 있는 관계는 ${outs.length}종뿐입니다"@ko .`)
+    L.push(`  sh:message "${s.ko}에서 나갈 수 있는 관계는 ${outs.length}종뿐입니다 — 문법에 없는 술어는 쓸 수 없습니다"@ko .`)
     L.push('')
   })
 
@@ -133,17 +160,20 @@ export function buildShacl(): string {
   L.push('    sh:message "분석셋에는 실명(driverName)을 둘 수 없습니다 — 가명키만 허용"@ko ;')
   L.push('  ] .')
   L.push('')
+  if (!withSparql) return L.join('\n')
+
   L.push('# 회차 연료는 구간값이어야 한다 (누적값 금지)')
+  L.push(`# 시내버스 CNG 실측 소모는 ${perKm(FUEL_PER_KM_MIN)}~${perKm(FUEL_PER_KM_MAX)} m³/km 범위에 모인다.`)
+  L.push('# 누적값이 들어오면 회차가 거듭될수록 거리 대비 연료가 끝없이 커진다 — 그 지점을 잡는다.')
   L.push('qd:TripFuelSegmentShape a sh:NodeShape ;')
   L.push('  sh:targetClass qd:Trip ;')
   L.push('  sh:sparql [')
   L.push('    sh:severity sh:Violation ;')
-  L.push('    sh:message "회차 연료가 직전 회차보다 단조 증가합니다 — 누적값이 들어온 것으로 보입니다"@ko ;')
+  L.push(`    sh:message "회차 연료가 주행거리 대비 과다합니다 (${perKm(FUEL_PER_KM_MAX)} m³/km 초과) — 구간값이 아니라 누적값이 들어온 것으로 보입니다"@ko ;`)
   L.push('    sh:select """')
-  L.push('      SELECT $this WHERE {')
-  L.push('        $this qd:fuelM3 ?f ; qd:performedBy ?v ; qd:startTime ?t .')
-  L.push('        ?prev qd:performedBy ?v ; qd:startTime ?pt ; qd:fuelM3 ?pf .')
-  L.push('        FILTER (?pt < ?t && ?f > ?pf * 1.8)')
+  L.push('      SELECT $this ?f ?d WHERE {')
+  L.push('        $this qd:fuelM3 ?f ; qd:distanceKm ?d .')
+  L.push(`        FILTER (?d > 0 && ?f / ?d > ${perKm(FUEL_PER_KM_MAX)})`)
   L.push('      }""" ;')
   L.push('  ] .')
 

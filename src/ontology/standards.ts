@@ -241,7 +241,8 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'routeName', datatype: 'xsd:string', required: true },
     { name: 'authorizedPath', datatype: 'geo:wktLiteral', required: true, note: '인가노선 — 정산 검증 기준' },
   ],
-  WorkOrder: [
+  // 노드 타입 이름과 정확히 같아야 한다 — 다르면 아무 인스턴스도 target되지 않는 유령 셰이프가 된다
+  PredictiveMaint: [
     { name: 'kind', datatype: 'xsd:string', required: true },
     { name: 'status', datatype: 'xsd:string', required: true, oneOf: ['초안', '발행됨'] },
     { name: 'estHours', datatype: 'xsd:decimal', required: true, min: 0 },
