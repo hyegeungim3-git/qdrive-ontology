@@ -137,9 +137,10 @@ export default function App() {
         </div>
 
         <div className="-mx-1 overflow-x-auto px-1">
-          <div className="flex min-w-[1320px] gap-3">
+          <div className="flex min-w-[1760px] gap-3">
             {GROUPS.map((g) => (
-              <div key={g.ko} className="min-w-0 flex-1">
+              // 그룹 폭을 단계 수에 비례시킨다 — 균등 분배하면 단계가 많은 그룹의 라벨이 잘린다
+              <div key={g.ko} className="min-w-0 flex-1" style={{ flexGrow: g.steps.length }}>
                 <div className="mb-1 flex items-baseline gap-1.5 px-0.5">
                   <span className="text-[11px] font-black text-pink-300">{g.ko}</span>
                   <span className="truncate text-[10.5px] text-gray-600">{g.desc}</span>
@@ -181,7 +182,7 @@ export default function App() {
         {step === 'chain' && <Chain snap={snap} />}
         {step === 'sim' && <Simulator snap={snap} />}
         {step === 'impact' && <Impact />}
-        {step === 'meta' && <ActiveMeta />}
+        {step === 'meta' && <ActiveMeta onGoto={setStep} />}
         {step === 'live' && <Live snap={snap} onGoto={setStep} />}
         {step === 'quarantine' && <Quarantine snap={snap} onGoto={setStep} />}
         {step === 'export' && <Export />}

@@ -25,6 +25,7 @@ export type QItem = {
   focus: string
   focusLabel: string
   focusType: string
+  focusSpace: string
   path: string
   constraint: string
   severity: Finding['severity']
@@ -81,6 +82,7 @@ export function enqueue(findings: Finding[], simTime: number): number {
       focus: f.focus,
       focusLabel: f.focusLabel,
       focusType: f.focusType,
+      focusSpace: f.focusSpace,
       path: f.path,
       constraint: f.constraint,
       severity: f.severity,
@@ -130,4 +132,142 @@ export function qStats(list: QItem[]) {
     blocked: held.filter((i) => !!waiverBlock(i)).length,
     outcomes: [...new Set(held.flatMap((i) => i.downstream))],
   }
+}
+
+/* ═══════════════ 격리 이력 → 액티브 메타데이터 ═══════════════
+   「액티브」 메타데이터라고 이름 붙였으면 실제로 움직여야 한다.
+   계보·의존성은 문법에서 나오지만, 사용량·파급은 **실제로 무슨 일이 있었나**에서 나온다.
+   레코드가 격리됐다는 것은 그것이 하류로 안 내려갔다는 뜻이고, 그게 곧 사용량의 사실이다. */
+
+export type SpaceBehavior = {
+  /** 이 스페이스에서 격리된 총 레코드 */
+  total: number
+  held: number
+  reprocessed: number
+  waived: number
+  sourceFix: number
+  /** 격리로 하류 전달이 막힌 성과 */
+  outcomes: string[]
+  /** 걸린 규칙들 */
+  rules: string[]
+}
+
+/** 스페이스 영문명(Evidence 등) 기준 — 데이터 그래프의 스페이스 클래스와 같은 값 */
+export function spaceBehavior(list: QItem[], spaceEn: string): SpaceBehavior | null {
+  const mine = list.filter((i) => i.focusSpace === spaceEn)
+  if (!mine.length) return null
+  const by = (s: QStatus) => mine.filter((i) => i.status === s).length
+  return {
+    total: mine.length,
+    held: by('격리'),
+    reprocessed: by('재처리'),
+    waived: by('예외 승인'),
+    sourceFix: by('원천 수정 요청'),
+    outcomes: [...new Set(mine.filter((i) => i.status === '격리').flatMap((i) => i.downstream))],
+    rules: [...new Set(mine.map((i) => `sh:${i.constraint} ${i.path}`))],
+  }
+}
+
+/* ═══════════════ 규칙 역제안 ═══════════════
+   큐는 규칙이 데이터에게 하는 말만 담는 곳이 아니다. 반대 방향도 있다.
+   같은 규칙이 계속 예외 승인으로 풀린다면, 틀린 것은 데이터가 아니라 규칙일 수 있다.
+
+   처리 방식의 분포가 곧 진단이다.
+     예외 승인이 많다  → 규칙이 현실과 안 맞는다      (규칙을 고쳐라)
+     재처리가 많다     → 원천이 일시적으로 흔들렸다   (규칙은 옳다, 단말·통신을 봐라)
+     원천 수정 요청 많음 → 원천이 계속 잘못 보낸다     (커넥터를 고쳐라)
+
+   단, 규정에서 온 규칙(NO_WAIVER)은 이 역제안의 대상이 아니다.
+   예외가 쌓였다고 「불이익 결정 자동화 금지」를 완화하자고 말하면 안 된다 — 현실을 규칙에 맞춰야 한다. */
+
+export type Verdict = '규칙 재검토' | '원천 점검' | '커넥터 점검' | '관찰 중'
+
+export type RuleFeedback = {
+  key: string
+  constraint: string
+  path: string
+  /** 규칙이 실제로 뱉은 메시지 — 무슨 규칙인지 사람이 알아보게 */
+  message: string
+  total: number
+  held: number
+  reprocessed: number
+  waived: number
+  sourceFix: number
+  verdict: Verdict
+  suggestion: string
+  /** 규정에서 온 규칙이라 완화 대상이 아닌 경우의 이유 */
+  protectedBy?: string
+  /** 담당자가 실제로 적은 사유 */
+  notes: string[]
+  spaces: string[]
+}
+
+/** 역제안이 켜지는 최소 건수 — 한 건으로 규칙을 바꾸자고 하면 그게 더 위험하다 */
+export const FEEDBACK_MIN = 2
+
+const SUGGEST: Record<string, string> = {
+  In: '개념 스페이스의 코드 목록이 현실을 못 담고 있습니다. 다만 표준을 늘리기 전에 원천 매핑부터 보세요 — 표준 밖 값이 들어오는 건 대개 매핑 문제입니다.',
+  MaxInclusive: '상한이 실측 분포와 안 맞습니다. 실제 값 분포를 다시 재고 임계값을 조정하세요.',
+  MinInclusive: '하한이 실측 분포와 안 맞습니다. 실제 값 분포를 다시 재고 임계값을 조정하세요.',
+  MinCount: '필수 지정이 과할 수 있습니다. 이 관계·속성이 정말 모든 레코드에 있어야 하는지 문법에서 다시 판단하세요.',
+  MaxCount: '카디널리티가 현실과 다릅니다. 문법의 1:N·N:M 지정을 다시 보세요.',
+  Closed: '문법에 없는 술어가 반복 유입됩니다. 관계 어휘에 추가할지, 원천에서 뺄지 결정해야 합니다.',
+  SPARQL: '임계값을 실측 분포로 재산정하세요. 규칙의 방향은 맞지만 경계가 어긋난 경우입니다.',
+}
+
+export function ruleFeedback(list: QItem[]): RuleFeedback[] {
+  const groups = new Map<string, QItem[]>()
+  list.forEach((i) => {
+    const k = `${i.constraint}:${i.path}`
+    groups.set(k, [...(groups.get(k) ?? []), i])
+  })
+
+  return [...groups.entries()]
+    .map(([key, items]) => {
+      const n = (s: QStatus) => items.filter((i) => i.status === s).length
+      const waived = n('예외 승인')
+      const reprocessed = n('재처리')
+      const sourceFix = n('원천 수정 요청')
+      const resolved = waived + reprocessed + sourceFix
+      const protectedBy = NO_WAIVER[key]
+
+      let verdict: Verdict = '관찰 중'
+      let suggestion = `아직 처리 이력이 적습니다 — 같은 규칙이 ${FEEDBACK_MIN}건 이상 같은 방식으로 풀리면 진단을 냅니다.`
+      if (waived >= FEEDBACK_MIN && waived * 2 >= resolved) {
+        verdict = '규칙 재검토'
+        suggestion = SUGGEST[items[0].constraint] ?? '같은 규칙이 반복해서 예외로 풀립니다. 규칙 정의를 다시 보세요.'
+      } else if (reprocessed >= FEEDBACK_MIN && reprocessed * 2 >= resolved) {
+        verdict = '원천 점검'
+        suggestion = '규칙은 유지하세요 — 재처리로 풀린 건이 많다는 것은 원천이 일시적으로 흔들렸다는 뜻입니다. 단말·통신 쪽을 보세요.'
+      } else if (sourceFix >= FEEDBACK_MIN && sourceFix * 2 >= resolved) {
+        verdict = '커넥터 점검'
+        suggestion = '원천 시스템이 계속 규격을 어기고 있습니다. 커넥터의 정규화·매핑 규칙을 고쳐야 합니다.'
+      }
+
+      // 규정에서 온 규칙은 예외가 쌓여도 완화 대상이 아니다
+      if (protectedBy && verdict === '규칙 재검토') verdict = '관찰 중'
+
+      return {
+        key,
+        constraint: items[0].constraint,
+        path: items[0].path,
+        message: items[0].message,
+        total: items.length,
+        held: n('격리'),
+        reprocessed,
+        waived,
+        sourceFix,
+        verdict,
+        suggestion: protectedBy
+          ? '이 규칙은 규정에서 왔습니다 — 예외가 쌓여도 완화 근거가 되지 않습니다. 규칙이 아니라 현실을 고쳐야 합니다.'
+          : suggestion,
+        protectedBy,
+        notes: items.map((i) => i.note).filter((x): x is string => !!x),
+        spaces: [...new Set(items.map((i) => i.focusSpace))],
+      }
+    })
+    .sort((a, b) => {
+      const rank = (v: Verdict) => (v === '규칙 재검토' ? 0 : v === '커넥터 점검' ? 1 : v === '원천 점검' ? 2 : 3)
+      return rank(a.verdict) - rank(b.verdict) || b.total - a.total
+    })
 }

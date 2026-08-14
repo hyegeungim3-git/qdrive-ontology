@@ -1,7 +1,20 @@
 import { useState } from 'react'
 import { Panel } from '../components/ui'
 import { Drawer, Sec } from './ui'
-import { ACTIONS, clearAll, qStats, reopen, resolve, useQuarantine, waiverBlock, type QAction, type QItem } from './quarantine'
+import {
+  ACTIONS,
+  FEEDBACK_MIN,
+  clearAll,
+  qStats,
+  reopen,
+  resolve,
+  ruleFeedback,
+  useQuarantine,
+  waiverBlock,
+  type QAction,
+  type QItem,
+  type RuleFeedback,
+} from './quarantine'
 import type { SimSnapshot } from '../sim/types'
 
 /**
@@ -153,6 +166,8 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
         </Panel>
       )}
 
+      {s.done > 0 && <Feedback rows={ruleFeedback(list)} />}
+
       <Drawer
         open={!!open}
         onClose={() => {
@@ -276,6 +291,105 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
         )}
       </Drawer>
     </div>
+  )
+}
+
+const VERDICT_TONE: Record<RuleFeedback['verdict'], string> = {
+  '규칙 재검토': '#fb7185',
+  '커넥터 점검': '#a78bfa',
+  '원천 점검': '#38bdf8',
+  '관찰 중': '#6b7280',
+}
+
+/**
+ * 규칙 역제안 — 큐가 문법에게 말을 건다.
+ * 여기까지 와야 고리가 닫힌다: 문법이 데이터를 막고, 막힌 이력이 문법을 고치자고 제안한다.
+ */
+function Feedback({ rows }: { rows: RuleFeedback[] }) {
+  const live = rows.filter((r) => r.verdict !== '관찰 중')
+  return (
+    <Panel
+      title="규칙 역제안 — 큐가 문법에게 말을 건다"
+      right={<span className="text-[11px] text-gray-500">처리 {FEEDBACK_MIN}건 이상 같은 방향이면 진단</span>}
+    >
+      <p className="mb-3 break-keep text-[12.5px] leading-relaxed text-gray-400">
+        같은 규칙이 계속 <b className="text-gray-200">예외 승인</b>으로 풀린다면, 틀린 것은 데이터가 아니라 규칙일 수 있습니다.{' '}
+        <b className="text-gray-200">처리 방식의 분포가 곧 진단</b>입니다 — 예외 승인이 많으면 규칙을, 재처리가 많으면 원천을, 원천 수정 요청이 많으면
+        커넥터를 봐야 합니다.
+      </p>
+
+      <div className="-mx-1 overflow-x-auto px-1">
+        <table className="w-full min-w-[820px] border-collapse text-[11.5px]">
+          <thead>
+            <tr className="border-b border-gray-800 text-left text-[10.5px] text-gray-500">
+              <th className="py-1.5 pr-2 font-semibold">규칙</th>
+              <th className="py-1.5 pr-2 text-right font-semibold">격리</th>
+              <th className="py-1.5 pr-2 text-right font-semibold">재처리</th>
+              <th className="py-1.5 pr-2 text-right font-semibold">예외 승인</th>
+              <th className="py-1.5 pr-2 text-right font-semibold">수정 요청</th>
+              <th className="py-1.5 pr-2 font-semibold">진단</th>
+              <th className="py-1.5 font-semibold">제안</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key} className="border-b border-gray-800/60 align-top">
+                <td className="py-1.5 pr-2">
+                  <div className="whitespace-nowrap font-mono text-[11px] text-violet-300">
+                    sh:{r.constraint} <span className="text-sky-300">{r.path}</span>
+                  </div>
+                  <div className="break-keep text-[10.5px] text-gray-600">{r.spaces.join(' · ')}</div>
+                </td>
+                <Num v={r.held} />
+                <Num v={r.reprocessed} tone="#38bdf8" />
+                <Num v={r.waived} tone="#f59e0b" />
+                <Num v={r.sourceFix} tone="#a78bfa" />
+                <td className="py-1.5 pr-2">
+                  <span
+                    className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-black"
+                    style={{
+                      color: VERDICT_TONE[r.verdict],
+                      background: `${VERDICT_TONE[r.verdict]}1f`,
+                      border: `1px solid ${VERDICT_TONE[r.verdict]}55`,
+                    }}
+                  >
+                    {r.verdict}
+                  </span>
+                  {r.protectedBy && <div className="mt-0.5 whitespace-nowrap text-[10px] font-semibold text-amber-400">규정 보호</div>}
+                </td>
+                <td className="py-1.5 break-keep text-gray-400">
+                  {r.suggestion}
+                  {r.notes.length > 0 && (
+                    <div className="mt-1 border-l-2 border-gray-700 pl-2 text-[10.5px] leading-relaxed text-gray-500">
+                      담당자 사유: {r.notes.map((n) => `“${n}”`).join(' · ')}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        ⚖️ <b className="text-gray-300">완화하면 안 되는 규칙은 제외합니다</b> — 「불이익 결정 자동화 금지」·「가명 처리」처럼 규정에서 온 규칙은 예외가
+        쌓여도 «규칙 재검토»로 올리지 않습니다. 예외가 많다는 건 그 규칙이 틀렸다는 뜻이 아니라{' '}
+        <b className="text-gray-300">현실을 고쳐야 한다는 뜻</b>이기 때문입니다. 그렇지 않으면 이 화면 자체가 규정을 무력화하는 통로가 됩니다.
+        {live.length === 0 && (
+          <div className="mt-1.5 text-gray-500">
+            지금은 진단으로 올라온 규칙이 없습니다 — 같은 규칙을 {FEEDBACK_MIN}건 이상 같은 방식으로 처리하면 여기에 나타납니다.
+          </div>
+        )}
+      </div>
+    </Panel>
+  )
+}
+
+function Num({ v, tone }: { v: number; tone?: string }) {
+  return (
+    <td className="py-1.5 pr-2 text-right font-bold tabular-nums" style={{ color: v > 0 ? (tone ?? '#e5e7eb') : '#4b5563' }}>
+      {v}
+    </td>
   )
 }
 

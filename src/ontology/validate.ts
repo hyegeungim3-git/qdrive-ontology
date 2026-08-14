@@ -22,6 +22,8 @@ export type Finding = {
   focusLabel: string
   /** 노드 타입 — 격리 큐에서 «어떤 종류의 레코드인가» */
   focusType: string
+  /** 스페이스 — 격리 이력이 어느 스페이스의 메타데이터를 갱신하는가 */
+  focusSpace: string
   path: string
   constraint: string
   severity: 'Violation' | 'Warning' | 'Info'
@@ -94,6 +96,7 @@ export async function runValidation(snap: SimSnapshot, faults: Set<FaultId>): Pr
         focus: short(r.focusNode?.value),
         focusLabel: labels.get(r.focusNode?.value ?? '') ?? '',
         focusType: graph.index.type[iri] ?? '',
+        focusSpace: graph.index.space[iri] ?? '',
         path,
         constraint: short(r.sourceConstraintComponent?.value).replace(/ConstraintComponent$/, ''),
         severity: (short(r.severity?.value) || 'Violation') as Finding['severity'],
@@ -110,6 +113,7 @@ export async function runValidation(snap: SimSnapshot, faults: Set<FaultId>): Pr
         focus: c.focus.replace('qdi:', ''),
         focusLabel: c.label,
         focusType: graph.index.type[c.focus] ?? 'Trip',
+        focusSpace: graph.index.space[c.focus] ?? 'Evidence',
         path: 'fuelM3',
         constraint: 'SPARQL',
         severity: 'Violation',

@@ -2,15 +2,20 @@ import { useState } from 'react'
 import { Panel } from '../components/ui'
 import { SPACES, spaceOf, type SpaceId } from './meta'
 import { META_LAYERS, SPACE_META, metaValue } from './impactmeta'
+import { spaceBehavior, useQuarantine, type SpaceBehavior } from './quarantine'
 
 /**
  * ⑤ 액티브 메타데이터 — 노드마다 따라다니는 4계층 12속성.
  * "이 데이터를 얼마나 믿을 수 있고, 얼마나 조심해서 다뤄야 하나"를 값으로 들고 다닌다.
  */
-export default function ActiveMeta() {
+export default function ActiveMeta({ onGoto }: { onGoto: (s: 'quarantine') => void }) {
   const [pick, setPick] = useState<SpaceId>('evidence')
   const sp = spaceOf(pick)
   const pii = SPACE_META[pick].pii
+  // 격리 이력 — 계보·의존성이 문법에서 나온다면, 사용량·파급의 라이브 부분은 실제로 있었던 일에서 나온다
+  const queue = useQuarantine()
+  const bhv = spaceBehavior(queue, sp.en)
+  const anyQueue = queue.length > 0
 
   /** 요약 표에 보여줄 핵심 4속성 */
   const KEY_ATTRS = [
@@ -111,8 +116,23 @@ export default function ActiveMeta() {
               <div className="space-y-2">
                 {l.attrs.map((a) => (
                   <div key={a.key}>
-                    <div className="text-[10.5px] font-semibold text-gray-500">{a.ko}</div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10.5px] font-semibold text-gray-500">{a.ko}</span>
+                      {bhv && (a.key === 'usage' || a.key === 'effect') && (
+                        <span className="rounded bg-rose-400/15 px-1 py-px text-[9px] font-black text-rose-300">라이브</span>
+                      )}
+                    </div>
                     <div className="break-keep text-[11.5px] leading-relaxed text-gray-200">{metaValue(pick, a.key)}</div>
+                    {bhv && a.key === 'usage' && (
+                      <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-rose-300">
+                        + 격리로 하류 전달이 막힌 레코드 {bhv.total}건 (보류 {bhv.held} · 처리 {bhv.total - bhv.held})
+                      </div>
+                    )}
+                    {bhv && a.key === 'effect' && (
+                      <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-rose-300">
+                        + {bhv.outcomes.length ? `보류로 지금 흔들리는 성과: ${bhv.outcomes.join(' · ')}` : '보류 중인 레코드가 닿는 성과 없음'}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -122,8 +142,78 @@ export default function ActiveMeta() {
 
         <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 break-keep text-[11.5px] leading-relaxed text-gray-300">
           <b className="text-emerald-400">계보 · 의존성 · 사용량 · 파급은 손으로 적지 않습니다</b> — 문법(스페이스·관계)에서 계산됩니다. 관계를 하나
-          추가하면 의존성과 파급이 자동으로 갱신되므로, 메타데이터가 실제와 어긋날 일이 없습니다.
+          추가하면 의존성과 파급이 자동으로 갱신되므로, 메타데이터가 실제와 어긋날 일이 없습니다. 여기에 더해{' '}
+          <b className="text-rose-300">행동 계층은 격리 큐에서 실시간으로 갱신</b>됩니다 — 「액티브」라고 이름 붙였으면 실제로 움직여야 합니다.
         </div>
+      </Panel>
+
+      <Panel
+        title="격리 이력이 메타데이터를 갱신한다"
+        right={
+          <button
+            onClick={() => onGoto('quarantine')}
+            className="rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            ⑩ 격리 큐 →
+          </button>
+        }
+      >
+        <p className="mb-2.5 break-keep text-[12.5px] leading-relaxed text-gray-400">
+          계보·의존성은 <b className="text-gray-200">문법</b>에서 나옵니다. 사용량·파급의 라이브 부분은{' '}
+          <b className="text-gray-200">실제로 있었던 일</b>에서 나옵니다 — 레코드가 격리됐다는 것은 그것이 하류로 안 내려갔다는 뜻이고, 그 자체가
+          사용량의 사실입니다.
+        </p>
+
+        {!anyQueue ? (
+          <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-5 text-center break-keep text-[12px] text-gray-500">
+            아직 격리 이력이 없습니다 — ⑨ 실검증에서 결함을 주입하면 여기 행동 계층이 실제로 움직입니다.
+          </div>
+        ) : (
+          <div className="-mx-1 overflow-x-auto px-1">
+            <table className="w-full min-w-[720px] border-collapse text-[11.5px]">
+              <thead>
+                <tr className="border-b border-gray-800 text-left text-[10.5px] text-gray-500">
+                  <th className="py-1.5 pr-2 font-semibold">스페이스</th>
+                  <th className="py-1.5 pr-2 text-right font-semibold">격리 총</th>
+                  <th className="py-1.5 pr-2 text-right font-semibold">보류</th>
+                  <th className="py-1.5 pr-2 font-semibold">걸린 규칙</th>
+                  <th className="py-1.5 font-semibold">보류로 흔들리는 성과</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SPACES.map((s) => ({ s, b: spaceBehavior(queue, s.en) }))
+                  .filter((x): x is { s: (typeof SPACES)[number]; b: SpaceBehavior } => !!x.b)
+                  .map(({ s, b }) => (
+                    <tr
+                      key={s.id}
+                      onClick={() => setPick(s.id)}
+                      className={`cursor-pointer border-b border-gray-800/60 align-top transition-colors hover:bg-gray-800/40 ${
+                        pick === s.id ? 'bg-gray-800/50' : ''
+                      }`}
+                    >
+                      <td className="py-1.5 pr-2 font-bold" style={{ color: s.color }}>
+                        {s.ko}
+                      </td>
+                      <td className="py-1.5 pr-2 text-right font-bold tabular-nums text-gray-200">{b.total}</td>
+                      <td className={`py-1.5 pr-2 text-right font-bold tabular-nums ${b.held > 0 ? 'text-rose-300' : 'text-gray-600'}`}>{b.held}</td>
+                      <td className="py-1.5 pr-2">
+                        <div className="flex flex-wrap gap-1">
+                          {b.rules.map((r) => (
+                            <span key={r} className="whitespace-nowrap rounded bg-gray-800 px-1.5 py-0.5 font-mono text-[10.5px] text-violet-300">
+                              {r}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-1.5 break-keep text-gray-400">
+                        {b.outcomes.length ? b.outcomes.join(' · ') : <span className="text-gray-600">없음</span>}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Panel>
     </div>
   )
