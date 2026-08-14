@@ -1,5 +1,7 @@
 import { META_EDGES, SPACES, spaceOf } from './meta'
 import { REL_META, TYPE_PROPS } from './standards'
+import { DISABLED_RULES, FUEL_LIMIT, perKm } from './rules'
+import { currentVersion } from './grammar'
 
 /**
  * SHACL 셰이프 생성 — OWL은 어휘를 정의할 뿐 검사하지 않는다. 실제로 막는 것은 SHACL이다.
@@ -12,14 +14,7 @@ import { REL_META, TYPE_PROPS } from './standards'
 
 const slug = (en: string) => en.replace(/[^A-Za-z0-9]/g, '')
 
-/**
- * 회차 연비의 상식 범위 (m³/km). 시뮬레이터 실측 회차는 0.54~0.63에 모인다.
- * 상한을 1.0으로 두면 정상 회차는 전부 통과하고, 누적값이 섞이면 바로 벗어난다.
- */
-export const FUEL_PER_KM_MIN = 0.3
-export const FUEL_PER_KM_MAX = 1.0
-/** 메시지에 «1»이 아니라 «1.0»으로 보이게 — 임계값은 자릿수까지 규격이다 */
-export const perKm = (n: number) => n.toFixed(1)
+export { FUEL_LIMIT, perKm } from './rules'
 
 /** 심각도 — 핵심 사슬이거나 필수 관계면 Violation, 나머지는 Warning */
 const severityOf = (core: boolean, required: boolean) => (core || required ? 'sh:Violation' : 'sh:Warning')
@@ -46,7 +41,7 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
     '@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .',
     '',
     '# ═══════════════════════════════════════════════════════════',
-    '# Qdrive 온톨로지 SHACL 제약 v1.0',
+    `# Qdrive 온톨로지 SHACL 제약 ${currentVersion()}`,
     '#',
     '# 적재 시점에 이 셰이프로 검사한다. 통과하지 못한 레코드는 저장되지 않고',
     '# 보류 큐로 간다 — 데이터 관리자의 품질 격리 큐와 같은 원리.',
@@ -130,16 +125,19 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
 
   /* ── 4) 도메인 규칙 — 문법을 넘어선 업무 원칙 ── */
   L.push('# ── 4. 도메인 규칙 — 문법이 아니라 업무 원칙 ──', '')
-  L.push('# 판정은 근거(관측) 없이 존재할 수 없다')
-  L.push('qd:ClaimNeedsEvidenceShape a sh:NodeShape ;')
-  L.push('  sh:targetClass qd:Claim ;')
-  L.push('  sh:property [')
-  L.push('    sh:path [ sh:inversePath qd:supports ] ;')
-  L.push('    sh:minCount 1 ;')
-  L.push('    sh:severity sh:Violation ;')
-  L.push('    sh:message "근거 관측이 없는 판정은 만들 수 없습니다"@ko ;')
-  L.push('  ] .')
-  L.push('')
+  // 문법 개정으로 꺼진 규칙은 아예 내보내지 않는다 — 꺼 놓고 파일에는 남기면 어느 쪽이 진짜인지 알 수 없다
+  if (!DISABLED_RULES.has('ClaimNeedsEvidence')) {
+    L.push('# 판정은 근거(관측) 없이 존재할 수 없다')
+    L.push('qd:ClaimNeedsEvidenceShape a sh:NodeShape ;')
+    L.push('  sh:targetClass qd:Claim ;')
+    L.push('  sh:property [')
+    L.push('    sh:path [ sh:inversePath qd:supports ] ;')
+    L.push('    sh:minCount 1 ;')
+    L.push('    sh:severity sh:Violation ;')
+    L.push('    sh:message "근거 관측이 없는 판정은 만들 수 없습니다"@ko ;')
+    L.push('  ] .')
+    L.push('')
+  }
   L.push('# 불이익으로 이어지는 판정은 사람이 확정해야 한다')
   L.push('qd:NoAutoAdverseShape a sh:NodeShape ;')
   L.push('  sh:targetClass qd:JustifyVerdict ;')
@@ -163,17 +161,17 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
   if (!withSparql) return L.join('\n')
 
   L.push('# 회차 연료는 구간값이어야 한다 (누적값 금지)')
-  L.push(`# 시내버스 CNG 실측 소모는 ${perKm(FUEL_PER_KM_MIN)}~${perKm(FUEL_PER_KM_MAX)} m³/km 범위에 모인다.`)
+  L.push(`# 시내버스 CNG 실측 소모는 ${perKm(FUEL_LIMIT.min)}~${perKm(FUEL_LIMIT.max)} m³/km 범위에 모인다.`)
   L.push('# 누적값이 들어오면 회차가 거듭될수록 거리 대비 연료가 끝없이 커진다 — 그 지점을 잡는다.')
   L.push('qd:TripFuelSegmentShape a sh:NodeShape ;')
   L.push('  sh:targetClass qd:Trip ;')
   L.push('  sh:sparql [')
   L.push('    sh:severity sh:Violation ;')
-  L.push(`    sh:message "회차 연료가 주행거리 대비 과다합니다 (${perKm(FUEL_PER_KM_MAX)} m³/km 초과) — 구간값이 아니라 누적값이 들어온 것으로 보입니다"@ko ;`)
+  L.push(`    sh:message "회차 연료가 주행거리 대비 과다합니다 (${perKm(FUEL_LIMIT.max)} m³/km 초과) — 구간값이 아니라 누적값이 들어온 것으로 보입니다"@ko ;`)
   L.push('    sh:select """')
   L.push('      SELECT $this ?f ?d WHERE {')
   L.push('        $this qd:fuelM3 ?f ; qd:distanceKm ?d .')
-  L.push(`        FILTER (?d > 0 && ?f / ?d > ${perKm(FUEL_PER_KM_MAX)})`)
+  L.push(`        FILTER (?d > 0 && ?f / ?d > ${perKm(FUEL_LIMIT.max)})`)
   L.push('      }""" ;')
   L.push('  ] .')
 

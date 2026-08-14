@@ -5,6 +5,7 @@ import { META_LAYERS, SPACE_IMPACTS } from './impactmeta'
 import { buildShacl } from './shacl'
 import { REL_META, SPACE_ALIGN, STANDARDS, TYPE_ALIGN } from './standards'
 import { ruleFeedback, useQuarantine, waiverBlock, type QItem } from './quarantine'
+import { currentVersion } from './grammar'
 
 /**
  * ⑧ 내보내기 — 문법을 표준 형식으로 꺼낸다.
@@ -22,7 +23,7 @@ function buildJsonLd() {
         rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
         ko: 'https://qdrive.ai/ontology/ko',
       },
-      '@id': 'https://qdrive.ai/ontology/v1.0',
+      '@id': `https://qdrive.ai/ontology/${currentVersion()}`,
       version: '1.0.0',
       title: 'Qdrive 대구 시내버스 운행 온톨로지',
       standards: STANDARDS.map((x) => ({ '@id': x.prefix, uri: x.uri, ko: x.ko, org: x.org })),
@@ -107,7 +108,7 @@ function buildTurtle() {
 }
 
 function buildCypher() {
-  const L: string[] = ['// Qdrive 온톨로지 v1.0 — Neo4j 스키마', '// 노드 키 제약조건']
+  const L: string[] = [`// Qdrive 온톨로지 ${currentVersion()} — Neo4j 스키마`, '// 노드 키 제약조건']
   SPACES.forEach((s) => {
     s.types.forEach((t) => {
       L.push(`CREATE CONSTRAINT ${slug(t.en).toLowerCase()}_id IF NOT EXISTS FOR (n:${slug(t.en)}) REQUIRE n.id IS UNIQUE;`)
@@ -131,7 +132,7 @@ function buildCypher() {
 
 function buildMarkdown() {
   const L: string[] = [
-    '# Qdrive 온톨로지 문법 v1.0',
+    `# Qdrive 온톨로지 문법 ${currentVersion()}`,
     '',
     '대구 시내버스 운행 데이터의 의미 구조. 스페이스 9개와 그 사이에 허용된 관계만으로 이루어진다.',
     '',
@@ -295,7 +296,7 @@ export default function Export() {
     const blob = new Blob([text], { type: f.mime })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = f.key === 'audit' ? `qdrive-격리이력.${f.ext}` : `qdrive-ontology-v1.0.${f.ext}`
+    a.download = f.key === 'audit' ? `qdrive-격리이력.${f.ext}` : `qdrive-ontology-${currentVersion()}.${f.ext}`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -343,7 +344,7 @@ export default function Export() {
           >
             ⬇ 파일로 저장
           </button>
-          <span className="text-[11px] text-gray-500">qdrive-ontology-v1.0.{f.ext}</span>
+          <span className="text-[11px] text-gray-500">qdrive-ontology-{currentVersion()}.{f.ext}</span>
         </div>
 
         <pre className="mt-2 max-h-[420px] overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-3 text-[11px] leading-relaxed text-gray-300">

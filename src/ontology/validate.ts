@@ -2,6 +2,7 @@ import D from '@rdfjs/dataset'
 import { Parser, type Quad } from 'n3'
 import SHACLValidator from 'rdf-validate-shacl'
 import { buildShacl } from './shacl'
+import { currentVersion } from './grammar'
 import { buildDataGraph, checkFuelPerKm, downstream, type FaultId, type GraphResult } from './rdf'
 import type { SimSnapshot } from '../sim/types'
 
@@ -47,12 +48,17 @@ export type RunResult = {
 
 const short = (v?: string) => (v ?? '').replace(/^https:\/\/qdrive\.ai\/(ontology|id)\//, '').replace(/^http.*[#/]/, '')
 
-/** 셰이프 그래프는 스냅샷과 무관하니 한 번만 파싱해 재사용한다 */
-let shapesCache: { turtle: string; quads: Quad[] } | null = null
+/**
+ * 셰이프 그래프는 스냅샷과 무관하니 파싱 결과를 재사용한다.
+ * 다만 **문법 버전에 묶어 둔다** — 발행으로 문법이 바뀌었는데 옛 셰이프로 계속 검사하면
+ * 「발행했다」가 거짓말이 된다. 실제로 이 캐시 때문에 v1.1 발행 후에도 v1.0 규칙이 돌았다.
+ */
+let shapesCache: { key: string; turtle: string; quads: Quad[] } | null = null
 function shapes() {
-  if (!shapesCache) {
+  const key = currentVersion()
+  if (!shapesCache || shapesCache.key !== key) {
     const turtle = buildShacl({ sparql: false })
-    shapesCache = { turtle, quads: new Parser().parse(turtle) }
+    shapesCache = { key, turtle, quads: new Parser().parse(turtle) }
   }
   return shapesCache
 }

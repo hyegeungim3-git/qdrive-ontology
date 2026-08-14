@@ -6,11 +6,14 @@ import { useSim } from './sim/store'
 import ActiveMeta from './ontology/ActiveMeta'
 import Chain from './ontology/Chain'
 import Export from './ontology/Export'
-import Grammar from './ontology/Grammar'
+// 파일명 주의: 컴포넌트를 Grammar.tsx로 두면 저장소 grammar.ts와 Windows에서 충돌한다 (TS1149)
+import Grammar from './ontology/GrammarView'
 import Impact from './ontology/Impact'
 import Live from './ontology/Live'
 // 파일명 주의: 컴포넌트를 Quarantine.tsx로 두면 저장소 quarantine.ts와 Windows에서 충돌한다 (TS1149)
 import Quarantine from './ontology/QuarantineView'
+import Release from './ontology/Release'
+import { currentVersion, useDraft, useGrammar } from './ontology/grammar'
 import Simulator from './ontology/Simulator'
 import StdAlign from './ontology/StdAlign'
 import SpaceGraph from './ontology/SpaceGraph'
@@ -54,7 +57,13 @@ const GROUPS = [
       { id: 'meta', n: '⑧', label: '액티브 메타데이터', desc: '값에 대한 값 4계층 12속성' },
       { id: 'live', n: '⑨', label: 'SHACL 실검증', desc: '제약을 실제로 돌려본다' },
       { id: 'quarantine', n: '⑩', label: '격리 큐', desc: '막힌 레코드는 어디로 가나' },
-      { id: 'export', n: '⑪', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
+    ],
+  },
+  {
+    ko: '개정', desc: '고치고 내보낸다',
+    steps: [
+      { id: 'release', n: '⑪', label: '문법 발행', desc: '제안에서 멈추지 않는다' },
+      { id: 'export', n: '⑫', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
     ],
   },
 ] as const
@@ -77,6 +86,9 @@ export default function App() {
   }
 
   const held = qStats(useQuarantine()).held
+  // 발행하면 문법 정의 자체가 바뀐다 — 화면이 옛 정의를 들고 있으면 안 되므로 통째로 다시 그린다
+  const gv = `${currentVersion()}·${useGrammar().length}`
+  const draftCount = useDraft().length
   const typeCount = SPACES.reduce((n, s) => n + s.types.length, 0)
   const instances = SPACES.reduce((n, s) => n + s.types.reduce((m, t) => m + t.count(snap), 0), 0)
   const relations = new Set(META_EDGES.flatMap((e) => e.relations)).size
@@ -125,7 +137,7 @@ export default function App() {
             </p>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-pink-400/30 bg-pink-400/10 px-2.5 py-1 text-[11px] font-bold text-pink-300">
-            문법 v1.0 · 9 스페이스
+            문법 {currentVersion()} · 9 스페이스 · 관계 {relations}종
           </span>
         </div>
 
@@ -148,7 +160,7 @@ export default function App() {
         </div>
 
         <div className="-mx-1 overflow-x-auto px-1">
-          <div className="flex min-w-[1760px] gap-3">
+          <div className="flex min-w-[1920px] gap-3">
             {GROUPS.map((g) => (
               // 그룹 폭을 단계 수에 비례시킨다 — 균등 분배하면 단계가 많은 그룹의 라벨이 잘린다
               <div key={g.ko} className="min-w-0 flex-1" style={{ flexGrow: g.steps.length }}>
@@ -175,6 +187,11 @@ export default function App() {
                               {held}
                             </span>
                           )}
+                          {s.id === 'release' && draftCount > 0 && (
+                            <span className="ml-auto shrink-0 rounded-full border border-emerald-400/50 bg-emerald-400/15 px-1.5 text-[10px] font-black tabular-nums text-emerald-300">
+                              {draftCount}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-0.5 truncate text-[10.5px] leading-tight text-gray-500">{s.desc}</div>
                       </button>
@@ -186,17 +203,20 @@ export default function App() {
           </div>
         </div>
 
-        {step === 'spaces' && <SpaceGraph snap={snap} />}
-        {step === 'grammar' && <Grammar />}
-        {step === 'standards' && <StdAlign />}
-        {step === 'validator' && <Validator key={`v${seq}`} preset={preset.validator} />}
-        {step === 'chain' && <Chain snap={snap} />}
-        {step === 'sim' && <Simulator snap={snap} />}
-        {step === 'impact' && <Impact key={`i${seq}`} preset={preset.impact} />}
-        {step === 'meta' && <ActiveMeta onGoto={jump} />}
-        {step === 'live' && <Live snap={snap} onGoto={jump} faults={faults} setFaults={setFaults} />}
-        {step === 'quarantine' && <Quarantine snap={snap} onGoto={jump} />}
-        {step === 'export' && <Export />}
+        <div key={gv}>
+          {step === 'spaces' && <SpaceGraph snap={snap} />}
+          {step === 'grammar' && <Grammar />}
+          {step === 'standards' && <StdAlign />}
+          {step === 'validator' && <Validator key={`v${seq}`} preset={preset.validator} />}
+          {step === 'chain' && <Chain snap={snap} />}
+          {step === 'sim' && <Simulator snap={snap} />}
+          {step === 'impact' && <Impact key={`i${seq}`} preset={preset.impact} />}
+          {step === 'meta' && <ActiveMeta onGoto={jump} />}
+          {step === 'live' && <Live snap={snap} onGoto={jump} faults={faults} setFaults={setFaults} />}
+          {step === 'quarantine' && <Quarantine snap={snap} onGoto={jump} />}
+          {step === 'release' && <Release snap={snap} onGoto={jump} />}
+          {step === 'export' && <Export />}
+        </div>
 
         <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
           🧭 <b className="text-gray-300">왜 문법을 먼저 정하나</b> — 데이터가 늘어날 때 관계 어휘를 그때그때 만들면, 나중에 다른 도시·다른 사업자

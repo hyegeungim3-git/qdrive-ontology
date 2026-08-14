@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from 'react'
-import { META_EDGES, SPACES, type SpaceId } from './meta'
+import { META_EDGES, SPACES, spaceOf, type SpaceId } from './meta'
 import type { ChangeKind } from './impactmeta'
 import { REL_META } from './standards'
+import { FUEL_LIMIT, perKm } from './rules'
+import type { Amendment } from './grammar'
 import type { Finding } from './validate'
 
 /**
@@ -255,6 +257,85 @@ export function validatorPreset(f: RuleFeedback): { from: SpaceId; to: SpaceId; 
   const to = META_EDGES.find((e) => e.relations.includes(ko))?.to
   if (!to || to === from) return null
   return { from, to, rel: ko }
+}
+
+/**
+ * 역제안을 개정안 항목으로 바꾼다.
+ *
+ * 「고치자」에서 「고쳤다」로 가려면 무엇을 어떻게 고칠지가 기계가 실행할 수 있는 형태여야 한다.
+ * 제약 종류마다 실제로 손대는 자리가 다르다 — 관계 목록 / 필수 표시 / 열거값 / 값 범위 / 임계값 / 도메인 규칙.
+ * 여기서 만들지 못하는 제약은 개정안에 담을 수 없다(= 화면에 버튼이 안 뜬다). 억지로 담는 것보다 낫다.
+ */
+export function toAmendment(f: RuleFeedback): Amendment | null {
+  if (NO_WAIVER[f.key]) return null // 규정에서 온 규칙은 개정 대상이 아니다
+  const ch = ruleChange(f)
+  if (!ch) return null
+  const basis = { held: f.held, waived: f.waived, notes: f.notes }
+  const base = { id: f.key, space: ch.space, change: ch.change, basis }
+
+  switch (f.constraint) {
+    case 'Closed': {
+      const p = validatorPreset(f)
+      if (!p) return null
+      return {
+        ...base,
+        kind: 'relAdd',
+        ko: `${spaceOf(p.from).ko} → ${spaceOf(p.to).ko} 에 «${p.rel}» 허용`,
+        detail: `지금까지 문법에 없던 방향입니다. 열면 이 조합이 ④ 문법 검증에서 «허용»으로 바뀌고, ⑨ SHACL이 더 이상 막지 않습니다.`,
+        payload: { from: p.from, to: p.to, rel: p.rel, bow: 78 },
+      }
+    }
+    case 'MinCount': {
+      // 역경로(← supports)는 관계의 카디널리티가 아니라 도메인 규칙이다 — 손대는 자리가 다르다
+      if (f.path.startsWith('←')) {
+        return {
+          ...base,
+          kind: 'domainRuleOff',
+          ko: '「근거 없는 판정 금지」 규칙 해제',
+          detail: '판정이 근거 관측 없이도 존재할 수 있게 됩니다. 핵심 사슬을 느슨하게 하는 개정이라 승인에 주의가 필요합니다.',
+          payload: { rule: 'ClaimNeedsEvidence' },
+        }
+      }
+      const ko = Object.keys(REL_META).find((k) => REL_META[k].en === f.path)
+      if (!ko) return null
+      return {
+        ...base,
+        kind: 'requiredOff',
+        ko: `«${ko}» 필수 지정 해제`,
+        detail: `이 관계가 없는 레코드도 통과합니다. 카디널리티(${REL_META[ko].card})는 그대로 두고 필수 표시만 뗍니다.`,
+        payload: { rel: ko },
+      }
+    }
+    case 'In': {
+      return {
+        ...base,
+        kind: 'enumAdd',
+        ko: '위험운전 유형에 «급브레이크» 추가',
+        detail: '공단 표준 8종에 없는 코드를 우리 어휘로 받아들입니다. 표준 정렬(③)에서 이 코드는 «고유»로 표시됩니다.',
+        payload: { type: 'RiskEvent', prop: 'eventType', code: '급브레이크' },
+      }
+    }
+    case 'MaxInclusive': {
+      return {
+        ...base,
+        kind: 'rangeAdjust',
+        ko: '차량 속도 상한 120 → 140 km/h',
+        detail: '시내버스 사양 범위를 넓힙니다. 이 상한으로 만든 과거 판정을 다시 계산할지 함께 정해야 합니다.',
+        payload: { type: 'RiskEvent', prop: 'speedKmh', max: 140 },
+      }
+    }
+    case 'SPARQL': {
+      return {
+        ...base,
+        kind: 'thresholdAdjust',
+        ko: `회차 연비 상한 ${perKm(FUEL_LIMIT.max)} → ${perKm(FUEL_LIMIT.max + 1)} m³/km`,
+        detail: '누적값 탐지 임계값을 올립니다. 규칙의 방향은 그대로 두고 경계만 옮기는 개정입니다.',
+        payload: { max: FUEL_LIMIT.max + 1 },
+      }
+    }
+    default:
+      return null
+  }
 }
 
 export function ruleFeedback(list: QItem[]): RuleFeedback[] {

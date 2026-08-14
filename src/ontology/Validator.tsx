@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Panel } from '../components/ui'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf, type SpaceId } from './meta'
+import { currentVersion } from './grammar'
 
 /**
  * ③ 문법 검증 — 문법이 말뿐인지, 실제로 막히는지 눌러서 확인한다.
@@ -15,7 +16,7 @@ function validate(from: SpaceId, to: SpaceId, rel: string): Verdict {
   if (from === to) {
     return {
       ok: false, code: 'SAME_SPACE',
-      reason: '같은 스페이스 안에서의 관계는 문법 v1.0에 정의돼 있지 않습니다.',
+      reason: `같은 스페이스 안에서의 관계는 문법 ${currentVersion()}에 정의돼 있지 않습니다.`,
       hint: '개념끼리의 상하위 같은 관계가 필요하면 문법에 방향을 먼저 추가해야 합니다.',
     }
   }

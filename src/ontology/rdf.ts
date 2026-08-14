@@ -2,7 +2,7 @@ import { ROUTES } from '../sim/routes'
 import { RISK_EVENT_TYPES } from '../sim/types'
 import type { SimSnapshot } from '../sim/types'
 import { REL_META } from './standards'
-import { FUEL_PER_KM_MAX, FUEL_PER_KM_MIN, perKm } from './shacl'
+import { FUEL_LIMIT, perKm } from './rules'
 
 /**
  * 시뮬레이터 스냅샷 → RDF 데이터 그래프(Turtle).
@@ -403,10 +403,10 @@ export function checkFuelPerKm(turtle: string): { focus: string; label: string; 
       fuel: Number(b.match(/qd:fuelM3 "([\d.]+)"/)?.[1] ?? 0),
       dist: Number(b.match(/qd:distanceKm "([\d.]+)"/)?.[1] ?? 0),
     }))
-    .filter((t) => t.dist > 0 && t.fuel / t.dist > FUEL_PER_KM_MAX)
+    .filter((t) => t.dist > 0 && t.fuel / t.dist > FUEL_LIMIT.max)
     .map((t) => ({
       focus: t.iri,
       label: t.label,
-      msg: `${t.dist}km 주행에 연료 ${t.fuel}m³ = ${(t.fuel / t.dist).toFixed(2)} m³/km — 상식 범위(${perKm(FUEL_PER_KM_MIN)}~${perKm(FUEL_PER_KM_MAX)} m³/km)를 벗어납니다. 구간값이 아니라 누적값이 들어온 것으로 보입니다`,
+      msg: `${t.dist}km 주행에 연료 ${t.fuel}m³ = ${(t.fuel / t.dist).toFixed(2)} m³/km — 상식 범위(${perKm(FUEL_LIMIT.min)}~${perKm(FUEL_LIMIT.max)} m³/km)를 벗어납니다. 구간값이 아니라 누적값이 들어온 것으로 보입니다`,
     }))
 }
