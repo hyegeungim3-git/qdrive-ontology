@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Panel } from '../components/ui'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf } from './meta'
 import { META_LAYERS, SPACE_IMPACTS } from './impactmeta'
+import { buildShacl } from './shacl'
+import { REL_META, SPACE_ALIGN, STANDARDS, TYPE_ALIGN } from './standards'
 
 /**
  * ⑧ 내보내기 — 문법을 표준 형식으로 꺼낸다.
@@ -9,19 +11,7 @@ import { META_LAYERS, SPACE_IMPACTS } from './impactmeta'
  */
 
 const slug = (en: string) => en.replace(/[^A-Za-z0-9]/g, '')
-const relSlug = (ko: string) => {
-  const map: Record<string, string> = {
-    운전한다: 'drives', 관리한다: 'manages', 조회권한: 'canView', 승인권한: 'canApprove',
-    생성한다: 'produces', 기록된다: 'loggedAs', 분류된다: 'classifiedAs', '예시가 된다': 'exemplifies',
-    뒷받침한다: 'supports', 반박한다: 'contradicts', '시각을 고정한다': 'timestamps',
-    반영된다: 'reflectedIn', 보정한다: 'adjusts', 기여한다: 'contributesTo', 제약한다: 'constrains',
-    예측한다: 'predicts', 악화시킨다: 'degrades', 올린다: 'raises', 낮춘다: 'lowers',
-    안정시킨다: 'stabilizes', 최적화한다: 'optimizes', 바꾼다: 'affects', 묶는다: 'clusters',
-    요약한다: 'summarizes', 보호한다: 'protects', '등급을 매긴다': 'classifies', 제한한다: 'restricts',
-    허용한다: 'permits', 금지한다: 'denies', '승인을 요구한다': 'requiresApproval',
-  }
-  return map[ko] ?? slug(ko)
-}
+const relSlug = (ko: string) => REL_META[ko]?.en ?? slug(ko)
 
 function buildJsonLd() {
   return JSON.stringify(
@@ -34,22 +24,36 @@ function buildJsonLd() {
       '@id': 'https://qdrive.ai/ontology/v1.0',
       version: '1.0.0',
       title: 'Qdrive 대구 시내버스 운행 온톨로지',
+      standards: STANDARDS.map((x) => ({ '@id': x.prefix, uri: x.uri, ko: x.ko, org: x.org })),
       spaces: SPACES.map((s) => ({
         '@id': s.en,
         ko: s.ko,
         'rdfs:comment': s.desc,
-        nodeTypes: s.types.map((t) => ({ '@id': slug(t.en), ko: t.ko, note: t.note })),
+        alignment: SPACE_ALIGN[s.id].map((a) => ({ standard: a.std, term: a.term, match: 'skos:' + a.match + 'Match', note: a.note })),
+        nodeTypes: s.types.map((t) => ({
+          '@id': slug(t.en),
+          ko: t.ko,
+          note: t.note,
+          alignment: (TYPE_ALIGN[slug(t.en)] ?? []).map((a) => ({ standard: a.std, term: a.term, match: 'skos:' + a.match + 'Match' })),
+        })),
         impactCategories: SPACE_IMPACTS[s.id],
       })),
       relations: META_EDGES.flatMap((e) =>
-        e.relations.map((r) => ({
-          '@id': relSlug(r),
-          ko: r,
-          'rdfs:domain': spaceOf(e.from).en,
-          'rdfs:range': spaceOf(e.to).en,
-          'rdfs:comment': RELATION_GLOSSARY[r] ?? '',
-          core: !!e.core,
-        })),
+        e.relations.map((r) => {
+          const m = REL_META[r]
+          return {
+            '@id': m.en,
+            ko: r,
+            'rdfs:domain': spaceOf(e.from).en,
+            'rdfs:range': spaceOf(e.to).en,
+            'rdfs:comment': RELATION_GLOSSARY[r] ?? '',
+            'owl:inverseOf': m.inverse,
+            cardinality: m.card,
+            required: m.required,
+            alignment: m.align ? { standard: m.align.std, term: m.align.term, match: 'skos:' + m.align.match + 'Match' } : null,
+            core: !!e.core,
+          }
+        }),
       ),
       activeMetadata: META_LAYERS.map((l) => ({ '@id': l.id, ko: l.ko, attributes: l.attrs.map((a) => ({ '@id': a.key, ko: a.ko, note: a.desc })) })),
     },
@@ -63,6 +67,8 @@ function buildTurtle() {
     '@prefix qd:   <https://qdrive.ai/ontology/> .',
     '@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .',
     '@prefix owl:  <http://www.w3.org/2002/07/owl#> .',
+    '@prefix skos: <http://www.w3.org/2004/02/skos/core#> .',
+    ...STANDARDS.filter((x) => x.key !== 'skos').map((x) => '@prefix ' + x.prefix + ': <' + x.uri + '> .'),
     '',
     'qd:Ontology a owl:Ontology ;',
     '  owl:versionInfo "1.0.0" ;',
@@ -74,8 +80,13 @@ function buildTurtle() {
     L.push(`qd:${s.en} a owl:Class ;`)
     L.push(`  rdfs:label "${s.ko}"@ko ;`)
     L.push(`  rdfs:comment "${s.desc}"@ko .`)
+    SPACE_ALIGN[s.id].forEach((a) => {
+      L.push(`qd:${s.en} skos:${a.match}Match ${a.term.split(' ')[0]} .`)
+    })
     s.types.forEach((t) => {
       L.push(`qd:${slug(t.en)} a owl:Class ; rdfs:subClassOf qd:${s.en} ; rdfs:label "${t.ko}"@ko .`)
+      const ta = TYPE_ALIGN[slug(t.en)] ?? []
+      ta.forEach((a) => L.push(`qd:${slug(t.en)} skos:${a.match}Match ${a.term.split(' ')[0]} .`))
     })
     L.push('')
   })
@@ -86,7 +97,9 @@ function buildTurtle() {
       L.push(`  rdfs:label "${r}"@ko ;`)
       L.push(`  rdfs:domain qd:${spaceOf(e.from).en} ;`)
       L.push(`  rdfs:range  qd:${spaceOf(e.to).en} ;`)
-      L.push(`  rdfs:comment "${(RELATION_GLOSSARY[r] ?? '').replace(/"/g, "'")}"@ko .`)
+      const m = REL_META[r]
+      L.push(`  rdfs:comment "${(RELATION_GLOSSARY[r] ?? '').replace(/"/g, "'")} [${m.card}${m.required ? ' · 필수' : ''}]"@ko .`)
+      if (m.align) L.push(`qd:${m.en} skos:${m.align.match}Match ${m.align.term.split(' ')[0]} .`)
     })
   })
   return L.join('\n')
@@ -145,6 +158,18 @@ function buildMarkdown() {
     '',
     ...[...new Set(META_EDGES.flatMap((e) => e.relations))].map((r) => `- **${r}** (\`${relSlug(r)}\`) — ${RELATION_GLOSSARY[r] ?? ''}`),
     '',
+    '## 표준 정렬',
+    '',
+    '우리 어휘는 국제 표준 위에 서 있다. 정렬 강도는 SKOS 매핑 관계를 그대로 쓴다.',
+    '',
+    '| 표준 | 기관 | 무엇을 정의하나 |',
+    '|---|---|---|',
+    ...STANDARDS.map((x) => '| `' + x.prefix + ':` ' + x.ko + ' | ' + x.org + ' | ' + x.what + ' |'),
+    '',
+    '| 스페이스 | 표준 어휘 | 정렬 강도 |',
+    '|---|---|---|',
+    ...SPACES.flatMap((s) => SPACE_ALIGN[s.id].map((a) => '| ' + s.ko + ' | `' + a.term + '` | skos:' + a.match + 'Match |')),
+    '',
     '## 액티브 메타데이터',
     '',
     '모든 노드에 따라다니는 4계층 12속성.',
@@ -165,6 +190,7 @@ const FORMATS = [
   { key: 'jsonld', ko: 'JSON-LD', ext: 'jsonld', mime: 'application/ld+json', desc: '연결 데이터 표준 — 그대로 트리플 스토어에 적재', build: buildJsonLd },
   { key: 'ttl', ko: 'Turtle (OWL)', ext: 'ttl', mime: 'text/turtle', desc: 'RDF/OWL — domain·range로 문법이 강제된다', build: buildTurtle },
   { key: 'cypher', ko: 'Cypher', ext: 'cypher', mime: 'text/plain', desc: 'Neo4j 제약조건 + 문법 위반 감사 질의', build: buildCypher },
+  { key: 'shacl', ko: 'SHACL 제약', ext: 'shacl.ttl', mime: 'text/turtle', desc: '실제로 막는 규칙 — 적재 시점 검사', build: buildShacl },
   { key: 'md', ko: '문법 명세서', ext: 'md', mime: 'text/markdown', desc: '사람이 읽는 문서 — 협약·제안서 첨부용', build: buildMarkdown },
 ] as const
 
@@ -203,7 +229,7 @@ export default function Export() {
         title="내보내기 — 우리끼리만 아는 구조가 아니다"
         right={<span className="text-[11px] text-gray-500">{text.split('\n').length}줄 · {(text.length / 1024).toFixed(1)}KB</span>}
       >
-        <div className="grid grid-cols-4 gap-2 max-[900px]:grid-cols-2">
+        <div className="grid grid-cols-5 gap-2 max-[1000px]:grid-cols-3 max-[640px]:grid-cols-2">
           {FORMATS.map((x) => {
             const on = x.key === key
             return (

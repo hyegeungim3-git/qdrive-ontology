@@ -1,39 +1,26 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Panel } from '../components/ui'
 import type { SimSnapshot } from '../sim/types'
-import { ROUTES } from '../sim/routes'
 import { spaceOf } from './meta'
+import { BASIS_TONE, METRICS, shortId, type Line } from './chains'
 
 /**
- * ⑥ 근거 사슬 — "이 숫자는 어디서 왔나"를 역추적한다.
+ * ⑤ 근거 사슬 — "이 숫자는 어디서 왔나"를 역추적한다. 성과 지표 6종 전체.
  *
- * 성과(안전점수) ←반영된다─ 판정(감점/정당) ←뒷받침한다─ 관측(위험운전 패킷)
- *                  ↑올린다                                   ↑맥락
- *              조치(코칭·상황설명)                        맥락(날씨)
+ * 성과 ←반영된다─ 판정 ←뒷받침한다─ 관측
+ *   ↑올린다              ↑맥락 보정        ↑규정(확정 조건)
+ * 조치
  *
- * 온톨로지가 있어야 되는 이유가 여기서 눈에 보인다 — 어떤 수치든 원 패킷까지 거슬러 갈 수 있다.
+ * 지표마다 근거의 성격이 다르다 — 실측·환산·미측정을 구분해 적는 것이 이 화면의 정직성.
  */
-
-const clock = (sec: number) => {
-  const h = Math.floor(sec / 3600) % 24
-  const m = Math.floor(sec / 60) % 60
-  const s = Math.floor(sec) % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-const shortId = (id: string) => id.slice(-4) + '호'
-
 export default function Chain({ snap }: { snap: SimSnapshot }) {
+  const [key, setKey] = useState('safety')
   const [vid, setVid] = useState<string | null>(null)
+  const metric = METRICS.find((m) => m.key === key)!
   const v = snap.vehicles.find((x) => x.id === vid) ?? snap.vehicles[0]
-  if (!v) return <Panel title="근거 사슬">엔진이 아직 차량을 만들지 않았습니다.</Panel>
 
-  const route = ROUTES.find((r) => r.id === v.routeId)
-  const events = snap.events.filter((e) => e.vehicleId === v.id)
-  const justified = events.filter((e) => e.justified)
-  const deducted = events.filter((e) => !e.justified)
-  const pleas = snap.pleas.filter((p) => p.vehicleId === v.id)
-  const trips = snap.trips.filter((t) => t.vehicleId === v.id)
-  const byType = [...new Set(deducted.map((e) => e.eventType))].map((t) => ({ t, n: deducted.filter((e) => e.eventType === t).length }))
+  if (!v) return <Panel title="근거 사슬">엔진이 아직 차량을 만들지 않았습니다.</Panel>
+  const c = metric.build(snap, v.id)
 
   const S = {
     outcome: spaceOf('outcome'),
@@ -44,141 +31,170 @@ export default function Chain({ snap }: { snap: SimSnapshot }) {
     policy: spaceOf('policy'),
   }
 
-  /** 방어 문장 — 실데이터로 조립 */
-  const sentence =
-    `${shortId(v.id)}(${v.driverName} 기사)의 안전점수 ${Math.round(v.score)}점은 ` +
-    (deducted.length > 0
-      ? `${byType.map((b) => `${b.t} ${b.n}건`).join(' · ')}의 감점 판정이 반영된 값입니다. `
-      : '오늘 감점 판정이 없습니다. ') +
-    (justified.length > 0 ? `그중 ${justified.length}건은 방어운전으로 인정돼 감점이 복원됐습니다. ` : '') +
-    (events.length > 0 ? `근거 패킷은 ${events.slice(0, 3).map((e) => clock(e.simTime)).join(' · ')}에 기록돼 있습니다.` : '')
-
   return (
     <div className="space-y-3">
-      <Panel title="대상 선택 — 어느 차량의 점수를 되짚을까" right={<span className="text-[11px] text-gray-500">실증 {snap.vehicles.length}대</span>}>
-        <div className="flex flex-wrap gap-1.5">
-          {snap.vehicles.map((x) => {
-            const on = x.id === v.id
+      <Panel title="성과 지표 선택 — 어느 숫자를 되짚을까" right={<span className="text-[11px] text-gray-500">성과 스페이스 {METRICS.length}종</span>}>
+        <div className="grid grid-cols-6 gap-2 max-[1100px]:grid-cols-3 max-[640px]:grid-cols-2">
+          {METRICS.map((m) => {
+            const on = m.key === key
+            const view = m.build(snap, v.id)
             return (
               <button
-                key={x.id}
-                onClick={() => setVid(x.id)}
-                className={`rounded-md px-2.5 py-1.5 text-left transition-colors ${
-                  on ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
+                key={m.key}
+                onClick={() => setKey(m.key)}
+                className={`rounded-lg border px-3 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                  on ? 'border-sky-400/60 bg-sky-400/10' : 'border-gray-800 bg-gray-900/60 hover:border-gray-700'
                 }`}
               >
-                <div className="text-[12px] font-bold">{shortId(x.id)}</div>
-                <div className="text-[10.5px] opacity-75">
-                  {x.driverName} · {Math.round(x.score)}점
+                <div className={`text-[12px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{m.ko}</div>
+                <div className="mt-0.5 text-[15px] font-black tabular-nums" style={{ color: on ? S.outcome.color : undefined }}>
+                  {m.short(snap, v.id)}
+                </div>
+                <div className="mt-1 flex items-center gap-1">
+                  <span className={`rounded px-1 py-0.5 text-[9.5px] font-bold ${BASIS_TONE[view.basis]}`}>{view.basis}</span>
+                  {m.perVehicle && <span className="text-[9.5px] text-gray-600">차량별</span>}
                 </div>
               </button>
             )
           })}
         </div>
+
+        {metric.perVehicle && (
+          <div className="mt-3">
+            <div className="mb-1.5 text-[11px] font-bold text-gray-400">대상 차량</div>
+            <div className="flex flex-wrap gap-1.5">
+              {snap.vehicles.map((x) => {
+                const on = x.id === v.id
+                return (
+                  <button
+                    key={x.id}
+                    onClick={() => setVid(x.id)}
+                    className={`rounded-md px-2.5 py-1.5 text-left transition-colors ${
+                      on ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
+                    }`}
+                  >
+                    <div className="text-[12px] font-bold">{shortId(x.id)}</div>
+                    <div className="text-[10.5px] opacity-75">{x.driverName}</div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </Panel>
 
       <Panel
-        title={`근거 사슬 — ${shortId(v.id)} 안전점수 ${Math.round(v.score)}점`}
-        right={<span className="text-[11px] text-gray-500">오른쪽에서 왼쪽으로 읽으면 "왜"가 나옵니다</span>}
+        title={`근거 사슬 — ${metric.ko} ${c.value}${c.unit}`}
+        right={
+          <div className="flex items-center gap-2">
+            <span className={`rounded px-1.5 py-0.5 text-[10.5px] font-bold ${BASIS_TONE[c.basis]}`}>근거 유형 {c.basis}</span>
+            <span className="text-[11px] text-gray-500">오른쪽에서 왼쪽으로 읽으면 "왜"가 나옵니다</span>
+          </div>
+        }
       >
         <div className="grid grid-cols-[1.1fr_1fr_1.1fr] gap-2 max-[1000px]:grid-cols-1">
-          {/* 성과 */}
           <Step space={S.outcome} title="성과" rel="이 숫자가 결과">
             <div className="text-center">
               <div className="text-3xl font-black tabular-nums" style={{ color: S.outcome.color }}>
-                {Math.round(v.score)}
-                <span className="ml-1 text-sm font-bold text-gray-500">점</span>
+                {c.value}
+                {c.unit && <span className="ml-1 text-sm font-bold text-gray-500">{c.unit}</span>}
               </div>
-              <div className="mt-0.5 text-[11px] text-gray-500">안전점수 · {v.driverName}</div>
+              <div className="mt-0.5 break-keep text-[11px] text-gray-500">{c.subject}</div>
             </div>
-            <Row k="경제운전" v={`${Math.round(v.ecoScore)}점`} />
-            <Row k="주행" v={`${v.distanceKm.toFixed(1)}km`} />
-            <Row k="회차" v={`${trips.length}회`} />
+            {c.outcomeLines.map((l) => (
+              <Row key={l.k} {...l} />
+            ))}
           </Step>
 
-          {/* 판정 */}
           <Step space={S.claim} title="판정" rel="← 반영된다">
-            {events.length === 0 ? (
-              <Empty>오늘 판정이 없습니다</Empty>
+            <div className="mb-1 text-[11px] font-bold text-gray-400">{c.claimTitle}</div>
+            {c.claimEmpty ? (
+              <Empty>{c.claimEmpty}</Empty>
             ) : (
               <>
-                <div className="flex items-center justify-center gap-3">
-                  <Big n={deducted.length} label="감점" color="#fb7185" />
-                  <Big n={justified.length} label="정당 인정" color="#34d399" />
-                </div>
-                <div className="mt-1.5 space-y-1">
-                  {byType.slice(0, 4).map((b) => (
-                    <Row key={b.t} k={b.t} v={`${b.n}건 감점`} />
+                {c.claimBig && (
+                  <div className="flex items-center justify-center gap-3">
+                    {c.claimBig.map((b) => (
+                      <div key={b.label} className="text-center">
+                        <div className="text-xl font-black tabular-nums" style={{ color: b.color }}>
+                          {b.n}
+                        </div>
+                        <div className="text-[10.5px] text-gray-500">{b.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className={c.claimBig ? 'mt-1.5' : ''}>
+                  {c.claimLines.map((l) => (
+                    <Row key={l.k} {...l} />
                   ))}
                 </div>
-                {justified.length > 0 && (
-                  <div className="mt-1.5 rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10.5px] leading-relaxed text-emerald-300">
-                    정당 인정 {justified.length}건 — 감점이 복원됐습니다
+                {c.claimNote && (
+                  <div className="mt-1.5 rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 break-keep text-[10.5px] leading-relaxed text-emerald-300">
+                    {c.claimNote}
                   </div>
                 )}
               </>
             )}
           </Step>
 
-          {/* 관측 */}
           <Step space={S.evidence} title="관측" rel="← 뒷받침한다">
-            {events.length === 0 ? (
-              <Empty>기록된 패킷이 없습니다</Empty>
+            <div className="mb-1 text-[11px] font-bold text-gray-400">{c.evidenceTitle}</div>
+            {c.evidenceEmpty ? (
+              <Empty>{c.evidenceEmpty}</Empty>
             ) : (
               <div className="space-y-1">
-                {events.slice(0, 5).map((e, i) => (
+                {c.evidenceRows.map((r, i) => (
                   <div key={i} className="flex items-center gap-2 rounded border border-gray-800 bg-gray-900/50 px-2 py-1">
-                    <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-gray-500">{clock(e.simTime)}</span>
-                    <span className="text-[11.5px] font-bold text-gray-200">{e.eventType}</span>
-                    <span className="ml-auto shrink-0 text-[10.5px] tabular-nums text-gray-500">{Math.round(e.speedKmh)}km/h</span>
-                    {e.justified && <span className="shrink-0 rounded bg-emerald-500/15 px-1 py-0.5 text-[9.5px] font-bold text-emerald-400">인정</span>}
+                    <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-gray-500">{r.a}</span>
+                    <span className="truncate text-[11.5px] font-bold text-gray-200">{r.b}</span>
+                    <span className="ml-auto shrink-0 text-[10.5px] tabular-nums text-gray-500">{r.c}</span>
+                    {r.ok && <span className="shrink-0 rounded bg-emerald-500/15 px-1 py-0.5 text-[9.5px] font-bold text-emerald-400">정상</span>}
                   </div>
                 ))}
-                {events.length > 5 && <div className="text-center text-[10.5px] text-gray-600">외 {events.length - 5}건</div>}
+                {!!c.evidenceMore && c.evidenceMore > 0 && <div className="text-center text-[10.5px] text-gray-600">외 {c.evidenceMore}건</div>}
               </div>
             )}
           </Step>
         </div>
 
-        {/* 개입 층 */}
         <div className="mt-2 grid grid-cols-3 gap-2 max-[1000px]:grid-cols-1">
           <Step space={S.lever} title="조치" rel="↑ 올린다 · 개입">
-            <Row k="실시간 코칭" v={`${events.length}회 발화`} />
-            <Row k="상황 설명" v={pleas.length > 0 ? `${pleas.length}건 (${pleas.filter((p) => p.status === '인정').length} 인정)` : '없음'} />
-            <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">
-              감지 즉시 코칭이 나가고, 기사가 설명하면 관제가 검토합니다.
-            </div>
+            {c.leverLines.map((l) => (
+              <Row key={l.k} {...l} />
+            ))}
+            <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">{c.leverNote}</div>
           </Step>
           <Step space={S.ctx} title="맥락" rel="판정 보정">
-            <Row k="날씨" v={`${snap.weather.condition} ${snap.weather.tempC}℃`} />
-            <Row k="노선" v={route?.name ?? '—'} />
-            <Row k="앞차 간격" v={v.headway ? `${v.headway.frontGapMin.toFixed(1)}분 (${v.headway.status})` : '—'} />
-            <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">
-              같은 급감속도 폭우·정류장 접근이면 판정이 달라집니다.
-            </div>
+            {c.contextLines.map((l) => (
+              <Row key={l.k} {...l} />
+            ))}
           </Step>
           <Step space={S.policy} title="규정" rel="판정 확정의 조건">
-            <div className="rounded border border-red-500/25 bg-red-500/10 px-2 py-1.5 text-[11px] leading-relaxed text-gray-300">
-              <b className="text-red-400">불이익 결정 자동화 금지</b> — 이 점수가 평가·징계로 이어지는 확정은 담당자가 합니다.
+            <div className="rounded border border-red-500/25 bg-red-500/10 px-2 py-1.5 break-keep text-[11px] leading-relaxed text-gray-300">
+              {c.policyWarn}
             </div>
-            <Row k="가명 처리" v="분석셋은 가명키" />
-            <Row k="보존" v="원본 5년" />
+            {c.policyLines.map((l) => (
+              <Row key={l.k} {...l} />
+            ))}
           </Step>
         </div>
 
         <div className="mt-3 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2.5">
-          <div className="mb-1 text-[11px] font-bold text-sky-300">이 점수를 설명해야 한다면</div>
-          <div className="break-keep text-[12.5px] leading-relaxed text-gray-200">{sentence}</div>
+          <div className="mb-1 text-[11px] font-bold text-sky-300">이 숫자를 설명해야 한다면</div>
+          <div className="break-keep text-[12.5px] leading-relaxed text-gray-200">{c.sentence}</div>
         </div>
         <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
-          이 문장은 미리 써 둔 것이 아니라 <b className="text-gray-300">지금 데이터에서 사슬을 따라 조립된 것</b>입니다. 온톨로지가 없으면 안전점수는 그냥 숫자이고, 있으면 언제·무엇 때문에·어떻게 복원됐는지까지 따라갈 수 있습니다.
+          이 문장은 미리 써 둔 것이 아니라 <b className="text-gray-300">지금 데이터에서 사슬을 따라 조립된 것</b>입니다. 지표마다 근거의 성격이 달라서
+          — 안전점수는 <b className="text-emerald-400">실측</b>, CO₂는 <b className="text-sky-400">환산</b>, 정시율은{' '}
+          <b className="text-red-400">미측정</b> — 사슬도 다르게 그려집니다. <b className="text-gray-300">없는 숫자를 만들어내지 않는 것</b>이 원칙입니다.
         </div>
       </Panel>
     </div>
   )
 }
 
-function Step({ space, title, rel, children }: { space: { ko: string; en: string; color: string }; title: string; rel: string; children: React.ReactNode }) {
+function Step({ space, title, rel, children }: { space: { color: string }; title: string; rel: string; children: ReactNode }) {
   return (
     <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: `${space.color}44`, background: `${space.color}0d` }}>
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
@@ -191,7 +207,7 @@ function Step({ space, title, rel, children }: { space: { ko: string; en: string
     </div>
   )
 }
-function Row({ k, v }: { k: string; v: string }) {
+function Row({ k, v }: Line) {
   return (
     <div className="flex items-baseline justify-between gap-2 border-b border-gray-800/50 py-1 last:border-0">
       <span className="shrink-0 text-[10.5px] text-gray-500">{k}</span>
@@ -199,16 +215,6 @@ function Row({ k, v }: { k: string; v: string }) {
     </div>
   )
 }
-function Big({ n, label, color }: { n: number; label: string; color: string }) {
-  return (
-    <div className="text-center">
-      <div className="text-xl font-black tabular-nums" style={{ color }}>
-        {n}
-      </div>
-      <div className="text-[10.5px] text-gray-500">{label}</div>
-    </div>
-  )
-}
-function Empty({ children }: { children: React.ReactNode }) {
+function Empty({ children }: { children: ReactNode }) {
   return <div className="py-4 text-center text-[11px] text-gray-600">{children}</div>
 }

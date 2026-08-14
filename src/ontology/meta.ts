@@ -247,7 +247,7 @@ export const LEVERS: LeverDef[] = [
     targets: [
       { outcome: '배차 간격 편차', rel: '낮춘다', sensitivity: 0.3, unit: '분', decimals: 2, basis: '실측',
         why: '앞차 간격과 이상 간격의 차이 — 엔진 headway 실집계',
-        base: (s) => avg(s.vehicles.filter((v) => v.headway).map((v) => Math.abs(v.headway!.frontGapMin - v.headway!.idealMin))) },
+        base: (s) => avg(s.vehicles.filter((v) => v.headway?.frontId).map((v) => Math.abs(v.headway!.frontGapMin - v.headway!.idealMin))) },
       { outcome: '정시율', rel: '안정시킨다', sensitivity: 0.04, unit: '%', decimals: 2, basis: '추정',
         why: '몰림 해소 시 도착 편차 축소 — 2차 APC 연동 시 실측으로 대체', base: () => 95.0 },
     ],

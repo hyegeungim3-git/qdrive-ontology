@@ -80,9 +80,50 @@ src/
   관측→성과 ❌ NO_DIRECTION) / 내보내기 4형식 길이·내용 상이 확인(JSON.parse 통과) /
   근거 사슬 문장 실조립 / 375px 오버플로 0 / pageerror 0.
 
+## 3차 발전 (2026-08-14) — 표준 정렬 · SHACL · 근거 사슬 전면 확장
+사용자 요청 "SHACL 추가 + 근거 사슬 성과 지표 전체 확장 + 온톨로지 구조를 더 꼼꼼하게, 다른 온톨로지 벤치마킹".
+8단계 → **9단계**. OpenCrab의 가장 큰 결손(외부 표준 정렬 없음)을 메운 것이 이번 발전의 핵심.
+
+### 벤치마킹 조사 결과 — 무엇을 참고했나
+OpenCrab 외에 조사한 표준 10종. 조사 근거는 W3C/OGC 규격 원문과 CEN Transmodel 문서.
+- **PROV-O**(W3C) — Entity/Activity/Agent + wasDerivedFrom/wasGeneratedBy/wasAttributedTo.
+  **우리 핵심 사슬(관측→판정→성과)이 문자 그대로 PROV의 파생 사슬**이다. 가장 중요한 정렬.
+- **SOSA/SSN**(W3C·OGC) — Observation/Sensor/Platform/FeatureOfInterest. DTG·OBD·RTK 산출물이 곧 sosa:Observation,
+  차량이 FeatureOfInterest, 단말이 Platform. 정확 일치로 붙는다.
+- **Transmodel/NeTEx**(CEN) + **GTFS** — Line/Route/ScheduledStopPoint/VehicleJourney. 노선·정류장·회차.
+- **DQV**(W3C) — QualityMeasurement/Metric/Dimension. 품질 6룰과 통과율.
+- **SKOS**(W3C) — Concept/Collection + 매핑 관계(exact/close/broad/narrow). **정렬 강도 표기에 그대로 사용**.
+- **ODRL**(W3C) — Policy/Permission/Prohibition/Duty. 규정 스페이스.
+- **OWL-Time · GeoSPARQL · SHACL**(W3C·OGC) — 시간 구간 · 공간 대조 · 제약 검증.
+- **공단 DTG 409/521** — 이미 준수 중인 국내 법정 표준.
+- **도입하지 않음**: DCAT(데이터셋 카탈로그 — 온톨로지 층이 아님), QUDT(단위 — 지금 규모엔 과함).
+
+### 구현
+- **`standards.ts`** — STANDARDS 10종 · SPACE_ALIGN(9/9) · TYPE_ALIGN(16종) · **REL_META**(관계 30종 전부에
+  카디널리티·필수 여부·역관계·표준 정렬) · TYPE_PROPS(12 타입의 속성 스키마 — SHACL의 근거).
+  정렬 강도는 SKOS 매핑을 그대로 쓰고 **억지로 exact를 주장하지 않는다** — 인과 어휘 13종은 «고유».
+- **`shacl.ts`** — 4종 제약 생성: ①속성(필수·자료형·범위·열거) ②관계(도착 클래스·카디널리티) ③문법(sh:closed)
+  ④**도메인 규칙**(근거 없는 판정 금지 · 감점 자동확정 금지 · 실명 금지 · 회차 연료 누적값 탐지는 sh:sparql).
+- **`StdAlign.tsx`**(③ 표준 정렬) — 정렬 현황·참조 표준 카드·정렬 표 3탭(스페이스/노드 타입/관계).
+  **파일명 주의**: 컴포넌트를 `Standards.tsx`로 두면 데이터 `standards.ts`와 Windows에서 대소문자 충돌(TS1149) → `StdAlign.tsx`.
+- **`chains.ts` + `Chain.tsx`**(⑤ 근거 사슬) — 성과 지표 **6종**으로 확장. 지표마다 사슬이 다르다:
+  안전점수·경제운전(차량별, 실측) / 연료 절감률(반사실 비교, 실측) / CO₂(환산) / 배차 간격 편차(실측) /
+  **정시율(미측정 — 원천이 없으면 숫자를 만들지 않는다는 것 자체를 사슬로 보여준다)**.
+- **⑨ 내보내기** — SHACL 추가로 5형식. JSON-LD 13.5→26KB(정렬 포함), Turtle 8.8→11.6KB, SHACL 19KB.
+
+### 함정
+- **배차 간격 편차 오집계**: `headway`가 있어도 `frontId`가 null(앞차 없음)인 차량이 평균에 들어가 18.18분이 나왔다.
+  `v.headway?.frontId`로 걸러 4.68분(7대)로 정정. chains.ts와 meta.ts(시뮬레이터 base) **양쪽 모두** 고쳐야 한다.
+- 이 환경의 Bash는 긴 한글 heredoc에서 파싱이 깨진다 → 패치 스크립트는 Write로 파일 생성 후 실행할 것.
+
+### 검증
+빌드 통과 / 9단계 렌더 / 표준 정렬 9-9·16-35·17-30, 정확일치 15·근접 26·상위 9 / 관계 표에 카디널리티·역관계·필수 /
+근거 사슬 6종 전부 다른 사슬·근거 유형(실측·환산·미측정) 구분·문장 실조립 / SHACL에 NodeShape·targetClass·minCount·
+sh:in·sh:closed·sh:sparql·도메인 규칙 4종 확인 / 내보내기 5형식 상이 / 375px 오버플로 0 / pageerror 0.
+
 ## 남은 후보
 - 스페이스 노드에서 운영 플랫폼의 해당 화면으로 딥링크(현재는 영향 분석에서만 화면 이름 표시)
 - 인스턴스 탐색기(레코드 사이를 걷는 그래프) 이식 — 현재 qdrive-unified의 데이터 관리자에 있음
-- 문법 v1.1: 관계에 카디널리티(1:N·N:M)와 필수 여부 추가
-- 근거 사슬을 성과 지표 전체로 확장(지금은 안전점수 축)
-- 내보내기에 SHACL 제약 추가 — OWL은 어휘만, 실제 검증은 SHACL이 한다
+- 문법 v1.1: 관계에 시간 유효성(언제부터 언제까지 성립하는 관계인가) 추가
+- SHACL 검증을 브라우저에서 실제로 돌려보기 (rdf-validate-shacl 등)
+- 표준 정렬을 역방향으로도 — 외부 표준 데이터를 우리 문법으로 받아들이는 매핑

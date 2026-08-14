@@ -9,6 +9,7 @@ import Export from './ontology/Export'
 import Grammar from './ontology/Grammar'
 import Impact from './ontology/Impact'
 import Simulator from './ontology/Simulator'
+import StdAlign from './ontology/StdAlign'
 import SpaceGraph from './ontology/SpaceGraph'
 import Validator from './ontology/Validator'
 import { LEVERS, META_EDGES, SPACES } from './ontology/meta'
@@ -29,26 +30,27 @@ const GROUPS = [
     steps: [
       { id: 'spaces', n: '①', label: '스페이스', desc: '데이터가 서 있는 9개 자리' },
       { id: 'grammar', n: '②', label: '관계 문법', desc: '허용된 관계만 만든다' },
-      { id: 'validator', n: '③', label: '문법 검증', desc: '정말 막히는지 눌러보기' },
+      { id: 'standards', n: '③', label: '표준 정렬', desc: '국제 표준 어디에 붙나' },
+      { id: 'validator', n: '④', label: '문법 검증', desc: '정말 막히는지 눌러보기' },
     ],
   },
   {
     ko: '활용', desc: '그래서 무엇에 쓰나',
     steps: [
-      { id: 'chain', n: '④', label: '근거 사슬', desc: '이 숫자가 어디서 왔나' },
-      { id: 'sim', n: '⑤', label: '조치 시뮬레이션', desc: '손잡이를 당기면 성과가' },
-      { id: 'impact', n: '⑥', label: '영향 분석', desc: '바꾸면 어디까지 흔들리나' },
+      { id: 'chain', n: '⑤', label: '근거 사슬', desc: '이 숫자가 어디서 왔나' },
+      { id: 'sim', n: '⑥', label: '조치 시뮬레이션', desc: '손잡이를 당기면 성과가' },
+      { id: 'impact', n: '⑦', label: '영향 분석', desc: '바꾸면 어디까지 흔들리나' },
     ],
   },
   {
     ko: '운영', desc: '어떻게 관리하고 넘기나',
     steps: [
-      { id: 'meta', n: '⑦', label: '액티브 메타데이터', desc: '값에 대한 값 4계층 12속성' },
-      { id: 'export', n: '⑧', label: '내보내기', desc: 'JSON-LD · OWL · Cypher' },
+      { id: 'meta', n: '⑧', label: '액티브 메타데이터', desc: '값에 대한 값 4계층 12속성' },
+      { id: 'export', n: '⑨', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
     ],
   },
 ] as const
-type StepId = 'spaces' | 'grammar' | 'validator' | 'chain' | 'sim' | 'impact' | 'meta' | 'export'
+type StepId = 'spaces' | 'grammar' | 'standards' | 'validator' | 'chain' | 'sim' | 'impact' | 'meta' | 'export'
 
 const PLATFORM = 'https://hyegeungim3-git.github.io/qdrive-unified/'
 
@@ -128,14 +130,14 @@ export default function App() {
         </div>
 
         <div className="-mx-1 overflow-x-auto px-1">
-          <div className="flex min-w-[900px] gap-3">
+          <div className="flex min-w-[1060px] gap-3">
             {GROUPS.map((g) => (
               <div key={g.ko} className="min-w-0 flex-1">
                 <div className="mb-1 flex items-baseline gap-1.5 px-0.5">
                   <span className="text-[11px] font-black text-pink-300">{g.ko}</span>
                   <span className="truncate text-[10.5px] text-gray-600">{g.desc}</span>
                 </div>
-                <div className={`grid gap-2 ${g.steps.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                <div className={`grid gap-2 ${g.steps.length === 4 ? 'grid-cols-4' : g.steps.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   {g.steps.map((s) => {
                     const on = step === s.id
                     return (
@@ -162,6 +164,7 @@ export default function App() {
 
         {step === 'spaces' && <SpaceGraph snap={snap} />}
         {step === 'grammar' && <Grammar />}
+        {step === 'standards' && <StdAlign />}
         {step === 'validator' && <Validator />}
         {step === 'chain' && <Chain snap={snap} />}
         {step === 'sim' && <Simulator snap={snap} />}
