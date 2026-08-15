@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { nowSim, policyActive } from './validity'
 import { FAULTS, type FaultId } from './rdf'
@@ -122,7 +123,7 @@ function RecordAudit({ res, iri, onClear }: { res: RunResult; iri: string; onCle
                   <td className="py-1.5 pr-2">
                     <span
                       className="whitespace-nowrap rounded px-1 py-0.5 text-[11px] font-black"
-                      style={{ color: tone, background: `${tone}1f`, border: `1px solid ${tone}55` }}
+                      style={{ color: ink(tone), background: `${tone}1f`, border: `1px solid ${tone}55` }}
                     >
                       {c.family}
                     </span>
@@ -250,7 +251,7 @@ export default function Live({
             background: res?.error ? SEV.Violation.bg : ok ? 'rgba(52,211,153,0.1)' : SEV.Violation.bg,
           }}
         >
-          <div className="text-[15px] font-black" style={{ color: res?.error ? SEV.Violation.fg : ok ? '#6ee7b7' : SEV.Violation.fg }}>
+          <div className="text-[15px] font-black" style={{ color: ink(res?.error ? SEV.Violation.fg : ok ? '#6ee7b7' : SEV.Violation.fg)}}>
             {res?.error ? '⚠ 검증 실행 실패' : ok ? '✅ conforms — 위반 없음' : `✗ conforms = false · 위반 ${counts.v}건${counts.w ? ` · 경고 ${counts.w}건` : ''}`}
           </div>
           {res && !res.error && (
@@ -306,7 +307,7 @@ export default function Live({
                 <div className="flex items-center gap-1.5">
                   <span
                     className="shrink-0 rounded px-1 py-0.5 text-[11px] font-black"
-                    style={{ color: tone, background: `${tone}1f`, border: `1px solid ${tone}55` }}
+                    style={{ color: ink(tone), background: `${tone}1f`, border: `1px solid ${tone}55` }}
                   >
                     {f.family}
                   </span>
@@ -318,7 +319,7 @@ export default function Live({
                 {/* 규정에 시행일이 생기면서 「켰는데 안 걸린다」가 가능해졌다.
                     이유를 안 적으면 사용자에게는 고장으로 읽힌다 — 막힌 것과 고장난 것은 달라야 한다. */}
                 {f.id === 'autoAdverse' && !policyActive('pol-noauto', nowSim()) && (
-                  <div className="mt-1 rounded px-1.5 py-1 break-keep text-[10px] leading-snug" style={{ background: '#f59e0b14', color: '#fcd34d' }}>
+                  <div className="mt-1 rounded px-1.5 py-1 break-keep text-[10px] leading-snug text-amber-300" style={{ background: '#f59e0b14' }}>
                     ⏳ 이 규칙의 근거 규정이 <b>아직 시행 전</b>입니다 — 지금 켜도 걸리지 않습니다. ② 관계 문법에서 시행일을 확인하세요.
                   </div>
                 )}
@@ -387,7 +388,7 @@ export default function Live({
                           <td className="py-1.5 pr-2">
                             <span
                               className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-black"
-                              style={{ color: s.fg, background: s.bg, border: `1px solid ${s.bd}` }}
+                              style={{ color: ink(s.fg), background: s.bg, border: `1px solid ${s.bd}` }}
                             >
                               {s.ko}
                             </span>

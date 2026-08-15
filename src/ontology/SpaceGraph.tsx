@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import type { SimSnapshot } from '../sim/types'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf, type SpaceId } from './meta'
@@ -218,10 +219,10 @@ export default function SpaceGraph({
                       strokeOpacity={isCore ? 1 : 0.75}
                     />
                     <rect x={s.x - W / 2} y={s.y - H / 2} width={W} height={H} rx={9} fill={s.color} fillOpacity={isCore ? 0.16 : 0.09} />
-                    <text x={s.x} y={s.y - 12} textAnchor="middle" fontSize={13} fontWeight={900} fill={s.color}>
+                    <text x={s.x} y={s.y - 12} textAnchor="middle" fontSize={13} fontWeight={900} fill={ink(s.color)}>
                       {s.ko}
                     </text>
-                    <text x={s.x} y={s.y + 1} textAnchor="middle" fontSize={8.5} fill={s.color} fillOpacity={0.75}>
+                    <text x={s.x} y={s.y + 1} textAnchor="middle" fontSize={8.5} fill={ink(s.color)} fillOpacity={0.75}>
                       {s.en}
                     </text>
                     <text x={s.x} y={s.y + 17} textAnchor="middle" fontSize={8.5} fontWeight={700} fill="var(--color-gray-400)">
@@ -267,7 +268,7 @@ export default function SpaceGraph({
                         <code className="text-[10.5px] text-gray-500">{t.en}</code>
                       </div>
                       <div className="flex shrink-0 items-center gap-1.5">
-                        <span className="text-[12px] font-bold tabular-nums" style={{ color: sp.color }}>
+                        <span className="text-[12px] font-bold tabular-nums" style={{ color: ink(sp.color)}}>
                           {fmt(t.count(snap))}
                         </span>
                         <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${t.live ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-700/40 text-gray-500'}`}>
@@ -286,11 +287,11 @@ export default function SpaceGraph({
                 {META_EDGES.filter((e) => e.from === sp.id || e.to === sp.id).map((e) => (
                   <div key={`${e.from}-${e.to}`} className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
                     <div className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
-                      <span className="font-bold" style={{ color: spaceOf(e.from).color }}>
+                      <span className="font-bold" style={{ color: ink(spaceOf(e.from).color)}}>
                         {spaceOf(e.from).ko}
                       </span>
                       <span className="text-gray-600">→</span>
-                      <span className="font-bold" style={{ color: spaceOf(e.to).color }}>
+                      <span className="font-bold" style={{ color: ink(spaceOf(e.to).color)}}>
                         {spaceOf(e.to).ko}
                       </span>
                       {e.core && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[11px] font-bold text-sky-300">핵심</span>}

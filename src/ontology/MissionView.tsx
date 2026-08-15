@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Emph, Panel } from '../components/ui'
 import { MISSIONS, READY_TONE, missionStats, roadmap, type MissionId } from './missions'
 import { CHANNELS } from './sensors'
@@ -46,7 +47,7 @@ export default function MissionView() {
               style={on ? { borderColor: `${x.color}88`, background: `${x.color}14` } : undefined}
             >
               <div className="flex items-baseline gap-1.5">
-                <span className="text-[13px] font-black" style={{ color: x.color }}>
+                <span className="text-[13px] font-black" style={{ color: ink(x.color)}}>
                   {x.ko}
                 </span>
                 <span className="text-[10.5px] text-gray-500">{x.who}</span>
@@ -67,7 +68,7 @@ export default function MissionView() {
         {m.questions.map((q) => (
           <div key={q.q} className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2.5">
             <div className="flex flex-wrap items-baseline gap-2">
-              <span className="shrink-0 rounded px-1.5 py-0.5 text-[10.5px] font-black" style={{ color: READY_TONE[q.ready], background: `${READY_TONE[q.ready]}1a` }}>
+              <span className="shrink-0 rounded px-1.5 py-0.5 text-[10.5px] font-black" style={{ color: ink(READY_TONE[q.ready]), background: `${READY_TONE[q.ready]}1a` }}>
                 {q.ready}
               </span>
               <span className="text-[13px] font-bold text-gray-100">{q.q}</span>
@@ -76,13 +77,13 @@ export default function MissionView() {
               <Emph t={q.how} cls="text-gray-200" />
             </div>
             {q.need && (
-              <div className="mt-1.5 rounded px-2.5 py-1.5 break-keep text-[11.5px] leading-relaxed" style={{ background: '#f59e0b12', color: '#fcd34d' }}>
+              <div className="mt-1.5 rounded px-2.5 py-1.5 break-keep text-[11.5px] leading-relaxed text-amber-300" style={{ background: '#f59e0b12' }}>
                 <b>왜 아직 안 되나</b> — <Emph t={q.need} cls="text-amber-200" />
               </div>
             )}
             {/* «못 한다»에서 멈추지 않는다. 무엇이 들어오면 어떻게 되는지까지 적어야 계획이 된다 */}
             {q.then && (
-              <div className="mt-1.5 rounded border px-2.5 py-2 break-keep text-[11.5px] leading-relaxed" style={{ borderColor: '#34d39933', background: '#34d39910', color: '#a7f3d0' }}>
+              <div className="mt-1.5 rounded border px-2.5 py-2 break-keep text-[11.5px] leading-relaxed text-emerald-200" style={{ borderColor: '#34d39933', background: '#34d39910' }}>
                 <div className="mb-1 flex flex-wrap gap-1">
                   {(q.unlock ?? []).map((c) => {
                     const ch = CHANNELS.find((x) => x.id === c)
@@ -108,7 +109,7 @@ export default function MissionView() {
       </div>
 
       <div className="mt-3">
-        <div className="mb-1 text-[11.5px] font-black tracking-wide" style={{ color: m.color }}>
+        <div className="mb-1 text-[11.5px] font-black tracking-wide" style={{ color: ink(m.color)}}>
           이 목적을 위해 온톨로지에 넣은 것
         </div>
         <div className="grid grid-cols-2 gap-2 max-[900px]:grid-cols-1">

@@ -1,4 +1,5 @@
 import { Panel } from '../components/ui'
+import { ink } from './ink'
 import { useGate } from './gate'
 import { useLineage } from './lineage'
 import { currentVersion } from './grammar'
@@ -124,7 +125,7 @@ export default function Guide({ jump }: { jump: Jump }) {
             { n: currentVersion(), ko: '문법 버전', sub: `${gate.ms}ms 검증`, c: '#c084fc' },
           ].map((k) => (
             <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
-              <div className="text-xl font-black tabular-nums" style={{ color: k.c }}>
+              <div className="text-xl font-black tabular-nums" style={{ color: ink(k.c)}}>
                 {k.n}
               </div>
               <div className="mt-0.5 text-[11.5px] font-bold text-gray-300">{k.ko}</div>
@@ -137,7 +138,7 @@ export default function Guide({ jump }: { jump: Jump }) {
           실제로 달라집니다. 규정이 화면을 막는 것을 직접 확인해 보세요.
         </div>
         {!!pending.length && (
-          <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[11px] leading-relaxed" style={{ borderColor: '#f59e0b44', background: '#f59e0b12', color: '#fcd34d' }}>
+          <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[11px] leading-relaxed text-amber-300" style={{ borderColor: '#f59e0b44', background: '#f59e0b12' }}>
             ⏳ <b>{pending.map((p) => p.ko).join(' · ')}</b>이(가) 아직 시행 전입니다({clock(pending[0].from)} 시행). 그 규정에서 나오는 SHACL 제약은
             아직 생성되지 않습니다 — 배속을 올려 시행 시각을 지나면 같은 결함이 걸리기 시작합니다.
           </div>
@@ -180,7 +181,7 @@ export default function Guide({ jump }: { jump: Jump }) {
           {TOURS.map((t) => (
             <div key={t.who}>
               <div className="mb-1 flex flex-wrap items-baseline gap-2">
-                <span className="rounded px-1.5 py-0.5 text-[11px] font-black" style={{ color: t.c, background: `${t.c}1a` }}>
+                <span className="rounded px-1.5 py-0.5 text-[11px] font-black" style={{ color: ink(t.c), background: `${t.c}1a` }}>
                   {t.who}
                 </span>
                 <span className="break-keep text-[10.5px] text-gray-500">{t.why}</span>
@@ -192,7 +193,7 @@ export default function Guide({ jump }: { jump: Jump }) {
                     onClick={() => jump(s.id)}
                     className="flex w-full items-start gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-2.5 py-2 max-[640px]:min-h-[40px] text-left transition-colors hover:border-gray-700 focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
-                    <span className="mt-px shrink-0 rounded px-1 py-0.5 text-[10px] font-black tabular-nums" style={{ color: t.c, background: `${t.c}1a` }}>
+                    <span className="mt-px shrink-0 rounded px-1 py-0.5 text-[10px] font-black tabular-nums" style={{ color: ink(t.c), background: `${t.c}1a` }}>
                       {i + 1}
                     </span>
                     <span className="shrink-0 text-[11.5px] font-bold text-gray-100">

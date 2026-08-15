@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import type { SimSnapshot } from '../sim/types'
 import { spaceOf } from './meta'
@@ -62,7 +63,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
                 }`}
               >
                 <div className={`text-[12px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{m.ko}</div>
-                <div className="mt-0.5 text-[15px] font-black tabular-nums" style={{ color: on ? S.outcome.color : undefined }}>
+                <div className="mt-0.5 text-[15px] font-black tabular-nums" style={{ color: ink(on ? S.outcome.color : undefined)}}>
                   {m.short(snap, v.id)}
                 </div>
                 <div className="mt-1 flex items-center gap-1">
@@ -193,7 +194,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
         <div className="grid grid-cols-[1.1fr_1fr_1.1fr] gap-2 max-[1000px]:grid-cols-1">
           <Step space={S.outcome} title="성과" rel="이 숫자가 결과">
             <div className="text-center">
-              <div className="text-3xl font-black tabular-nums" style={{ color: S.outcome.color }}>
+              <div className="text-3xl font-black tabular-nums" style={{ color: ink(S.outcome.color)}}>
                 {c.value}
                 {c.unit && <span className="ml-1 text-sm font-bold text-gray-500">{c.unit}</span>}
               </div>
@@ -214,7 +215,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
                   <div className="flex items-center justify-center gap-3">
                     {c.claimBig.map((b, i) => (
                       <div key={`${b.label}-${i}`} className="text-center">
-                        <div className="text-xl font-black tabular-nums" style={{ color: b.color }}>
+                        <div className="text-xl font-black tabular-nums" style={{ color: ink(b.color)}}>
                           {b.n}
                         </div>
                         <div className="text-[10.5px] text-gray-500">{b.label}</div>
@@ -296,7 +297,7 @@ function Step({ space, title, rel, children }: { space: { color: string }; title
   return (
     <div className="rounded-lg border px-3 py-2.5" style={{ borderColor: `${space.color}44`, background: `${space.color}0d` }}>
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className="text-[12.5px] font-black" style={{ color: space.color }}>
+        <span className="text-[12.5px] font-black" style={{ color: ink(space.color)}}>
           {title}
         </span>
         <span className="shrink-0 text-[10px] font-semibold text-gray-500">{rel}</span>

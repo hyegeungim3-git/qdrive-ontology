@@ -135,12 +135,12 @@ export default function TimePanel() {
           </table>
         </div>
         {POLICY_VALIDITY.some((p) => !policyActive(p.id, at)) ? (
-          <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed" style={{ borderColor: '#f59e0b44', background: '#f59e0b12', color: '#fcd34d' }}>
+          <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-amber-300" style={{ borderColor: '#f59e0b44', background: '#f59e0b12' }}>
             ⚠ <b>「불이익 결정 자동화 금지」가 아직 시행 전입니다.</b> 지금 ⑨ 실검증에서 「감점 자동 확정」 결함을 켜도{' '}
             <b>걸리지 않습니다</b> — 규칙 자체가 생성되지 않았기 때문입니다. 배속을 올려 시행 시각을 지나면 같은 결함이 걸리기 시작합니다.
           </div>
         ) : (
-          <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed" style={{ borderColor: '#34d39944', background: '#34d39912', color: '#6ee7b7' }}>
+          <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-emerald-300" style={{ borderColor: '#34d39944', background: '#34d39912' }}>
             ✅ <b>규정 5종이 모두 시행 중입니다.</b> 「불이익 결정 자동화 금지」는 {clock(1800)}에 시행됐고, 그때부터 SHACL 제약이 생성돼
             감점 자동 확정을 막습니다. <b>발행은 소급하지 않듯 시행도 소급하지 않습니다</b> — 시행 전 레코드는 그 규칙으로 검사되지 않았습니다.
           </div>

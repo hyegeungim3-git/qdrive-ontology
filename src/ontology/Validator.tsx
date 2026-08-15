@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf, type SpaceId } from './meta'
 import { currentVersion } from './grammar'
@@ -114,13 +115,13 @@ export default function Validator({ preset }: { preset?: { from: SpaceId; to: Sp
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-3">
-          <span className="rounded px-2.5 py-1.5 text-[13px] font-black" style={{ background: `${spaceOf(from).color}22`, color: spaceOf(from).color }}>
+          <span className="rounded px-2.5 py-1.5 text-[13px] font-black" style={{ background: `${spaceOf(from).color}22`, color: ink(spaceOf(from).color)}}>
             {spaceOf(from).ko}
           </span>
           <span className="text-gray-600">─</span>
           <span className="rounded bg-gray-800 px-2 py-1 text-[12px] font-bold text-gray-200">{rel}</span>
           <span className="text-gray-600">→</span>
-          <span className="rounded px-2.5 py-1.5 text-[13px] font-black" style={{ background: `${spaceOf(to).color}22`, color: spaceOf(to).color }}>
+          <span className="rounded px-2.5 py-1.5 text-[13px] font-black" style={{ background: `${spaceOf(to).color}22`, color: ink(spaceOf(to).color)}}>
             {spaceOf(to).ko}
           </span>
         </div>
@@ -157,7 +158,7 @@ function Stat({ n, label, sub, color }: { n: string; label: string; sub: string;
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900/60 px-3 py-2.5">
       <div className="text-[11px] text-gray-500">{label}</div>
-      <div className="mt-0.5 text-2xl font-black tabular-nums" style={{ color }}>
+      <div className="mt-0.5 text-2xl font-black tabular-nums" style={{ color: ink(color) }}>
         {n}
       </div>
       <div className="mt-0.5 break-keep text-[10.5px] text-gray-500">{sub}</div>
@@ -186,7 +187,7 @@ function Picker({
               key={x}
               onClick={() => onChange(x)}
               className={`rounded-md px-2 py-1 max-[640px]:min-h-[40px] text-[11px] font-bold transition-colors ${on ? '' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'}`}
-              style={on ? { background: `${colorOf?.(x) ?? '#38bdf8'}22`, color: colorOf?.(x) ?? '#7dd3fc' } : undefined}
+              style={on ? { background: `${colorOf?.(x) ?? '#38bdf8'}22`, color: ink(colorOf?.(x) ?? '#7dd3fc') } : undefined}
             >
               {render(x)}
             </button>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { Drawer, Sec } from './ui'
 import {
@@ -100,7 +101,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
           ].map((k) => (
             <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
               <div className="text-[10.5px] font-semibold text-gray-500">{k.ko}</div>
-              <div className="text-[19px] font-black tabular-nums" style={{ color: k.tone }}>
+              <div className="text-[19px] font-black tabular-nums" style={{ color: ink(k.tone)}}>
                 {k.v}
               </div>
               <div className="break-keep text-[11.5px] leading-snug text-gray-500">{k.sub}</div>
@@ -200,7 +201,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
         {open && (
           <>
             <Sec t="왜 막혔나">
-              <div className="rounded-lg border px-3 py-2 break-keep text-[12px] leading-relaxed" style={{ borderColor: '#fb718555', background: '#fb718514', color: '#fecdd3' }}>
+              <div className="rounded-lg border px-3 py-2 break-keep text-[12px] leading-relaxed text-rose-200" style={{ borderColor: '#fb718555', background: '#fb718514' }}>
                 {open.message}
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1.5 text-[10.5px]">
@@ -251,16 +252,16 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
 
                   {block && (
                     <div
-                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
-                      style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-amber-300"
+                      style={{ borderColor: '#f59e0b55', background: '#f59e0b14' }}
                     >
                       ⛔ <b>예외 승인 불가</b> — {block}
                     </div>
                   )}
                   {!mayWaive && (
                     <div
-                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
-                      style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-amber-300"
+                      style={{ borderColor: '#f59e0b55', background: '#f59e0b14' }}
                     >
                       🔒 <b>«{roleOf(role).ko}» 역할에는 예외 승인 권한이 없습니다</b> — {denyReason(role, 'approveWaiver')}
                     </div>
@@ -280,7 +281,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
                           className="w-full rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
                           style={{ borderColor: `${a.tone}55`, background: `${a.tone}12` }}
                         >
-                          <div className="text-[12.5px] font-bold" style={{ color: a.tone }}>
+                          <div className="text-[12.5px] font-bold" style={{ color: ink(a.tone)}}>
                             {a.ko}
                           </div>
                           <div className="break-keep text-[11px] leading-snug text-gray-400">{a.desc}</div>
@@ -297,7 +298,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
             ) : (
               <Sec t="처리 결과">
                 <div className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2.5">
-                  <div className="text-[12.5px] font-bold" style={{ color: STATUS_TONE[open.status] }}>
+                  <div className="text-[12.5px] font-bold" style={{ color: ink(STATUS_TONE[open.status])}}>
                     {open.status}
                   </div>
                   <div className="mt-1 text-[11.5px] text-gray-400">
@@ -507,7 +508,7 @@ function Feedback({ rows, onGoto }: { rows: RuleFeedback[]; onGoto: Jump }) {
                   <span
                     className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-black"
                     style={{
-                      color: VERDICT_TONE[r.verdict],
+                      color: ink(VERDICT_TONE[r.verdict]),
                       background: `${VERDICT_TONE[r.verdict]}1f`,
                       border: `1px solid ${VERDICT_TONE[r.verdict]}55`,
                     }}
@@ -652,7 +653,7 @@ function Line({ label, children }: { label: string; children: React.ReactNode })
 
 function Num({ v, tone }: { v: number; tone?: string }) {
   return (
-    <td className="py-1.5 pr-2 text-right font-bold tabular-nums" style={{ color: v > 0 ? (tone ?? '#e5e7eb') : '#4b5563' }}>
+    <td className="py-1.5 pr-2 text-right font-bold tabular-nums" style={{ color: ink(v > 0 ? (tone ?? '#e5e7eb') : '#4b5563')}}>
       {v}
     </td>
   )
@@ -705,7 +706,7 @@ function Row({ i, tab, onOpen, onReopen }: { i: QItem; tab: 'held' | 'done'; onO
           <div className="flex items-center gap-1.5">
             <span
               className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-black"
-              style={{ color: STATUS_TONE[i.status], background: `${STATUS_TONE[i.status]}1f`, border: `1px solid ${STATUS_TONE[i.status]}55` }}
+              style={{ color: ink(STATUS_TONE[i.status]), background: `${STATUS_TONE[i.status]}1f`, border: `1px solid ${STATUS_TONE[i.status]}55` }}
             >
               {i.status}
             </span>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { SPACES, spaceOf, type SpaceId } from './meta'
 import { CHANGES, IMPACTS, SCENARIOS, SPACE_IMPACTS, analyse, type ChangeKind } from './impactmeta'
@@ -40,7 +41,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
                 <div className={`text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{s.ko}</div>
                 <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-gray-500">{s.note}</div>
                 <div className="mt-1 flex flex-wrap items-center gap-1 text-[10.5px]">
-                  <span className="rounded px-1.5 py-0.5 font-bold" style={{ background: `${spaceOf(s.space).color}22`, color: spaceOf(s.space).color }}>
+                  <span className="rounded px-1.5 py-0.5 font-bold" style={{ background: `${spaceOf(s.space).color}22`, color: ink(spaceOf(s.space).color)}}>
                     {spaceOf(s.space).ko}
                   </span>
                   <span className="text-gray-600">×</span>
@@ -62,7 +63,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
                   className={`rounded-md px-2 py-1 max-[640px]:min-h-[40px] text-[11px] font-bold transition-colors ${
                     space === s.id ? 'ring-1' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
                   }`}
-                  style={space === s.id ? { background: `${s.color}22`, color: s.color, borderColor: s.color } : undefined}
+                  style={space === s.id ? { background: `${s.color}22`, color: ink(s.color), borderColor: s.color } : undefined}
                 >
                   {s.ko}
                 </button>
@@ -116,7 +117,9 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
                   <span className={`text-[12px] font-bold ${on ? 'text-gray-100' : 'text-gray-600'}`}>{i.ko}</span>
                   {on && always && <span className="ml-auto text-[11px] font-bold text-gray-500">항상</span>}
                 </div>
-                <div className={`mt-0.5 break-keep text-[11.5px] leading-relaxed ${on ? 'text-gray-400' : 'text-gray-700'}`}>{i.q}</div>
+                {/* 꺼진 상태를 gray-700으로 두면 «흐림»이 아니라 «안 보임»이 된다 —
+                    라이트에서 1.26:1이었다. 읽히는 하한(gray-600)까지만 낮춘다. */}
+                <div className={`mt-0.5 break-keep text-[11.5px] leading-relaxed ${on ? 'text-gray-400' : 'text-gray-600'}`}>{i.q}</div>
               </div>
             )
           })}
@@ -126,7 +129,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
           <div className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2.5">
             <div className="mb-1.5 text-[11px] font-bold text-gray-400">전파 범위 — 관계를 타고 2단계까지</div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded px-2 py-1 text-[11.5px] font-black" style={{ background: `${sp.color}22`, color: sp.color }}>
+              <span className="rounded px-2 py-1 text-[11.5px] font-black" style={{ background: `${sp.color}22`, color: ink(sp.color)}}>
                 {sp.ko}
               </span>
               <span className="text-gray-600">→</span>
@@ -135,7 +138,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
                   key={s}
                   onClick={() => pick(s, change, null)}
                   className="rounded px-1.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold transition-opacity hover:opacity-80"
-                  style={{ background: `${spaceOf(s).color}18`, color: spaceOf(s).color }}
+                  style={{ background: `${spaceOf(s).color}18`, color: ink(spaceOf(s).color)}}
                 >
                   {spaceOf(s).ko}
                 </button>

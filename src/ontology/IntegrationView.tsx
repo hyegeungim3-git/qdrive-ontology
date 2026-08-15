@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Emph, Panel } from '../components/ui'
 import { GIVES_TONE, INTEGRATIONS, ORG_KINDS, STATUS_TONE, integrationStats, type Gives, type OrgKind } from './integrations'
 
@@ -35,7 +36,7 @@ export default function IntegrationView() {
           { n: String(st.outbound), ko: '밖으로 나감', sub: '규정이 다시 걸린다', c: '#f472b6' },
         ].map((k) => (
           <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
-            <div className="text-xl font-black tabular-nums" style={{ color: k.c }}>
+            <div className="text-xl font-black tabular-nums" style={{ color: ink(k.c)}}>
               {k.n}
             </div>
             <div className="mt-0.5 text-[12px] font-bold text-gray-300">{k.ko}</div>
@@ -44,7 +45,7 @@ export default function IntegrationView() {
         ))}
       </div>
 
-      <div className="mt-3 rounded-lg border px-3 py-2.5 break-keep text-[12px] leading-relaxed" style={{ borderColor: '#fbbf2433', background: '#fbbf240d', color: '#fde68a' }}>
+      <div className="mt-3 rounded-lg border px-3 py-2.5 break-keep text-[12px] leading-relaxed text-amber-200" style={{ borderColor: '#fbbf2433', background: '#fbbf240d' }}>
         <b>밖에서 오는 값이 «원천»인지 «남이 만든 판정»인지 구분해야 합니다.</b> 교통카드 정산이 주는 승하차 수치는 우리가 관측한 것이 아니라{' '}
         <b>이미 남이 집계한 값</b>입니다. 그런 값을 우리 관측처럼 다루면 «누가 만든 숫자인지»를 잃습니다 — 받은 값에는{' '}
         <b>만든 주체가 함께 따라와야</b> 합니다.
@@ -52,7 +53,7 @@ export default function IntegrationView() {
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         {st.byGives.map((g) => (
-          <span key={g.g} className="rounded px-1.5 py-0.5 text-[11.5px] font-bold" style={{ color: GIVES_TONE[g.g as Gives], background: `${GIVES_TONE[g.g as Gives]}1a` }}>
+          <span key={g.g} className="rounded px-1.5 py-0.5 text-[11.5px] font-bold" style={{ color: ink(GIVES_TONE[g.g as Gives]), background: `${GIVES_TONE[g.g as Gives]}1a` }}>
             {g.g} {g.n}
           </span>
         ))}
@@ -93,7 +94,7 @@ export default function IntegrationView() {
                   <div className="text-[10.5px] text-gray-600">{x.org}</div>
                 </td>
                 <td className="py-1.5 pr-3">
-                  <span className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-black" style={{ color: GIVES_TONE[x.gives], background: `${GIVES_TONE[x.gives]}1a` }}>
+                  <span className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-black" style={{ color: ink(GIVES_TONE[x.gives]), background: `${GIVES_TONE[x.gives]}1a` }}>
                     {x.gives}
                   </span>
                 </td>
@@ -101,7 +102,7 @@ export default function IntegrationView() {
                 <td className="py-1.5 pr-3 break-keep text-[11.5px] text-gray-400">{x.what}</td>
                 <td className="py-1.5 pr-3 text-[11px] text-gray-600">{x.how}</td>
                 <td className="py-1.5 pr-3">
-                  <span className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-bold" style={{ color: STATUS_TONE[x.status], background: `${STATUS_TONE[x.status]}1a` }}>
+                  <span className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-bold" style={{ color: ink(STATUS_TONE[x.status]), background: `${STATUS_TONE[x.status]}1a` }}>
                     {x.status}
                   </span>
                   <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-500">

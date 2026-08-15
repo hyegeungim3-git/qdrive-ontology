@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ink } from './ink'
 import { Emph } from '../components/ui'
 import { SOURCES, adapt, coverage, sourceOf, type MapStatus } from './adapter'
 import { validateTurtle } from './validate'
@@ -168,7 +169,7 @@ export default function Inbound() {
                     </td>
                     <td className="py-1.5 pr-3 font-mono text-[10.5px] text-gray-500">{f.sample}</td>
                     <td className="py-1.5 pr-3">
-                      <span className="rounded px-1.5 py-0.5 text-[10px] font-black" style={{ color: t.c, background: `${t.c}1a` }}>
+                      <span className="rounded px-1.5 py-0.5 text-[10px] font-black" style={{ color: ink(t.c), background: `${t.c}1a` }}>
                         {t.ko}
                       </span>
                     </td>

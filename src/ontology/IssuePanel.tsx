@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { ACTION_TYPES, ISSUE, checkAction, issueAction, passed, type Check } from './action'
 import { useIssued, withdraw } from './issued'
@@ -63,7 +64,7 @@ export default function IssuePanel({ snap, jump }: { snap: SimSnapshot; jump: Ju
       </div>
 
       {!mayIssue && (
-        <div className="mt-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed" style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}>
+        <div className="mt-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-amber-300" style={{ borderColor: '#f59e0b55', background: '#f59e0b14' }}>
           🔒 <b>«{roleOf(role).ko}» 역할에는 조치 발행 권한이 없습니다</b> — {denyReason(role, ISSUE)}. 아래에서 검사 결과는 볼 수 있지만 발행은
           잠깁니다.
         </div>
@@ -262,12 +263,12 @@ function Row({ c }: { c: Check }) {
     >
       <div className="flex items-baseline gap-1.5">
         <span className="text-[11px]">{c.ok ? '✓' : '✗'}</span>
-        <span className="rounded px-1 py-px text-[11px] font-black" style={{ color: TONE[c.source], background: `${TONE[c.source]}1a` }}>
+        <span className="rounded px-1 py-px text-[11px] font-black" style={{ color: ink(TONE[c.source]), background: `${TONE[c.source]}1a` }}>
           {c.source}
         </span>
         <span className="text-[11.5px] font-bold text-gray-200">{c.ko}</span>
       </div>
-      <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed" style={{ color: c.ok ? '#9ca3af' : '#fda4af' }}>
+      <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed" style={{ color: ink(c.ok ? '#9ca3af' : '#fda4af')}}>
         {c.why}
       </div>
     </div>

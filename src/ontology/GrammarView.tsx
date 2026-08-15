@@ -1,4 +1,5 @@
 import { Panel } from '../components/ui'
+import { ink } from './ink'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf } from './meta'
 import TimePanel from './TimePanel'
 
@@ -32,13 +33,13 @@ export default function Grammar() {
                 return (
                   <tr key={`${e.from}-${e.to}`} className={`border-b border-gray-800/60 ${e.core ? 'bg-sky-500/5' : ''}`}>
                     <td className="py-2 pr-3">
-                      <span className="font-bold" style={{ color: a.color }}>
+                      <span className="font-bold" style={{ color: ink(a.color)}}>
                         {a.ko}
                       </span>
                       <span className="ml-1 text-[10.5px] text-gray-600">{a.en}</span>
                     </td>
                     <td className="py-2 pr-3">
-                      <span className="font-bold" style={{ color: b.color }}>
+                      <span className="font-bold" style={{ color: ink(b.color)}}>
                         {b.ko}
                       </span>
                       <span className="ml-1 text-[10.5px] text-gray-600">{b.en}</span>
@@ -88,7 +89,7 @@ export default function Grammar() {
               <div key={s.id}>
                 <div className="mb-1 flex items-baseline gap-1.5">
                   <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: s.color }} />
-                  <span className="text-[12px] font-bold" style={{ color: s.color }}>
+                  <span className="text-[12px] font-bold" style={{ color: ink(s.color)}}>
                     {s.ko}
                   </span>
                   <span className="text-[10.5px] text-gray-600">{s.en}</span>

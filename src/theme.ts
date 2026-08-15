@@ -10,6 +10,11 @@ function apply() {
 }
 apply()
 
+/** 훅 밖에서 지금 테마를 읽는다 — 인라인 색 보정(ink)이 렌더 중에 필요하다 */
+export function getTheme(): Theme {
+  return theme
+}
+
 export function toggleTheme() {
   theme = theme === 'dark' ? 'light' : 'dark'
   localStorage.setItem('qdrive-theme', theme)

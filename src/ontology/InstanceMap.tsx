@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ink } from './ink'
 import { SPACES } from './meta'
 import { buildDataGraph, degreeOf, metricOf, relKo, vehicleOf, type GraphIndex } from './rdf'
 import { METRICS } from './chains'
@@ -279,7 +280,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
                     fill={blocked ? '#fb7185' : c}
                     fillOpacity={isPick ? 0.22 : blocked ? 0.14 : 0.08}
                   />
-                  <text x={p.x} y={p.y - 2} textAnchor="middle" fontSize={10.5} fontWeight={800} fill={blocked ? '#fda4af' : c}>
+                  <text x={p.x} y={p.y - 2} textAnchor="middle" fontSize={10.5} fontWeight={800} fill={ink(blocked ? '#fda4af' : c)}>
                     {blocked && '⛔ '}
                     {label.length > 15 ? label.slice(0, 14) + '…' : label}
                   </text>

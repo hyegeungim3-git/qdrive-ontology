@@ -455,8 +455,8 @@ export default function Export() {
 
         {!mayExport && (
           <div
-            className="mt-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
-            style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+            className="mt-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-amber-300"
+            style={{ borderColor: '#f59e0b55', background: '#f59e0b14' }}
           >
             🔒 <b>«{roleOf(role).ko}» 역할에는 원본 내보내기 권한이 없습니다</b> — {denyReason(role, 'exportRaw')}. 아래 미리보기는 볼 수 있지만
             복사·저장은 잠깁니다.
@@ -510,11 +510,10 @@ export default function Export() {
                   {rows.map((r) => (
                     <div
                       key={r.item}
-                      className="rounded-lg border px-3 py-2.5"
-                      style={{
-                        borderColor: r.differs ? '#f59e0b44' : '#1f2937',
-                        background: r.differs ? '#f59e0b0d' : 'rgba(17,24,39,0.5)',
-                      }}
+                      /* 기본 카드는 **클래스로** 그린다 — 인라인으로 다크 색을 박아 두면
+                         라이트에서 어두운 판이 되어 그 위 글자가 통째로 안 읽힌다. */
+                      className={`rounded-lg border px-3 py-2.5 ${r.differs ? '' : 'border-gray-800 bg-gray-900/50'}`}
+                      style={r.differs ? { borderColor: '#f59e0b44', background: '#f59e0b0d' } : undefined}
                     >
                       <div className="flex items-center gap-1.5">
                         {r.differs && <span className="text-[11px]">⚠</span>}
@@ -546,8 +545,8 @@ export default function Export() {
         </div>
 
         <div
-          className="mt-3 rounded-lg border px-3 py-2.5 break-keep text-[12.5px] leading-relaxed"
-          style={{ borderColor: '#f59e0b44', background: '#f59e0b12', color: '#fcd34d' }}
+          className="mt-3 rounded-lg border px-3 py-2.5 break-keep text-[12.5px] leading-relaxed text-amber-300"
+          style={{ borderColor: '#f59e0b44', background: '#f59e0b12' }}
         >
           ⚠ <b>가장 중요한 차이는 접근 통제입니다.</b> 이 데모의 역할 선택기는 «표시»를 가립니다. 실서비스에서 같은 방식을 쓰면
           응답에 값이 남아 뚫립니다 — 서버가 애초에 안 내려주는 구조여야 합니다. 데모에서 증명한 것은{' '}

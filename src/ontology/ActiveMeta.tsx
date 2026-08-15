@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { SPACES, spaceOf, type SpaceId } from './meta'
 import { META_LAYERS, SPACE_META, metaValue } from './impactmeta'
@@ -36,7 +37,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
             <div key={l.id} className="rounded-lg border border-gray-800 bg-gray-900/60 px-3 py-2.5">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: l.color }} />
-                <span className="text-[12.5px] font-bold" style={{ color: l.color }}>
+                <span className="text-[12.5px] font-bold" style={{ color: ink(l.color)}}>
                   {l.ko}
                 </span>
               </div>
@@ -80,7 +81,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
                     className={`cursor-pointer border-b border-gray-800/60 transition-colors hover:bg-gray-800/40 ${on ? 'bg-gray-800/50' : ''}`}
                   >
                     <td className="py-2 pr-3">
-                      <span className="font-bold" style={{ color: s.color }}>
+                      <span className="font-bold" style={{ color: ink(s.color)}}>
                         {s.ko}
                       </span>
                       {SPACE_META[s.id].pii && (
@@ -113,7 +114,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
         <div className="grid grid-cols-4 gap-2.5 max-[1100px]:grid-cols-2 max-[640px]:grid-cols-1">
           {META_LAYERS.map((l) => (
             <div key={l.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: `${l.color}44`, background: `${l.color}0d` }}>
-              <div className="mb-1.5 text-[11.5px] font-black" style={{ color: l.color }}>
+              <div className="mb-1.5 text-[11.5px] font-black" style={{ color: ink(l.color)}}>
                 {l.ko}
               </div>
               <div className="space-y-2">
@@ -250,7 +251,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
                         pick === s.id ? 'bg-gray-800/50' : ''
                       }`}
                     >
-                      <td className="py-1.5 pr-2 font-bold" style={{ color: s.color }}>
+                      <td className="py-1.5 pr-2 font-bold" style={{ color: ink(s.color)}}>
                         {s.ko}
                       </td>
                       <td className="py-1.5 pr-2 text-right font-bold tabular-nums text-gray-200">{b.total}</td>

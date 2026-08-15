@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Emph } from '../components/ui'
 import { BUSES, CHANNELS, INTAKE_TONE, SENS_TONE, dailyVolume, sensorStats, type Bus, type Intake } from './sensors'
 
@@ -37,7 +38,7 @@ export default function SensorView() {
           { n: String(st.blocked), ko: '규정상 보류', sub: '기술이 아니라 법의 문제', c: INTAKE_TONE['규정상 보류'] },
         ].map((k) => (
           <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
-            <div className="text-xl font-black tabular-nums" style={{ color: k.c }}>
+            <div className="text-xl font-black tabular-nums" style={{ color: ink(k.c)}}>
               {k.n}
             </div>
             <div className="mt-0.5 text-[12px] font-bold text-gray-300">{k.ko}</div>
@@ -112,12 +113,12 @@ export default function SensorView() {
                 </td>
                 <td className="py-1.5 pr-3 text-[11.5px] tabular-nums text-gray-400">{c.hz}</td>
                 <td className="py-1.5 pr-3">
-                  <span className="rounded px-1.5 py-0.5 text-[10.5px] font-bold" style={{ color: SENS_TONE[c.sens], background: `${SENS_TONE[c.sens]}1a` }}>
+                  <span className="rounded px-1.5 py-0.5 text-[10.5px] font-bold" style={{ color: ink(SENS_TONE[c.sens]), background: `${SENS_TONE[c.sens]}1a` }}>
                     {c.sens}
                   </span>
                 </td>
                 <td className="py-1.5 pr-3">
-                  <span className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-black" style={{ color: INTAKE_TONE[c.intake], background: `${INTAKE_TONE[c.intake]}1a` }}>
+                  <span className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10.5px] font-black" style={{ color: ink(INTAKE_TONE[c.intake]), background: `${INTAKE_TONE[c.intake]}1a` }}>
                     {c.intake}
                   </span>
                   {c.to && <div className="mt-0.5 text-[10.5px] text-emerald-400/80">→ {c.to}</div>}

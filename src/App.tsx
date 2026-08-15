@@ -250,20 +250,21 @@ export default function App() {
           </span>
         </div>
 
-        <div className="grid grid-cols-5 gap-3 max-[1100px]:grid-cols-3 max-[720px]:grid-cols-2">
-          <button onClick={() => setStep('spaces')} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
+        {/* 그리드가 아니라 flex-wrap — 마지막 줄이 남는 폭을 나눠 가져 구멍이 안 생긴다 */}
+        <div className="flex flex-wrap gap-3">
+          <button onClick={() => setStep('spaces')} className="min-w-[190px] flex-1 text-left focus-visible:ring-2 focus-visible:ring-sky-500">
             <KpiCard label="스페이스" value="9" unit="개" sub={`노드 타입 ${typeCount}종`} accent="text-pink-400" />
           </button>
-          <button onClick={() => setStep('spaces')} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
+          <button onClick={() => setStep('spaces')} className="min-w-[190px] flex-1 text-left focus-visible:ring-2 focus-visible:ring-sky-500">
             <KpiCard label="인스턴스" value={fmt(instances)} unit="개" sub="엔진 실집계 · 배속 반영" accent="text-sky-400" />
           </button>
-          <button onClick={() => setStep('grammar')} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
+          <button onClick={() => setStep('grammar')} className="min-w-[190px] flex-1 text-left focus-visible:ring-2 focus-visible:ring-sky-500">
             <KpiCard label="관계 어휘" value={`${relations}`} unit="종" sub={`${META_EDGES.length}개 방향에만 허용`} accent="text-emerald-400" />
           </button>
-          <button onClick={() => setStep('sim')} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
+          <button onClick={() => setStep('sim')} className="min-w-[190px] flex-1 text-left focus-visible:ring-2 focus-visible:ring-sky-500">
             <KpiCard label="조치 → 성과" value={`${LEVERS.length}`} unit="개 조치" sub={`성과 연결 ${targets}건 · 시뮬레이션 가능`} accent="text-amber-400" />
           </button>
-          <button onClick={() => setStep('chain')} className="text-left focus-visible:ring-2 focus-visible:ring-sky-500">
+          <button onClick={() => setStep('chain')} className="min-w-[190px] flex-1 text-left focus-visible:ring-2 focus-visible:ring-sky-500">
             <KpiCard label="근거 사슬 · 영향" value="4단" unit="역추적" sub="관측→판정→성과 · I1~I7 전파" accent="text-violet-400" />
           </button>
         </div>

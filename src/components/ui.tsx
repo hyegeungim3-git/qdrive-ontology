@@ -53,7 +53,10 @@ export function KpiCard({
   accent?: string
 }) {
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 transition-colors hover:border-gray-700">
+    /* flex 자식으로 쓰이면 마지막 줄이 남는 폭을 채운다 —
+       5장을 3열 그리드에 넣으면 «3 + 2»가 되면서 오른쪽 3분의 1이 구멍으로 남는다.
+       칸이 비는 것과 여백을 둔 것은 다르게 읽힌다. */
+    <div className="h-full min-w-[190px] flex-1 rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3 transition-colors hover:border-gray-700">
       <div className="text-[11px] font-semibold tracking-wide text-gray-500">{label}</div>
       <div className={`mt-1 text-2xl font-extrabold tracking-tight tabular-nums ${accent}`}>
         {value}

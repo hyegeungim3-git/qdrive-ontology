@@ -76,7 +76,7 @@ html.light {
   --color-emerald-400: #059669;
   --color-amber-200: #92400e;
   --color-amber-300: #b45309;
-  --color-amber-400: #d97706;
+  --color-amber-400: #b45309;
   --color-red-200: #991b1b;
   --color-red-300: #b91c1c;
   --color-red-400: #dc2626;
@@ -84,6 +84,19 @@ html.light {
   --color-violet-300: #6d28d9;
   --color-violet-400: #7c3aed;
   --color-indigo-300: #4338ca;
+  /* rose·pink·cyan 은 매핑이 빠져 있어 **라이트에서 옅은 글씨가 옅은 배경에 묻혔다.**
+     계열 하나를 빠뜨리면 그 색을 쓴 패널만 조용히 안 읽힌다 —
+     쓰는 색은 전부 여기 있어야 한다. */
+  --color-rose-100: #881337;
+  --color-rose-200: #9f1239;
+  --color-rose-300: #be123c;
+  --color-rose-400: #e11d48;
+  --color-amber-100: #78350f;
+  --color-pink-200: #9d174d;
+  --color-pink-300: #be185d;
+  --color-pink-400: #db2777;
+  --color-cyan-300: #0e7490;
+  --color-emerald-500: #047857;
 }
 
 body {
@@ -267,4 +280,28 @@ html.light ::-webkit-scrollbar-thumb {
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* 가로로 넘치는 표·도식은 **넘친다는 것이 보여야 한다.**
+   820~1100px 구간에서 표 오른쪽 열이 잘려 보이는데, 스크롤 막대가 배경에 묻혀
+   «잘린 것»과 «더 있는 것»이 구분되지 않았다. 이 막대만 진하게 둔다. */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 9px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #3b4759;
+  border-radius: 5px;
+}
+.overflow-x-auto:hover::-webkit-scrollbar-thumb {
+  background: #4d5c72;
+}
+html.light .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #9aa8bb;
+}
+html.light .overflow-x-auto:hover::-webkit-scrollbar-thumb {
+  background: #7d8da2;
+}
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 5px;
 }

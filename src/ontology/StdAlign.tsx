@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import Inbound from './Inbound'
 import SensorView from './SensorView'
 import { Panel } from '../components/ui'
@@ -124,7 +125,7 @@ export default function Standards() {
                     <tr key={`${s.id}-${i}`} className="border-b border-gray-800/60">
                       <td className="py-2 pr-3">
                         {i === 0 && (
-                          <span className="font-bold" style={{ color: s.color }}>
+                          <span className="font-bold" style={{ color: ink(s.color)}}>
                             {s.ko}
                           </span>
                         )}
@@ -220,7 +221,7 @@ function Stat({ n, label, sub, color }: { n: string; label: string; sub: string;
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900/60 px-3 py-2.5">
       <div className="text-[11px] text-gray-500">{label}</div>
-      <div className="mt-0.5 text-2xl font-black tabular-nums" style={{ color }}>
+      <div className="mt-0.5 text-2xl font-black tabular-nums" style={{ color: ink(color) }}>
         {n}
       </div>
       <div className="mt-0.5 break-keep text-[10.5px] text-gray-500">{sub}</div>

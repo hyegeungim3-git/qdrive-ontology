@@ -1,4 +1,5 @@
 import { META_EDGES, SPACES, spaceOf } from './meta'
+import { ink } from './ink'
 import { edgeLinkCounts } from './rdf'
 import { useGate } from './gate'
 import type { Jump, StepId } from './nav'
@@ -163,7 +164,7 @@ export function Pipeline({ jump }: { jump: Jump }) {
             textAnchor={l.anchor ?? 'middle'}
             fontSize={l.strong ? 11.5 : 10.5}
             fontWeight={l.strong ? 800 : 600}
-            fill={l.c}
+            fill={ink(l.c)}
             letterSpacing="0.01em"
           >
             {l.t}
@@ -172,10 +173,10 @@ export function Pipeline({ jump }: { jump: Jump }) {
         {NODES.map((n) => (
           <g key={n.id} onClick={() => n.step && jump(n.step)} style={{ cursor: n.step ? 'pointer' : 'default' }}>
             <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={10} fill={`${n.c}12`} stroke={`${n.c}55`} strokeWidth={1} />
-            <text x={n.x + n.w / 2} y={n.y + (n.h > 50 ? 28 : 21)} textAnchor="middle" fontSize={12} fontWeight={700} fill={n.c}>
+            <text x={n.x + n.w / 2} y={n.y + (n.h > 50 ? 28 : 21)} textAnchor="middle" fontSize={12} fontWeight={700} fill={ink(n.c)}>
               {n.ko}
             </text>
-            <text x={n.x + n.w / 2} y={n.y + (n.h > 50 ? 45 : 34)} textAnchor="middle" fontSize={10.5} fill="#8b95a5">
+            <text x={n.x + n.w / 2} y={n.y + (n.h > 50 ? 45 : 34)} textAnchor="middle" fontSize={10.5} fill={ink('#7c8798')}>
               {n.sub}
             </text>
           </g>
@@ -215,16 +216,16 @@ export function Connections({ jump }: { jump: Jump }) {
             onClick={() => jump('spaces')}
             className="flex w-full items-center gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-2.5 py-1.5 max-[640px]:min-h-[40px] text-left transition-colors hover:border-gray-700 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
-            <span className="w-[132px] shrink-0 text-[11.5px] font-bold" style={{ color: r.from.color }}>
+            <span className="w-[132px] shrink-0 text-[11.5px] font-bold" style={{ color: ink(r.from.color)}}>
               {r.from.ko}
               <span className="mx-1 text-gray-600">→</span>
-              <span style={{ color: r.to.color }}>{r.to.ko}</span>
+              <span style={{ color: ink(r.to.color)}}>{r.to.ko}</span>
             </span>
             {r.core && <span className="shrink-0 rounded bg-pink-400/15 px-1 py-px text-[11px] font-black text-pink-300">핵심</span>}
             <span className="min-w-0 flex-1">
               <span className="block h-2 rounded-full" style={{ width: `${Math.max(2, (r.n / max) * 100)}%`, background: `${r.to.color}88` }} />
             </span>
-            <span className="w-[52px] shrink-0 text-right text-[11.5px] font-bold tabular-nums" style={{ color: r.n ? '#e5e7eb' : '#4b5563' }}>
+            <span className="w-[52px] shrink-0 text-right text-[11.5px] font-bold tabular-nums" style={{ color: ink(r.n ? '#e5e7eb' : '#4b5563')}}>
               {r.n}
             </span>
             {/* 잘라 버리면 읽는 사람에겐 그냥 사라진 글자다 — 줄여서 «다 보이게» 하고 전체는 title로 */}

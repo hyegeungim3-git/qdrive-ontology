@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { spaceOf, type SpaceId } from './meta'
 import { currentSnapshot, currentVersion, derive, diff, snapshotOf, useDraft, useGrammar, versions, type Snapshot } from './grammar'
@@ -129,7 +130,7 @@ export default function Compare({ onGoto }: { onGoto: Jump }) {
                       <td className="py-1.5 pr-2">
                         <span
                           className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-black"
-                          style={{ color: t.fg, background: t.bg, border: `1px solid ${t.bd}` }}
+                          style={{ color: ink(t.fg), background: t.bg, border: `1px solid ${t.bd}` }}
                         >
                           {t.ko}
                         </span>
@@ -137,7 +138,7 @@ export default function Compare({ onGoto }: { onGoto: Jump }) {
                       <td className="py-1.5 pr-2 whitespace-nowrap text-gray-500">{r.area}</td>
                       <td className="py-1.5 pr-2 break-keep font-semibold text-gray-200">{r.key}</td>
                       <td className="py-1.5 pr-2 break-keep text-gray-500 line-through decoration-gray-700">{r.before}</td>
-                      <td className="py-1.5 break-keep font-semibold" style={{ color: t.fg }}>
+                      <td className="py-1.5 break-keep font-semibold" style={{ color: ink(t.fg)}}>
                         {r.after}
                       </td>
                     </tr>
@@ -185,11 +186,13 @@ function Picker({
             <button
               key={o}
               onClick={() => onChange(o)}
-              className="rounded-md border px-2 max-[640px]:min-h-[40px] py-1 text-[11.5px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500"
+              className={`rounded-md border px-2 max-[640px]:min-h-[40px] py-1 text-[11.5px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                on ? '' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
+              }`}
               style={
                 on
-                  ? { borderColor: `${tone}88`, background: `${tone}22`, color: tone }
-                  : { borderColor: '#1f2937', background: '#111827', color: '#9ca3af' }
+                  ? { borderColor: `${tone}88`, background: `${tone}22`, color: ink(tone) }
+                  : undefined
               }
             >
               {label(o)}
@@ -225,9 +228,9 @@ function SideBySide({ a, b, leftKo, rightKo }: { a: Snapshot; b: Snapshot; leftK
             const changed = (ae?.relations.join() ?? '') !== (be?.relations.join() ?? '')
             return (
               <tr key={k} className={`border-b border-gray-800/60 align-top ${changed ? 'bg-emerald-400/[0.05]' : ''}`}>
-                <td className="py-1.5 pr-2 whitespace-nowrap font-bold" style={{ color: spaceOf(ref.from).color }}>
+                <td className="py-1.5 pr-2 whitespace-nowrap font-bold" style={{ color: ink(spaceOf(ref.from).color)}}>
                   {spaceOf(ref.from).ko} <span className="text-gray-600">→</span>{' '}
-                  <span style={{ color: spaceOf(ref.to).color }}>{spaceOf(ref.to).ko}</span>
+                  <span style={{ color: ink(spaceOf(ref.to).color)}}>{spaceOf(ref.to).ko}</span>
                   {ref.core && <span className="ml-1 rounded bg-sky-400/15 px-1 py-px text-[11px] font-bold text-sky-300">핵심</span>}
                 </td>
                 <td className="py-1.5 pr-2">

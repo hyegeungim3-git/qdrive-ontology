@@ -19,7 +19,8 @@ export default function DemoControls({ snap }: { snap: SimSnapshot }) {
             key={s}
             onClick={() => engine.setSpeed(s)}
             className={`px-2 py-1 max-[640px]:min-h-[40px] text-xs font-semibold transition-colors ${
-              snap.speedMultiplier === s ? 'bg-pink-500 text-white' : 'bg-gray-900 text-gray-400 hover:text-gray-200'
+              /* pink-500 위 흰 글씨는 3.4:1로 AA(4.5:1) 미달이다 — 한 단계 진하게 내려 4.5:1을 넘긴다 */
+              snap.speedMultiplier === s ? 'bg-pink-600 text-white' : 'bg-gray-900 text-gray-400 hover:text-gray-200'
             }`}
             title="배속 — 올리면 관측·판정·성과 인스턴스가 실제로 늘어납니다"
           >

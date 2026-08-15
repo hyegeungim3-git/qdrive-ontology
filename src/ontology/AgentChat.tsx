@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ink } from './ink'
 import { Emph } from '../components/ui'
 import { gapAnswer, measureAnswer, runAgent, tripSlice, type Answer } from './agent'
 import { useGate } from './gate'
@@ -269,27 +270,57 @@ export default function AgentChat() {
       </div>
 
       {/* 대화 */}
-      <div className="min-h-[280px] rounded-xl border border-gray-800 bg-gray-900/40 px-3 py-3">
+      <div className={`rounded-xl border border-gray-800 bg-gray-900/40 px-3 py-3 ${msgs.length ? 'min-h-[280px]' : ''}`}>
+        {/**
+         * 빈 화면에서는 **여기 한 곳에만** 질문을 둔다.
+         * 처음엔 예시를 대화 영역에, 프리셋을 입력창 위에 뒀더니 같은 성격의 것이 두 군데로 갈라져
+         * «무엇을 눌러야 하나»가 됐다. 아래 프리셋 줄은 **대화가 시작된 뒤에만** 나온다 —
+         * 그때는 «주제를 바꾸는 자리»라는 뜻이 분명해진다.
+         */}
         {!msgs.length && (
-          <div className="py-5">
+          <div className="py-6">
             <div className="text-center break-keep text-[13px] text-gray-300">
-              «{roleOf(role).ko}»로 접속했습니다. <b className="text-violet-300">아래 질문을 눌러 보세요.</b>
+              «{roleOf(role).ko}»로 접속했습니다. <b className="text-violet-300">궁금한 것을 눌러 보세요.</b>
             </div>
+            {/* «답한 뒤에는 이어서 물어볼 질문이 따라 나옵니다»를 적었다가 뺐다.
+                화면이 하는 일을 화면이 설명하면 잔소리가 된다 — 눌러 보면 아는 것은 적지 않는다. */}
             <div className="mt-1 text-center break-keep text-[11.5px] text-gray-600">
-              답한 뒤에는 <b className="text-gray-400">이어서 물어볼 질문</b>이 따라 나옵니다. 역할을 바꾸면 답변 범위도 달라집니다.
+              역할을 바꾸면 볼 수 있는 것과 답변 범위가 달라집니다.
             </div>
-            {/* 프리셋 넷만 보이면 «이것만 되나»로 읽힌다. 더 물어볼 수 있는 것을 처음부터 펼쳐 둔다 */}
-            <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-              {MORE.map((q) => (
+
+            {/* 대표 넷 — 색으로 주제를 구분한다 */}
+            <div className="mx-auto mt-4 grid max-w-[720px] grid-cols-2 gap-2 max-[560px]:grid-cols-1">
+              {PRESETS.map((p) => (
                 <button
-                  key={q}
-                  onClick={() => ask(q)}
+                  key={p.q}
+                  onClick={() => ask(p.q)}
                   disabled={busy}
-                  className="rounded-full border border-gray-800 bg-gray-900/70 px-2.5 py-1 max-[640px]:min-h-[40px] break-keep text-[11.5px] text-gray-400 transition-colors hover:border-gray-700 hover:text-gray-200 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+                  className="rounded-lg border px-3 py-2.5 max-[640px]:min-h-[44px] text-left transition-colors hover:brightness-125 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+                  style={{ borderColor: `${p.c}44`, background: `${p.c}0d` }}
                 >
-                  {q}
+                  <div className="text-[11px] font-black" style={{ color: ink(p.c) }}>
+                    {p.tag}
+                  </div>
+                  <div className="mt-0.5 break-keep text-[12.5px] leading-relaxed text-gray-200">{p.q}</div>
                 </button>
               ))}
+            </div>
+
+            {/* 넷만 보이면 «이것만 되나»로 읽힌다 — 더 물어볼 수 있는 것을 함께 펼친다 */}
+            <div className="mx-auto mt-3 max-w-[720px]">
+              <div className="mb-1.5 text-center text-[10.5px] font-black tracking-wide text-gray-600">이런 것도 물어볼 수 있습니다</div>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {MORE.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => ask(q)}
+                    disabled={busy}
+                    className="rounded-full border border-gray-800 bg-gray-900/70 px-2.5 py-1 max-[640px]:min-h-[40px] break-keep text-[11.5px] text-gray-400 transition-colors hover:border-gray-700 hover:text-gray-200 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -342,7 +373,7 @@ export default function AgentChat() {
                     {m.kind === 'answer' && (
                       <>
                         <div className="break-keep text-[13.5px] leading-relaxed text-gray-50">
-                          <Emph t={m.ans.answer} cls="text-white" />
+                          <Emph t={m.ans.answer} cls="text-gray-50" />
                         </div>
 
                         <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -356,7 +387,7 @@ export default function AgentChat() {
                         </div>
 
                         <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                          <span className="rounded-md px-2 py-1 text-[11px] font-black" style={{ background: '#34d3991a', color: '#6ee7b7' }}>
+                          <span className="rounded-md px-2 py-1 text-[11px] font-black text-emerald-300" style={{ background: '#34d3991a' }}>
                             신뢰도 상한 {m.ans.conf.pct}% · {m.ans.conf.level}
                           </span>
                           <span className="break-keep text-[11px] leading-relaxed text-gray-500">{m.ans.conf.why}</span>
@@ -401,7 +432,9 @@ export default function AgentChat() {
 
       {/* 입력 */}
       <div className="space-y-2">
-        <div className="flex flex-wrap gap-1.5">
+        {/* 대화가 시작된 뒤에만 — 그때는 «주제를 바꾸는 자리»라는 뜻이 분명하다.
+            빈 화면에도 두면 같은 버튼이 두 군데에 있어 어느 쪽을 눌러야 하는지 헷갈린다. */}
+        <div className={`flex-wrap gap-1.5 ${msgs.length ? 'flex' : 'hidden'}`}>
           {PRESETS.map((p) => (
             <button
               key={p.q}
@@ -410,7 +443,7 @@ export default function AgentChat() {
               className="rounded-lg border px-2.5 py-1.5 max-[640px]:min-h-[40px] text-left text-[11.5px] transition-colors disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
               style={{ borderColor: `${p.c}44`, background: `${p.c}0d` }}
             >
-              <span className="font-black" style={{ color: p.c }}>
+              <span className="font-black" style={{ color: ink(p.c)}}>
                 {p.tag}
               </span>
               <span className="ml-1.5 text-gray-300">{p.q}</span>
@@ -435,7 +468,7 @@ export default function AgentChat() {
         </div>
       </div>
 
-      <div className="rounded-xl border px-4 py-3 break-keep text-[12px] leading-relaxed" style={{ borderColor: '#a78bfa33', background: '#a78bfa0d', color: '#ddd6fe' }}>
+      <div className="rounded-xl border px-4 py-3 break-keep text-[12px] leading-relaxed text-violet-200" style={{ borderColor: '#a78bfa33', background: '#a78bfa0d' }}>
         <b>온톨로지가 환각을 없애 주지는 않습니다.</b> 없애 주는 것은 <b>「근거를 못 대는 상태」</b>입니다. 위 답변의 모든 숫자에는 어느 노드에서
         왔는지가 붙어 있고, 못 하는 것은 못 한다고 적혀 있습니다. <b>⚙ 에이전트</b>로 바꾸면 그 답이 나오기까지 무엇을 호출했는지가 보입니다 —
         특히 <b>문법 검증이 잘못된 질의를 실행 전에 거르는 것</b>이 벡터 검색만으로는 안 되는 부분입니다.
@@ -453,7 +486,7 @@ function TripAnswer() {
       <div className="space-y-1">
         {s.story.map((t, i) => (
           <div key={i} className="break-keep text-[13px] leading-relaxed text-gray-50">
-            <Emph t={t} cls="text-white" />
+            <Emph t={t} cls="text-gray-50" />
           </div>
         ))}
       </div>
@@ -461,7 +494,7 @@ function TripAnswer() {
         {s.bySpace.map((sp) => (
           <div key={sp.en} className="rounded-lg border bg-gray-950/40 px-2 py-1.5" style={{ borderColor: `${sp.color}3a` }}>
             <div className="flex items-baseline gap-1">
-              <span className="text-[11.5px] font-black" style={{ color: sp.color }}>
+              <span className="text-[11.5px] font-black" style={{ color: ink(sp.color)}}>
                 {sp.ko}
               </span>
               <span className="ml-auto text-[11px] tabular-nums text-gray-500">{sp.nodes.length}</span>
@@ -469,7 +502,7 @@ function TripAnswer() {
             <div className="mt-0.5 space-y-0.5">
               {sp.nodes.slice(0, 4).map((n) => (
                 <div key={n.iri} className="truncate text-[10.5px] text-gray-400">
-                  {n.label} <span style={{ color: sp.color }}>«{n.via}»</span>
+                  {n.label} <span style={{ color: ink(sp.color)}}>«{n.via}»</span>
                 </div>
               ))}
               {sp.nodes.length > 4 && <div className="text-[10px] text-gray-600">외 {sp.nodes.length - 4}개</div>}

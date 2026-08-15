@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Emph, Panel } from '../components/ui'
 import { CONF_TONE, CONSUMERS, KIND_TONE, PRODUCED, flowStats, type ConsumerKind, type ProducedKind } from './dataflow'
 import { BUSES, CHANNELS, INTAKE_TONE } from './sensors'
@@ -46,13 +47,13 @@ export default function FlowStages({ jump }: { jump: Jump }) {
               }`}
               style={on ? { borderColor: `${c}88`, background: `${c}14` } : undefined}
             >
-              <div className="text-xl font-black tabular-nums" style={{ color: c }}>
+              <div className="text-xl font-black tabular-nums" style={{ color: ink(c)}}>
                 {n}
                 <span className="ml-1 text-[11px] font-bold text-gray-500">종</span>
               </div>
               <div className="mt-0.5 text-[12.5px] font-bold text-gray-200">{k}</div>
               <div className="text-[11px] text-gray-600">{sub}</div>
-              <div className="mt-0.5 text-[11px]" style={{ color: c }}>
+              <div className="mt-0.5 text-[11px]" style={{ color: ink(c)}}>
                 지금 도는 것 {live}
               </div>
             </button>
@@ -78,7 +79,7 @@ export default function FlowStages({ jump }: { jump: Jump }) {
                   <span className="text-[12px] font-bold text-gray-200">{b}</span>
                   <span className="ml-1.5 text-[11px] tabular-nums text-gray-500">{n}</span>
                   {live > 0 && (
-                    <span className="ml-1 rounded px-1 py-px text-[10px] font-black" style={{ color: INTAKE_TONE['수집·연결'], background: `${INTAKE_TONE['수집·연결']}1a` }}>
+                    <span className="ml-1 rounded px-1 py-px text-[10px] font-black" style={{ color: ink(INTAKE_TONE['수집·연결']), background: `${INTAKE_TONE['수집·연결']}1a` }}>
                       연결 {live}
                     </span>
                   )}
@@ -91,14 +92,14 @@ export default function FlowStages({ jump }: { jump: Jump }) {
 
       {stage === '생성' && (
         <div className="mt-3">
-          <div className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12px] leading-relaxed" style={{ borderColor: '#f43f5e33', background: '#f43f5e0d', color: '#fda4af' }}>
+          <div className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12px] leading-relaxed text-rose-300" style={{ borderColor: '#f43f5e33', background: '#f43f5e0d' }}>
             <b>생성 데이터가 수집 데이터보다 위험합니다.</b> 수집값은 틀리면 센서를 고치면 되지만{' '}
             <b>생성값은 틀려도 그럴듯해 보입니다.</b> 그래서 항목마다 <b>어디서 왔고 · 어떻게 만들었고 · 얼마나 믿을 만한지</b>를 함께 적습니다. 이
             셋이 없는 생성값은 쓰면 안 됩니다.
           </div>
           <div className="mb-2 flex flex-wrap gap-1.5">
             {st.byKind.map((k) => (
-              <span key={k.k} className="rounded px-1.5 py-0.5 text-[11px] font-bold" style={{ color: KIND_TONE[k.k as ProducedKind], background: `${KIND_TONE[k.k as ProducedKind]}1a` }}>
+              <span key={k.k} className="rounded px-1.5 py-0.5 text-[11px] font-bold" style={{ color: ink(KIND_TONE[k.k as ProducedKind]), background: `${KIND_TONE[k.k as ProducedKind]}1a` }}>
                 {k.k} {k.n}
                 <span className="ml-1 opacity-70">({k.live} 작동)</span>
               </span>
@@ -124,14 +125,14 @@ export default function FlowStages({ jump }: { jump: Jump }) {
                         <span className="font-bold text-gray-100">{p.ko}</span>
                         {!p.live && <span className="rounded bg-amber-400/15 px-1 py-px text-[9.5px] font-black text-amber-300">아직</span>}
                       </div>
-                      <span className="rounded px-1 py-px text-[10px] font-black" style={{ color: KIND_TONE[p.kind], background: `${KIND_TONE[p.kind]}1a` }}>
+                      <span className="rounded px-1 py-px text-[10px] font-black" style={{ color: ink(KIND_TONE[p.kind]), background: `${KIND_TONE[p.kind]}1a` }}>
                         {p.kind}
                       </span>
                     </td>
                     <td className="py-1.5 pr-3 break-keep text-[11.5px] text-gray-400">{p.from}</td>
                     <td className="py-1.5 pr-3 text-[11.5px] text-gray-500">{p.method}</td>
                     <td className="py-1.5 pr-3">
-                      <span className="rounded px-1.5 py-0.5 text-[11px] font-bold" style={{ color: CONF_TONE[p.conf], background: `${CONF_TONE[p.conf]}1a` }}>
+                      <span className="rounded px-1.5 py-0.5 text-[11px] font-bold" style={{ color: ink(CONF_TONE[p.conf]), background: `${CONF_TONE[p.conf]}1a` }}>
                         {p.conf}
                       </span>
                     </td>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { analyse } from './impactmeta'
 import { META_EDGES, spaceOf } from './meta'
@@ -82,8 +83,8 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
         {/* 권한이 없으면 개정안을 담기 전에 알아야 한다 — 다 담고 나서 막히면 화가 난다 */}
         {!mayPublish && (
           <div
-            className="mb-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
-            style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+            className="mb-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-amber-300"
+            style={{ borderColor: '#f59e0b55', background: '#f59e0b14' }}
           >
             🔒 <b>«{roleOf(role).ko}» 역할에는 문법 발행 권한이 없습니다</b> — {denyReason(role, 'publishGrammar')}. 개정안을 담아 제안하는 것까지는
             할 수 있습니다.
@@ -99,7 +100,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
           ].map((k) => (
             <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
               <div className="text-[10.5px] font-semibold text-gray-500">{k.ko}</div>
-              <div className="text-[19px] font-black tabular-nums" style={{ color: k.tone }}>
+              <div className="text-[19px] font-black tabular-nums" style={{ color: ink(k.tone)}}>
                 {k.v}
               </div>
               <div className="truncate text-[10.5px] text-gray-500">{k.sub}</div>
@@ -134,7 +135,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[13px] font-bold" style={{ color: KIND_TONE[a.kind] }}>
+                        <span className="text-[13px] font-bold" style={{ color: ink(KIND_TONE[a.kind])}}>
                           {a.ko}
                         </span>
                         {isSensitive(a) && (
@@ -223,8 +224,8 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
 
               {!mayPublish && (
                 <div
-                  className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
-                  style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+                  className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-amber-300"
+                  style={{ borderColor: '#f59e0b55', background: '#f59e0b14' }}
                 >
                   🔒 <b>«{roleOf(role).ko}» 역할에는 문법 발행 권한이 없습니다</b> — {denyReason(role, 'publishGrammar')}
                 </div>
@@ -298,7 +299,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                 <ul className="mt-1.5 space-y-1">
                   {r.amendments.map((a) => (
                     <li key={a.id} className="break-keep text-[12.5px] leading-relaxed text-gray-300">
-                      <span style={{ color: KIND_TONE[a.kind] }}>●</span> {a.ko}
+                      <span style={{ color: ink(KIND_TONE[a.kind])}}>●</span> {a.ko}
                       <span className="text-gray-500">
                         {' '}
                         — 근거: <span className="font-mono">{a.id}</span> 예외 승인 {a.basis.waived}건

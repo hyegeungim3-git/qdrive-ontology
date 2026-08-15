@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import { buildCatalog, catalogGaps, catalogStats, type Dataset } from './catalog'
 import { useGate } from './gate'
@@ -133,7 +134,7 @@ export default function Catalog({ jump }: { jump: Jump }) {
                       {d.pass === null ? (
                         <span className="text-gray-600">미측정</span>
                       ) : (
-                        <span style={{ color: d.pass === 100 ? '#34d399' : '#f59e0b' }}>{d.pass}%</span>
+                        <span style={{ color: ink(d.pass === 100 ? '#34d399' : '#f59e0b')}}>{d.pass}%</span>
                       )}
                     </td>
                     <td className={`py-2 pr-3 text-right tabular-nums ${d.fields.length ? 'text-gray-300' : 'text-amber-400'}`}>{d.fields.length}</td>
@@ -205,7 +206,7 @@ function Detail({ d, role, jump }: { d: Dataset; role: RoleId; jump: Jump }) {
       {d.note && <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">{d.note}</div>}
 
       {myDeny && (
-        <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed" style={{ borderColor: '#f43f5e44', background: '#f43f5e12', color: '#fda4af' }}>
+        <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed text-rose-300" style={{ borderColor: '#f43f5e44', background: '#f43f5e12' }}>
           🔒 <b>«{roleOf(role).ko}» 역할은 이 데이터셋을 그대로 볼 수 없습니다</b> — {myDeny.why}
         </div>
       )}
@@ -248,7 +249,7 @@ function Detail({ d, role, jump }: { d: Dataset; role: RoleId; jump: Jump }) {
               </table>
             </div>
           ) : (
-            <div className="rounded-lg border px-3 py-2 break-keep text-[11px] leading-relaxed" style={{ borderColor: '#f59e0b33', background: '#f59e0b0d', color: '#fcd34d' }}>
+            <div className="rounded-lg border px-3 py-2 break-keep text-[11px] leading-relaxed text-amber-300" style={{ borderColor: '#f59e0b33', background: '#f59e0b0d' }}>
               속성 스키마가 없습니다 — 노드는 만들어지는데 <b>값이 검사받지 않습니다</b>. 다음 개정 후보입니다.
             </div>
           )}
@@ -272,7 +273,7 @@ function Detail({ d, role, jump }: { d: Dataset; role: RoleId; jump: Jump }) {
                 <b className="text-gray-500">통과율 미측정(0건)</b>
               ) : (
                 <>
-                  통과율 <b className="tabular-nums" style={{ color: d.pass === 100 ? '#34d399' : '#f59e0b' }}>{d.pass}%</b>
+                  통과율 <b className="tabular-nums" style={{ color: ink(d.pass === 100 ? '#34d399' : '#f59e0b')}}>{d.pass}%</b>
                 </>
               )}
               <div className="mt-1 text-[10.5px] text-gray-500">DQV의 품질 측정에 해당합니다 — 게이트가 실제로 돌린 결과입니다.</div>
@@ -318,7 +319,7 @@ function Detail({ d, role, jump }: { d: Dataset; role: RoleId; jump: Jump }) {
 function Lin({ label, rows, color, empty }: { label: string; rows: { ko: string; rel: string; links: number }[]; color: string; empty: string }) {
   return (
     <div className="rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2">
-      <div className="text-[10px] font-black tracking-wide" style={{ color }}>
+      <div className="text-[10px] font-black tracking-wide" style={{ color: ink(color) }}>
         {label}
       </div>
       {rows.length ? (
@@ -342,7 +343,7 @@ function Lin({ label, rows, color, empty }: { label: string; rows: { ko: string;
 function Kpi({ n, ko, sub, color }: { n: string; ko: string; sub: string; color: string }) {
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
-      <div className="text-xl font-black tabular-nums" style={{ color }}>
+      <div className="text-xl font-black tabular-nums" style={{ color: ink(color) }}>
         {n}
       </div>
       <div className="mt-0.5 text-[11.5px] font-bold text-gray-300">{ko}</div>

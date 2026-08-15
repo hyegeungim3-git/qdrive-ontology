@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ink } from './ink'
 import { Panel } from '../components/ui'
 import IssuePanel from './IssuePanel'
 import MissionView from './MissionView'
@@ -56,7 +57,7 @@ export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jum
                   <span className={`shrink-0 rounded border px-1 py-0.5 text-[11px] font-bold ${stageTone[l.stage]}`}>{l.stage}</span>
                 </div>
                 <div className="mt-0.5 truncate text-[10.5px] text-gray-500">{l.targets.length}개 성과에 연결</div>
-                <div className="mt-1 text-[11px] font-bold tabular-nums" style={{ color: on ? lv.color : undefined }}>
+                <div className="mt-1 text-[11px] font-bold tabular-nums" style={{ color: ink(on ? lv.color : undefined)}}>
                   {l.liveLabel} {fmt(l.live(snap))}
                 </div>
               </button>
@@ -68,7 +69,7 @@ export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jum
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-baseline gap-2">
-                <span className="text-[14px] font-black" style={{ color: lv.color }}>
+                <span className="text-[14px] font-black" style={{ color: ink(lv.color)}}>
                   {lever.ko}
                 </span>
                 <code className="text-[10.5px] text-gray-600">{lever.en}</code>
@@ -97,7 +98,7 @@ export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jum
               className="h-1.5 min-w-[220px] flex-1 cursor-pointer accent-pink-400"
               aria-label="조치 강도"
             />
-            <span className="w-[52px] shrink-0 text-right text-[15px] font-black tabular-nums" style={{ color: lv.color }}>
+            <span className="w-[52px] shrink-0 text-right text-[15px] font-black tabular-nums" style={{ color: ink(lv.color)}}>
               {Math.round(mag * 100)}%
             </span>
             <div className="flex gap-1">
@@ -143,7 +144,7 @@ export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jum
                 return (
                   <tr key={t.outcome} className="border-b border-gray-800/60">
                     <td className="py-2 pr-3">
-                      <div className="font-bold" style={{ color: oc.color }}>
+                      <div className="font-bold" style={{ color: ink(oc.color)}}>
                         {t.outcome}
                       </div>
                       <div className="break-keep text-[10.5px] text-gray-500">{t.why}</div>
