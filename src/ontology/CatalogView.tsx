@@ -5,6 +5,7 @@ import { useGate } from './gate'
 import { simIso, useLineage } from './lineage'
 import { roleOf, useRole, type RoleId } from './policy'
 import type { Jump } from './nav'
+import FlowStages from './FlowStages'
 
 /**
  * ⑭ 데이터 카탈로그 · 리니지 — 「AI가 받아 쓸 수 있는 상태인가」.
@@ -148,6 +149,8 @@ export default function Catalog({ jump }: { jump: Jump }) {
       </Panel>
 
       {open && <Detail d={open} role={role} jump={jump} />}
+
+      <FlowStages jump={jump} />
 
       <Panel title="실행 리니지 — 신선도의 근거" right={<span className="text-[11px] text-gray-500">prov:Activity</span>}>
         <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">
