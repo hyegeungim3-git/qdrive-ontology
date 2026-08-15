@@ -24,6 +24,7 @@ import { qStats, useQuarantine } from './ontology/quarantine'
 import { runGate } from './ontology/gate'
 import Catalog from './ontology/CatalogView'
 import Guide from './ontology/Guide'
+import AgentChat from './ontology/AgentChat'
 import { ROLES, setRole, useRole } from './ontology/policy'
 import type { Jump, Preset, StepId } from './ontology/nav'
 import type { FaultId } from './ontology/rdf'
@@ -119,6 +120,9 @@ const FLAT: Step[] = GROUPS.flatMap((g) => g.steps as readonly Step[])
 export default function App() {
   const snap = useSim()
   const theme = useTheme()
+  /* 에이전트는 «온톨로지를 들여다보는» 스튜디오와 성격이 달라 화면 흐름에 끼우지 않고 **따로** 뒀다.
+     발주처가 실제로 쓰게 될 모습이 이쪽이다. */
+  const [agentMode, setAgentMode] = useState(false)
   const [step, setStep] = useState<StepId>('guide')
   const stepIx = FLAT.findIndex((x) => x.id === step)
   const cur = FLAT[stepIx]
@@ -195,6 +199,17 @@ export default function App() {
             ))}
           </div>
           <DemoControls snap={snap} />
+          <button
+            onClick={() => setAgentMode(!agentMode)}
+            className={`whitespace-nowrap rounded-md border px-2.5 py-1 max-[640px]:min-h-[40px] text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+              agentMode
+                ? 'border-violet-400/60 bg-violet-500/20 text-violet-200'
+                : 'border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20'
+            }`}
+            title="온톨로지 위에서 도는 AI 에이전트 — 채팅·에이전트 두 형태"
+          >
+            {agentMode ? '← 스튜디오로' : '🤖 AI 에이전트'}
+          </button>
           <a
             href={PLATFORM}
             target="_blank"
@@ -214,6 +229,11 @@ export default function App() {
         </div>
       </header>
 
+      {agentMode ? (
+        <main className="flex-1 space-y-4 p-4">
+          <AgentChat />
+        </main>
+      ) : (
       <main className="flex-1 space-y-4 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -354,6 +374,7 @@ export default function App() {
           의 커넥터·계보와 같은 구조를 의미 층에서 한 번 더 지키는 것입니다.
         </div>
       </main>
+      )}
     </div>
   )
 }
