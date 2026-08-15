@@ -4,6 +4,7 @@ import type { SimSnapshot } from '../sim/types'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf, type SpaceId } from './meta'
 import { buildDataGraph, edgeLinkCounts } from './rdf'
 import InstanceMap from './InstanceMap'
+import type { Jump } from './nav'
 import { Drawer, Sec } from './ui'
 import { fmt } from './util'
 
@@ -21,10 +22,20 @@ function edgePt(fx: number, fy: number, tx: number, ty: number, pad = 6) {
   return { x: fx + dx * s, y: fy + dy * s }
 }
 
-export default function SpaceGraph({ snap }: { snap: SimSnapshot }) {
+export default function SpaceGraph({
+  snap,
+  onGoto,
+  view,
+  setView,
+}: {
+  snap: SimSnapshot
+  onGoto: Jump
+  // ⑤ 근거 사슬에 갔다 돌아와도 보던 뷰가 유지돼야 한다 — 이 화면은 왕복을 전제로 만들어져 있다
+  view: 'meta' | 'instance'
+  setView: (v: 'meta' | 'instance') => void
+}) {
   const [open, setOpen] = useState<SpaceId | null>(null)
   const [hover, setHover] = useState<SpaceId | null>(null)
-  const [view, setView] = useState<'meta' | 'instance'>('meta')
   const sp = open ? spaceOf(open) : null
 
   // 방향마다 «실제로 몇 개가 걸려 있나». 허용된다는 말만 있으면 그 선은 추상적으로 읽힌다.
@@ -45,7 +56,7 @@ export default function SpaceGraph({ snap }: { snap: SimSnapshot }) {
         right={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className="text-[11px] font-semibold text-gray-500">
-              {view === 'meta' ? `노드 타입 ${typeCount} · 인스턴스 ${fmt(total)} · 실연결 ${fmt(totalLinks)}` : '노드를 누르면 그 레코드로 걸어갑니다'}
+              {view === 'meta' ? `노드 타입 ${typeCount} · 인스턴스 ${fmt(total)} · 실연결 ${fmt(totalLinks)}` : '노드를 누르면 붙은 연결만 남고, 근거 사슬로 넘어갈 수 있습니다'}
             </span>
             <div className="flex gap-1">
               {(
@@ -68,7 +79,7 @@ export default function SpaceGraph({ snap }: { snap: SimSnapshot }) {
           </div>
         }
       >
-        {view === 'instance' && <InstanceMap snap={snap} />}
+        {view === 'instance' && <InstanceMap snap={snap} onGoto={onGoto} />}
         <div className={view === 'meta' ? 'overflow-x-auto' : 'hidden'}>
           <svg viewBox="0 0 950 460" className="w-full min-w-[760px]" role="img" aria-label="메타 온톨로지 스페이스 그래프">
             {/* ① 간선 */}

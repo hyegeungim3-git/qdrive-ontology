@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { SPACES } from './meta'
-import { buildDataGraph, degreeOf, relKo, type GraphIndex } from './rdf'
+import { buildDataGraph, degreeOf, metricOf, relKo, vehicleOf, type GraphIndex } from './rdf'
+import { METRICS } from './chains'
+import type { Jump } from './nav'
 import type { SimSnapshot } from '../sim/types'
 
 /**
@@ -69,7 +71,7 @@ const CORE_REL = new Set(['supports', 'reflectedIn', 'raises', 'lowers'])
 type Placed = { iri: string; x: number; y: number; col: number }
 type Link = { from: string; to: string; p: string }
 
-export default function InstanceMap({ snap }: { snap: SimSnapshot }) {
+export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGoto: Jump }) {
   // 스냅샷은 250ms마다 바뀐다 — 읽는 중에 그래프가 흔들리면 못 쓴다.
   // 누른 순간의 상태로 굳히고, 새로 보고 싶으면 명시적으로 다시 뜬다.
   const [gen, setGen] = useState(0)
@@ -275,10 +277,13 @@ export default function InstanceMap({ snap }: { snap: SimSnapshot }) {
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 break-keep text-[11.5px] leading-relaxed text-gray-500">
         {pick ? (
-          <span>
-            고른 노드 <b className="text-gray-300">{name(pick)}</b> — 이 화면에서 <b className="text-gray-300">{links.filter(litLink).length}</b>개
-            연결이 붙어 있습니다. 다시 누르면 전체로 돌아갑니다.
-          </span>
+          <>
+            <span>
+              고른 노드 <b className="text-gray-300">{name(pick)}</b> — 이 화면에서{' '}
+              <b className="text-gray-300">{links.filter(litLink).length}</b>개 연결이 붙어 있습니다. 다시 누르면 전체로 돌아갑니다.
+            </span>
+            <ChainLink ix={ix} iri={pick} onGoto={onGoto} />
+          </>
         ) : (
           <span>
             <b className="text-gray-300">굵은 선 = 핵심 사슬</b>(뒷받침한다 · 반영된다 · 올린다) — 관측이 판정을 받치고, 판정이 성과에 반영되고, 조치가
@@ -287,6 +292,29 @@ export default function InstanceMap({ snap }: { snap: SimSnapshot }) {
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * 고른 레코드를 ⑤ 근거 사슬로 넘긴다.
+ *
+ * 그래프는 «무엇이 무엇과 걸려 있나»까지만 보여준다. 「그래서 이 숫자가 어떻게 나온 건데」는
+ * 근거 사슬의 몫이다. 넘어갈 때 **어느 지표를 어느 차량으로 볼지**까지 들고 간다 —
+ * 화면만 열고 조건을 사용자가 다시 맞추게 하면 딥링크가 아니라 그냥 링크다.
+ */
+function ChainLink({ ix, iri, onGoto }: { ix: GraphIndex; iri: string; onGoto: Jump }) {
+  const metric = metricOf(ix, iri)
+  const vehicleId = vehicleOf(ix, iri)
+  const ko = METRICS.find((m) => m.key === metric)?.ko ?? '성과'
+
+  return (
+    <button
+      onClick={() => onGoto('chain', { chain: { metric, vehicleId } })}
+      className="rounded-md border border-violet-400/45 bg-violet-400/12 px-2.5 py-1 text-[11px] font-bold text-violet-200 hover:bg-violet-400/22 focus-visible:ring-2 focus-visible:ring-sky-500"
+    >
+      ⑤ 근거 사슬에서 되짚기 — {vehicleId ? `${vehicleId} ` : ''}
+      {ko} →
+    </button>
   )
 }
 

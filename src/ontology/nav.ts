@@ -25,6 +25,8 @@ export type StepId =
 export type Preset = {
   validator?: { from: SpaceId; to: SpaceId; rel: string }
   impact?: { space: SpaceId; change: ChangeKind }
+  /** 인스턴스 그래프의 레코드에서 ⑤ 근거 사슬로 넘어올 때 — 어느 지표를 어느 차량으로 볼지 */
+  chain?: { metric: string; vehicleId: string | null }
 }
 
 export type Jump = (step: StepId, preset?: Preset) => void

@@ -80,6 +80,8 @@ export default function App() {
   const [preset, setPreset] = useState<Preset>({})
   // ⑨에서 주입한 결함은 ⑩을 다녀와도 유지된다
   const [faults, setFaults] = useState<Set<FaultId>>(new Set())
+  // ①의 메타/인스턴스 뷰도 마찬가지 — ⑤로 넘어갔다 돌아오면 보던 그래프가 남아 있어야 한다
+  const [spaceView, setSpaceView] = useState<'meta' | 'instance'>('meta')
   const [seq, setSeq] = useState(0)
   const jump: Jump = (s, p) => {
     setPreset(p ?? {})
@@ -210,11 +212,11 @@ export default function App() {
         </div>
 
         <div key={gv}>
-          {step === 'spaces' && <SpaceGraph snap={snap} />}
+          {step === 'spaces' && <SpaceGraph snap={snap} onGoto={jump} view={spaceView} setView={setSpaceView} />}
           {step === 'grammar' && <Grammar />}
           {step === 'standards' && <StdAlign />}
           {step === 'validator' && <Validator key={`v${seq}`} preset={preset.validator} />}
-          {step === 'chain' && <Chain snap={snap} />}
+          {step === 'chain' && <Chain key={`c${seq}`} snap={snap} preset={preset.chain} />}
           {step === 'sim' && <Simulator snap={snap} />}
           {step === 'impact' && <Impact key={`i${seq}`} preset={preset.impact} />}
           {step === 'meta' && <ActiveMeta onGoto={jump} />}

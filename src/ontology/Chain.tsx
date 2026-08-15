@@ -13,9 +13,10 @@ import { BASIS_TONE, METRICS, shortId, type Line } from './chains'
  *
  * 지표마다 근거의 성격이 다르다 — 실측·환산·미측정을 구분해 적는 것이 이 화면의 정직성.
  */
-export default function Chain({ snap }: { snap: SimSnapshot }) {
-  const [key, setKey] = useState('safety')
-  const [vid, setVid] = useState<string | null>(null)
+export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { metric: string; vehicleId: string | null } }) {
+  // 인스턴스 그래프에서 «이 레코드를 되짚어 보자»로 넘어온 경우, 그 좌표로 연다
+  const [key, setKey] = useState(preset?.metric ?? 'safety')
+  const [vid, setVid] = useState<string | null>(preset?.vehicleId ?? null)
   const metric = METRICS.find((m) => m.key === key)!
   const v = snap.vehicles.find((x) => x.id === vid) ?? snap.vehicles[0]
 

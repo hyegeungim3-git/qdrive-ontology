@@ -91,6 +91,51 @@ export function edgeLinkCounts(ix: GraphIndex): Record<string, number> {
 /** 이 노드에 붙은 간선 수 — 들어오는 것과 나가는 것을 모두 센다 */
 export const degreeOf = (ix: GraphIndex, iri: string) => (ix.out[iri]?.length ?? 0) + (ix.inc[iri]?.length ?? 0)
 
+/**
+ * 이 레코드는 어느 차량의 것인가 — 그래프를 걸어서 찾는다.
+ *
+ * IRI에서 문자열로 뽑을 수도 있지만(qdi:score-대구70자3742), 그러면 이름 규칙이 바뀌는 순간
+ * 조용히 틀린다. 관계를 따라가는 편이 문법과 함께 움직인다.
+ * 차량 노드의 rdfs:label이 곧 차량번호다.
+ */
+// 깊이 5: 조치는 «코칭 → 성과 → 판정 → 관측 → 차량»으로 4홉 떨어져 있다. 3이면 못 찾는다.
+export function vehicleOf(ix: GraphIndex, iri: string, maxDepth = 5): string | null {
+  const seen = new Set([iri])
+  let frontier = [iri]
+  for (let d = 0; d <= maxDepth; d++) {
+    for (const n of frontier) if (ix.type[n] === 'Vehicle') return ix.label[n] ?? null
+    const next: string[] = []
+    frontier.forEach((n) => {
+      ;[...(ix.out[n] ?? []).map((e) => e.o), ...(ix.inc[n] ?? []).map((e) => e.s)].forEach((o) => {
+        if (seen.has(o)) return
+        seen.add(o)
+        next.push(o)
+      })
+    })
+    frontier = next
+  }
+  return null
+}
+
+/**
+ * 이 레코드를 되짚으면 어느 성과 지표에 닿나 — ⑤ 근거 사슬로 넘길 때 쓰는 좌표.
+ * 노드 타입마다 «이 레코드가 설명하는 숫자»가 다르다.
+ */
+const METRIC_OF: Record<string, string> = {
+  SafetyScore: 'safety',
+  EcoScore: 'eco',
+  FuelSaving: 'fuel',
+  Co2Reduction: 'co2',
+  Punctuality: 'punctual',
+  Trip: 'fuel',
+  DispatchAdvice: 'headway',
+  RiskEvent: 'safety',
+  JustifyVerdict: 'safety',
+  Coaching: 'safety',
+  Plea: 'safety',
+}
+export const metricOf = (ix: GraphIndex, iri: string) => METRIC_OF[ix.type[iri] ?? ''] ?? 'safety'
+
 export type GraphResult = { turtle: string; triples: number; subjects: number; byClass: { ko: string; n: number }[]; index: GraphIndex }
 
 /**
