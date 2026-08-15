@@ -69,6 +69,9 @@ export const SPACES: Space[] = [
       { ko: '보존 기간', en: 'RetentionPolicy', count: () => 3, live: false, note: '원본 5년 · 분석셋 3년 · 격리 로그 1년' },
       { ko: '가명 처리', en: 'Pseudonymization', count: () => 1, live: false, note: '기사 식별정보는 분석셋에서 분리' },
       { ko: '불이익 결정 금지', en: 'NoAutoAdverse', count: () => 1, live: false, note: '평가·징계·정산 확정은 자동화하지 않음' },
+      // 유효 구간은 «언제부터 언제까지 이 관계가 성립하는가»를 정하는 규칙이라 규정 스페이스에 둔다.
+      // 보존 기간이 이미 시간 규칙인 것과 같은 자리다. 실서비스에서는 RDF-star나 named graph로 간다.
+      { ko: '유효 구간', en: 'Validity', count: () => 0, live: true, note: '관계가 언제부터 언제까지 성립하나 — OWL-Time' },
     ],
   },
   {

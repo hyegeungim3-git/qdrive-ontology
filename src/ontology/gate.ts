@@ -3,6 +3,7 @@ import { RISK_WEIGHT, SCORE_FLOOR } from './meta'
 import { relKo, type FaultId, type GraphResult } from './rdf'
 import { currentVersion } from './grammar'
 import { record as recordRun } from './lineage'
+import { setNow } from './validity'
 import { runValidation, type Finding } from './validate'
 import type { SimSnapshot } from '../sim/types'
 
@@ -119,6 +120,8 @@ export async function runGate(snap: SimSnapshot, faults: Set<FaultId>): Promise<
   if (running) return result
   running = true
   const t0 = performance.now()
+  // 셰이프 생성이 시각을 알아야 규정 시행 여부에 따라 규칙을 켜고 끌 수 있다
+  setNow(snap.simTime)
   const r = await runValidation(snap, faults)
   const ix = r.graph.index
 

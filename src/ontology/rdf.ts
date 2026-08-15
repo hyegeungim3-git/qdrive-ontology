@@ -3,6 +3,7 @@ import { RISK_EVENT_TYPES } from '../sim/types'
 import type { SimSnapshot } from '../sim/types'
 import { REL_META } from './standards'
 import { RISK_WEIGHT } from './meta'
+import { POLICY_VALIDITY, iso as vIso, policyActive, shiftAt } from './validity'
 import { FUEL_LIMIT, perKm } from './rules'
 import { issuedList } from './issued'
 
@@ -201,6 +202,16 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     else add(`qdi:${k}`, 'qd:scope', str(scope))
   })
 
+  /* 규정의 시행 구간 — 「이 규정이 언제부터 적용되나」에 그래프가 답한다.
+     미시행 규정은 아래에서 관계를 만들지 않는다: 시행 전 규정은 아무것도 막지 않는다. */
+  POLICY_VALIDITY.forEach((pv) => {
+    const vi = `qdi:val-${pv.id}`
+    node(vi, 'Validity', 'Policy', `${pv.ko} 시행 구간`)
+    add(vi, 'qd:onRelation', str('규정 시행'))
+    add(vi, 'qd:validFrom', `"${vIso(pv.from)}"^^xsd:dateTime`)
+    if (pv.to !== undefined) add(vi, 'qd:validTo', `"${vIso(pv.to)}"^^xsd:dateTime`)
+  })
+
   /* ── 자산 ── */
   ROUTES.forEach((r) => {
     const iri = `qdi:route-${r.id}`
@@ -243,13 +254,24 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     if (on('realName') && i < 2) add(iri, 'qd:driverName', str(d))
     const mine = vehicles.filter((v) => v.driverName === d).map((v) => `qdi:veh-${key(v.id)}`)
     add(iri, P('운전한다'), mine.join(', '))
+    /* 배정에는 기간이 있다 — 기사는 교대한다.
+       엔진이 주는 배정을 바꾸지 않고 **그 배정이 언제까지 유효한지**만 붙인다.
+       「지금 누가 모나」와 「그때 누가 몰았나」는 다른 질문이라는 것을 그래프가 말하게 한다. */
+    const sh = shiftAt(snap.simTime)
+    const vi = `qdi:val-drive-${i + 1}`
+    node(vi, 'Validity', 'Policy', `${pseudo} 배정 ${sh.n}교대`)
+    add(vi, 'qd:onRelation', str('운전한다'))
+    add(vi, 'qd:validFrom', `"${vIso(sh.from)}"^^xsd:dateTime`)
+    add(vi, 'qd:validTo', `"${vIso(sh.to)}"^^xsd:dateTime`)
   })
   node('qdi:ctl-1', 'Controller', 'Subject', '관제 담당 1')
   add('qdi:ctl-1', 'qd:operatorId', str('OP-대구1'))
   node('qdi:ofc-1', 'Officer', 'Subject', '담당 공무원')
   add('qdi:ofc-1', 'qd:orgName', str('대구광역시'))
   add('qdi:ctl-1', P('관리한다'), `qdi:veh-${key(vehicles[0]?.id ?? 'x')}`)
-  add('qdi:pol-noauto', P('승인을 요구한다'), 'qdi:ctl-1')
+  // **미시행 규정은 관계를 만들지 않는다.** 「시행 예정이라 아직 안 막습니다」를
+  // 화면 문구로만 적으면 그것은 연극이다 — 그래프에서 실제로 빠져야 한다.
+  if (policyActive('pol-noauto', snap.simTime)) add('qdi:pol-noauto', P('승인을 요구한다'), 'qdi:ctl-1')
   add('qdi:pol-access-city', P('허용한다'), 'qdi:ofc-1')
   add('qdi:pol-access-op', P('금지한다'), 'qdi:ofc-1')
 

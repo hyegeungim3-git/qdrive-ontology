@@ -3,6 +3,7 @@ import { Parser, type Quad } from 'n3'
 import SHACLValidator from 'rdf-validate-shacl'
 import { buildShacl } from './shacl'
 import { currentVersion } from './grammar'
+import { activeSignature } from './validity'
 import { buildDataGraph, checkFuelPerKm, downstream, type FaultId, type GraphResult } from './rdf'
 import type { SimSnapshot } from '../sim/types'
 
@@ -55,7 +56,10 @@ const short = (v?: string) => (v ?? '').replace(/^https:\/\/qdrive\.ai\/(ontolog
  */
 let shapesCache: { key: string; turtle: string; quads: Quad[] } | null = null
 function shapes() {
-  const key = currentVersion()
+  // 문법 버전뿐 아니라 **규정 시행 상태**도 키에 넣는다 —
+  // 시행일이 지나 규칙이 켜졌는데 옛 셰이프로 계속 검사하면 「시행됐다」가 거짓말이 된다.
+  // 8차의 「발행했는데 옛 셰이프로 검사」와 정확히 같은 함정이다.
+  const key = `${currentVersion()}:${activeSignature()}`
   if (!shapesCache || shapesCache.key !== key) {
     const turtle = buildShacl({ sparql: false })
     shapesCache = { key, turtle, quads: new Parser().parse(turtle) }

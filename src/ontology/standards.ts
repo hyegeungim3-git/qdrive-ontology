@@ -125,6 +125,7 @@ export const TYPE_ALIGN: Record<string, Align[]> = {
   SafetyScore: [{ std: 'dqv', term: 'dqv:QualityMeasurement', match: 'broad' }],
   Coaching: [{ std: 'prov', term: 'prov:Activity', match: 'close' }],
   AccessPolicy: [{ std: 'odrl', term: 'odrl:Policy', match: 'exact' }],
+  Validity: [{ std: 'time', term: 'time:Interval', match: 'close', note: '시작·끝이 있는 구간' }],
   WorkOrder: [{ std: 'prov', term: 'prov:Activity', match: 'close' }],
 }
 
@@ -289,6 +290,12 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   NoAutoAdverse: [
     { name: 'legalBasis', datatype: 'xsd:string', required: true },
     { name: 'scope', datatype: 'xsd:string', required: true },
+  ],
+  /** 유효 구간 — OWL-Time의 Interval에 대응. 끝이 없는 구간(validTo 없음)이 정상이므로 선택 */
+  Validity: [
+    { name: 'onRelation', datatype: 'xsd:string', required: true, note: '어느 관계에 붙는 구간인가' },
+    { name: 'validFrom', datatype: 'xsd:dateTime', required: true },
+    { name: 'validTo', datatype: 'xsd:dateTime', required: false, note: '없으면 계속 유효' },
   ],
 
   // 개념 — 감점 가중치가 여기 있다는 것이 이 온톨로지의 설계다. 그래프에도 있어야 한다

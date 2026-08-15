@@ -1,5 +1,6 @@
 import { Panel } from '../components/ui'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf } from './meta'
+import TimePanel from './TimePanel'
 
 /**
  * 관계 문법 — 어느 스페이스에서 어느 스페이스로 어떤 관계만 허용되는지.
@@ -104,6 +105,8 @@ export default function Grammar() {
           </div>
         </Panel>
       </div>
+
+      <TimePanel />
     </div>
   )
 }

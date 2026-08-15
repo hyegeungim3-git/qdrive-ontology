@@ -2,6 +2,7 @@ import { META_EDGES, SPACES, spaceOf } from './meta'
 import { REL_META, TYPE_PROPS } from './standards'
 import { DISABLED_RULES, FUEL_LIMIT, perKm } from './rules'
 import { currentVersion } from './grammar'
+import { policyActive } from './validity'
 
 /**
  * SHACL 셰이프 생성 — OWL은 어휘를 정의할 뿐 검사하지 않는다. 실제로 막는 것은 SHACL이다.
@@ -142,6 +143,10 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
     L.push('  ] .')
     L.push('')
   }
+  /* 규정에 시행일이 있다. **미시행 규정은 셰이프를 만들지 않는다** —
+     「시행 예정이라 아직 안 막습니다」를 화면 문구로만 적으면 그것은 다시 연극이다.
+     시행 시각이 지나면 이 규칙이 생기고, 그때부터 실제로 막힌다. */
+  if (policyActive('pol-noauto')) {
   // 「확정된」 판정에만 담당자를 요구한다. 처음에는 모든 정당 판정에 걸었는데,
   // 역방향 적재 어댑터가 원천 데이터로 만든 «검토 대기» 판정까지 담당자를 요구받았다.
   // 아직 확정하지 않은 판정에 확정자를 적으라는 것은 규칙이 틀린 것이다 —
@@ -156,6 +161,10 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
   L.push('  sh:severity sh:Violation ;')
   L.push('  sh:message "확정 판정에는 담당자(decidedBy)가 반드시 있어야 합니다 — 자동 확정 금지. 미확정이면 verdict를 «검토 대기»로 두십시오"@ko .')
   L.push('')
+  } else {
+    L.push('# 「불이익 결정 자동화 금지」는 아직 시행 전이라 제약을 만들지 않습니다 — 시행일 이후 생성됩니다')
+    L.push('')
+  }
   L.push('# 기사 식별정보는 분석셋에 들어올 수 없다')
   L.push('qd:RuleDriverPseudonymShape a sh:NodeShape ;')
   L.push('  sh:targetClass qd:Driver ;')
