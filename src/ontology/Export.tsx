@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Panel } from '../components/ui'
+import { Emph, Panel } from '../components/ui'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf } from './meta'
 import { META_LAYERS, SPACE_IMPACTS } from './impactmeta'
 import { buildShacl } from './shacl'
@@ -346,15 +346,6 @@ function buildAudit(q: QItem[] = []): string {
   L.push('- 진단이 «규칙 재검토»로 나와도 규정에서 온 규칙은 완화 대상에 올리지 않습니다 — 규칙이 아니라 현실을 고쳐야 합니다.')
 
   return L.join('\n')
-}
-
-/** Markdown **강조**를 굵은 글씨로. 대응표 원문이 내보내기용이라 화면에서만 변환한다. */
-function Emph({ t, cls = 'text-gray-200' }: { t: string; cls?: string }) {
-  return (
-    <>
-      {t.split('**').map((part, i) => (i % 2 ? <b key={i} className={cls}>{part}</b> : <span key={i}>{part}</span>))}
-    </>
-  )
 }
 
 const FORMATS = [

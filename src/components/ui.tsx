@@ -1,5 +1,20 @@
 import type { ReactNode } from 'react'
 
+/**
+ * Markdown **강조**를 굵은 글씨로.
+ *
+ * 데이터 모듈의 설명 문구는 내보내기(Markdown)와 화면이 함께 쓴다. 원문에 강조를 남겨 두고
+ * 화면에서만 변환한다 — 두 벌로 관리하면 갈라진다. 이 처리를 빼먹으면 별표가 그대로 보인다
+ * (실서비스 대응표와 역방향 적재에서 두 번 겪었다).
+ */
+export function Emph({ t, cls = 'text-gray-200' }: { t: string; cls?: string }) {
+  return (
+    <>
+      {t.split('**').map((part, i) => (i % 2 ? <b key={i} className={cls}>{part}</b> : <span key={i}>{part}</span>))}
+    </>
+  )
+}
+
 export function Panel({
   title,
   right,

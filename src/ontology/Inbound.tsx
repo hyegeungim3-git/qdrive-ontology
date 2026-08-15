@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Emph } from '../components/ui'
 import { SOURCES, adapt, coverage, sourceOf, type MapStatus } from './adapter'
 import { validateTurtle } from './validate'
 
@@ -68,7 +69,9 @@ export default function Inbound() {
             >
               <div className={`text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{s.ko}</div>
               <div className="mt-0.5 text-[10px] text-gray-600">{s.org}</div>
-              <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">{s.what}</div>
+              <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">
+                <Emph t={s.what} cls="text-gray-300" />
+              </div>
             </button>
           )
         })}
@@ -85,7 +88,9 @@ export default function Inbound() {
             <div className="mt-1 font-mono text-[10.5px] text-gray-300">
               {out.resolved.from} → {out.resolved.to}
             </div>
-            <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">{out.resolved.how}</div>
+            <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">
+              <Emph t={out.resolved.how} cls="text-gray-300" />
+            </div>
           </div>
         </div>
 
@@ -177,7 +182,9 @@ export default function Inbound() {
                         <span className="text-[10.5px] text-gray-600">—</span>
                       )}
                     </td>
-                    <td className="py-1.5 pr-3 break-keep text-[10.5px] leading-relaxed text-gray-500">{f.why}</td>
+                    <td className="py-1.5 pr-3 break-keep text-[10.5px] leading-relaxed text-gray-500">
+                      <Emph t={f.why} cls="text-gray-300" />
+                    </td>
                   </tr>
                 )
               })}
@@ -192,7 +199,7 @@ export default function Inbound() {
           <div className="mt-1 space-y-1">
             {src.missing.map((m) => (
               <div key={m.ko} className="break-keep text-[10.5px] leading-relaxed text-gray-400">
-                <b className="text-amber-200">{m.ko}</b> — {m.why}
+                <b className="text-amber-200">{m.ko}</b> — <Emph t={m.why} cls="text-amber-100" />
               </div>
             ))}
           </div>
