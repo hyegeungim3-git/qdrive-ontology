@@ -288,6 +288,14 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     node(`qdi:grade-${g}`, 'RouteGrade', 'Concept', `효율 ${g}등급`)
     add(`qdi:grade-${g}`, 'qd:grade', str(g))
   })
+  ;['여유', '보통', '혼잡'].forEach((g) => {
+    node(`qdi:crowd-${g}`, 'CrowdLevel', 'Concept', `혼잡 ${g}`)
+    add(`qdi:crowd-${g}`, 'qd:grade', str(g))
+  })
+  ;['공회전', '급조작', '습관', '냉난방'].forEach((f) => {
+    node(`qdi:wf-${f}`, 'WasteFactor', 'Concept', `낭비 ${f}`)
+    add(`qdi:wf-${f}`, 'qd:factor', str(f))
+  })
   ;([['CNG', 2.68], ['EV', 0]] as [string, number][]).forEach(([f, k]) => {
     node(`qdi:fuel-${f}`, 'FuelType', 'Concept', f)
     // CO2 환산에 쓰는 배출계수 — 근거 사슬의 «환산» 표기가 이 값을 가리킨다
@@ -491,6 +499,8 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(lo, 'qd:lng', dec(v.lng))
     add(lo, 'qd:accuracyM', dec(0.03))
     add(lo, 'qd:fixType', str('RTK Fixed'))
+    // 방위각 — 엔진이 주는데 그동안 그래프가 안 받았다. 역주행·회차 판정의 근거가 된다
+    add(lo, 'qd:headingDeg', dec(v.headingDeg))
     add(lo, P('분류된다'), 'qdi:grade-A')
     add(lo, P('뒷받침한다'), firstRc || fp)
     add(`qdi:dev-${key(v.id)}`, P('생성한다'), lo)
@@ -524,6 +534,90 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(iri, 'qd:estHours', dec(w.estHours))
     add(iri, P('최적화한다'), 'qdi:out-co2')
   })
+  /* ── 엔진이 이미 내고 있던 값들 ──
+     재차율·정차·낭비 요인·날씨는 스냅샷에 있었는데 그래프가 받지 않았다.
+     «수집한다»와 «연결한다»는 다르다 — 받아 놓고 잇지 않으면 근거 사슬에 못 들어간다.
+
+     붙일 판정을 «의미에 맞게» 골라야 한다. 처음에 아무 판정에나 매달았더니
+     회차가 아직 없는 초기 상태에서 앵커가 비어 «근거 없는 관측»으로 11건이 걸렸다. */
+  const tripOf = new Map(trips.map((t) => [t.vehicleId, iriOf('trip', t.vehicleId, t.startSimTime)]))
+
+  vehicles.forEach((v) => {
+    const k = key(v.id)
+    /* 재차 관측 → 혼잡 판정 → 수송 실적.
+       혼잡 판정은 차량마다 항상 만들어지므로 다른 관측의 앵커로도 쓸 수 있다. */
+    const pc = `qdi:pc-${k}`
+    const cv = `qdi:cv-${k}`
+    const pct = Math.round((v.occupancy ?? 0) * 1000) / 10
+    const grade = pct >= 70 ? '혼잡' : pct >= 35 ? '보통' : '여유'
+
+    node(cv, 'CrowdingVerdict', 'Claim', `${v.id} 혼잡 판정`)
+    add(cv, 'qd:verdict', str(grade))
+    add(cv, 'qd:confidence', dec(0.88))
+    add(cv, P('반영된다'), 'qdi:out-ridership')
+
+    node(pc, 'PassengerCount', 'Evidence', `${v.id} 재차 관측`)
+    add(pc, 'qd:onboardPct', dec(pct))
+    add(pc, 'qd:observedAt', dt(snap.simTime))
+    add(pc, P('분류된다'), `qdi:crowd-${grade}`)
+    add(pc, P('뒷받침한다'), cv)
+    add(`qdi:veh-${k}`, P('생성한다'), pc)
+
+    /* 정류장 통과 — 지금 정차 중인 차량만. 도착 실측이 붙으면 정시율의 근거가 된다.
+       지금은 그 차량의 판정을 뒷받침한다(정차가 혼잡·지연의 근거다). */
+    if (v.dwellRemaining > 0) {
+      const se = `qdi:se-${k}`
+      node(se, 'StopEvent', 'Evidence', `${v.id} ${v.nextStopName} 정차`)
+      add(se, 'qd:stopName', str(v.nextStopName))
+      add(se, 'qd:dwellSec', dec(v.dwellRemaining))
+      add(se, 'qd:observedAt', dt(snap.simTime))
+      add(se, P('분류된다'), 'qdi:grade-A')
+      add(se, P('뒷받침한다'), cv)
+      add(`qdi:veh-${k}`, P('생성한다'), se)
+    }
+
+    /* 연료 낭비 분해 — **관측이 아니라 판정이다.** 엔진이 이미 요인별로 나눈 분석 결과이고,
+       「얼마나 썼나」가 아니라 「왜 더 썼나」에 답한다. 그래서 판정 스페이스에 두고
+       회차 관측이 뒷받침하게 한다. 회차가 없으면 만들지 않는다 —
+       회차가 끝나야 낭비를 분해할 수 있기 때문이다. */
+    const tr = tripOf.get(v.id)
+    if (tr) {
+      const fw = `qdi:fw-${k}`
+      const w = v.fuelWaste ?? { idle: 0, harsh: 0, habit: 0, ac: 0 }
+      node(fw, 'FuelWaste', 'Claim', `${v.id} 연료 낭비 분해`)
+      add(fw, 'qd:idleM3', dec(w.idle))
+      add(fw, 'qd:harshM3', dec(w.harsh))
+      add(fw, 'qd:habitM3', dec(w.habit))
+      add(fw, 'qd:acM3', dec(w.ac))
+      add(fw, P('반영된다'), 'qdi:out-fuelsaving')
+      add(tr, P('뒷받침한다'), fw)
+      // 가장 큰 요인 — 무엇부터 코칭할지가 여기서 정해진다
+      const vals = [w.idle, w.harsh, w.habit, w.ac]
+      const top = (['공회전', '급조작', '습관', '냉난방'] as const)[vals.indexOf(Math.max(...vals))]
+      add(`qdi:wf-${top}`, P('기여한다'), 'qdi:out-fuelsaving')
+    }
+  })
+
+  /* 환경 관측 — 급조작이 방어운전인지 가리는 맥락. 정당 판정을 뒷받침한다.
+     정당 판정이 아직 없으면 첫 차량의 혼잡 판정에 붙인다(항상 존재). */
+  const envAnchor = firstJv || `qdi:cv-${key(vehicles[0]?.id ?? 'x')}`
+  if (vehicles.length) {
+    const env = 'qdi:env-now'
+    node(env, 'EnvReading', 'Evidence', `날씨 ${snap.weather.condition}`)
+    add(env, 'qd:condition', str(snap.weather.condition))
+    add(env, 'qd:tempC', dec(snap.weather.tempC))
+    add(env, 'qd:rainMm', dec(snap.weather.rainMm))
+    add(env, 'qd:observedAt', dt(snap.simTime))
+    add(env, P('분류된다'), 'qdi:grade-A')
+    add(env, P('뒷받침한다'), envAnchor)
+  }
+
+  /* 수송 실적 — 누적 탑승객. 배차 효과의 최종 지표 */
+  node('qdi:out-ridership', 'Ridership', 'Outcome', '수송 실적')
+  add('qdi:out-ridership', 'qd:value', dec(snap.passengers))
+  add('qdi:out-ridership', 'qd:basis', str('실측'))
+  add('qdi:out-ridership', 'qd:periodStart', dt(0))
+
   node('qdi:lev-incentive', 'Incentive', 'Lever', '안전 인센티브')
   add('qdi:lev-incentive', 'qd:stage', str('2차'))
   add('qdi:lev-incentive', P('올린다'), `qdi:score-${key(vehicles[0]?.id ?? 'x')}`)

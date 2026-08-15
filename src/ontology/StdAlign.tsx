@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Inbound from './Inbound'
+import SensorView from './SensorView'
 import { Panel } from '../components/ui'
 import { META_EDGES, SPACES, spaceOf } from './meta'
 import { MATCH_LABEL, REL_META, SPACE_ALIGN, STANDARDS, TYPE_ALIGN, alignStats, stdOf, type MatchLevel } from './standards'
@@ -10,7 +11,7 @@ import { MATCH_LABEL, REL_META, SPACE_ALIGN, STANDARDS, TYPE_ALIGN, alignStats, 
  */
 
 // 앞 셋은 «우리 → 표준», 마지막은 «표준 → 우리». 방향이 반대라 표가 아니라 화면 하나를 붙였다
-const TABS = ['스페이스', '노드 타입', '관계', '역방향 적재'] as const
+const TABS = ['스페이스', '노드 타입', '관계', '역방향 적재', '수집 항목'] as const
 type Tab = (typeof TABS)[number]
 
 export default function Standards() {
@@ -103,7 +104,8 @@ export default function Standards() {
         }
       >
         {tab === '역방향 적재' && <Inbound />}
-        {tab !== '역방향 적재' && (
+        {tab === '수집 항목' && <SensorView />}
+        {tab !== '역방향 적재' && tab !== '수집 항목' && (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-[12px]">
             <thead>

@@ -101,6 +101,10 @@ export const SPACES: Space[] = [
       { ko: '위험운전 패킷', en: 'RiskEvent', count: (s) => s.kpi.totalEvents, live: true, note: 'DTG 409 — 공단 표준 8종' },
       { ko: '센서 측정', en: 'SensorReading', count: sensorRows, live: true, note: 'OBD/CAN 21종 · 1초' },
       { ko: '위치 관측', en: 'Location', count: sensorRows, live: true, note: 'RTK cm급 — 차로 단위' },
+      // 엔진이 이미 내고 있는데 그래프가 안 받던 값들 — 정의만 늘리는 게 아니라 실제로 연결한다
+      { ko: '승객 관측', en: 'PassengerCount', count: (s) => s.vehicles.length, live: true, note: 'APC 재차 인원 — 혼잡도 판정의 근거' },
+      { ko: '정류장 통과', en: 'StopEvent', count: (s) => s.vehicles.filter((v) => v.dwellRemaining > 0).length, live: true, note: '정차 중인 차량 — 도착 실측이 붙으면 정시율의 근거가 된다' },
+      { ko: '환경 관측', en: 'EnvReading', count: () => 1, live: true, note: '날씨·기온·강수 — 급조작이 방어운전인지 가리는 맥락' },
       { ko: '상황 설명', en: 'Plea', count: (s) => s.pleas.length, live: true, note: '기사의 음성·버튼 진술' },
     ],
   },
@@ -110,6 +114,8 @@ export const SPACES: Space[] = [
     types: [
       { ko: '위험운전 유형', en: 'RiskType', count: () => RISK_EVENT_TYPES.length, live: false, note: '공단 표준 8종 — 자체 정의 금지 · 유형별 감점 가중치를 여기가 들고 있다' },
       { ko: '노선 등급', en: 'RouteGrade', count: () => 3, live: false, note: '효율 A·B·C' },
+      { ko: '혼잡 등급', en: 'CrowdLevel', count: () => 3, live: false, note: '여유 · 보통 · 혼잡 — 재차율 구간' },
+      { ko: '낭비 요인', en: 'WasteFactor', count: () => 4, live: false, note: '공회전 · 급조작 · 습관 · 냉난방' },
       { ko: '연료 종류', en: 'FuelType', count: () => 2, live: false, note: 'CNG · 전기' },
     ],
   },
@@ -120,6 +126,8 @@ export const SPACES: Space[] = [
       { ko: '정당 판정', en: 'JustifyVerdict', count: (s) => s.kpi.totalEvents, live: true, note: '급조작이 방어운전이었나 — 인정 시 감점 복원' },
       { ko: '민원 사실 판정', en: 'ComplaintVerdict', count: (s) => s.complaints.filter((c) => c.evidence).length, live: true, note: '증빙 매칭 결과 + 사실 가능성 %' },
       { ko: '노선 준수 판정', en: 'RouteCompliance', count: (s) => s.trips.length, live: true, note: '인가노선 대조 — 정산 검증 근거' },
+      { ko: '연료 낭비 분해', en: 'FuelWaste', count: (s) => s.trips.length, live: true, note: '공회전·급조작·습관·냉난방 — 「왜 더 썼나」에 답한다' },
+      { ko: '혼잡 판정', en: 'CrowdingVerdict', count: (s) => s.vehicles.length, live: true, note: '재차율이 혼잡 구간에 들었나' },
       { ko: '고장 예측', en: 'FaultPrediction', count: (s) => (s.fault ? 1 : 0) + s.workOrders.length, live: true, note: '센서 이상 징후 → 잔여수명 추정' },
       {
         ko: '몰림 판정',
@@ -153,6 +161,7 @@ export const SPACES: Space[] = [
         live: true,
         note: '앞차 간격 편차 — 관측·판정을 거쳐 성과가 된다',
       },
+      { ko: '수송 실적', en: 'Ridership', count: (s) => s.passengers, live: true, note: '누적 탑승객 — 배차 효과의 최종 지표' },
       { ko: '정시율', en: 'Punctuality', count: () => ROUTES.length, live: false, note: '노선별 — 2차 APC 연동 시 실측' },
     ],
   },

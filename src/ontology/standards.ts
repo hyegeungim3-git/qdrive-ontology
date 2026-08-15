@@ -219,6 +219,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'lat', datatype: 'xsd:decimal', required: true, min: 33, max: 39, unit: '°', qudt: 'unit:DEG', note: '대한민국 위도 범위' },
     { name: 'lng', datatype: 'xsd:decimal', required: true, min: 124, max: 132, unit: '°', qudt: 'unit:DEG' },
     { name: 'accuracyM', datatype: 'xsd:decimal', required: true, min: 0, max: 50, unit: 'm', qudt: 'unit:M' },
+    { name: 'headingDeg', datatype: 'xsd:decimal', required: false, min: 0, max: 360, unit: '°', qudt: 'unit:DEG', note: '방위 — 역주행·회차 판정' },
     { name: 'fixType', datatype: 'xsd:string', required: true, oneOf: ['RTK Fixed', 'RTK Float', 'Single'] },
   ],
   Driver: [
@@ -290,6 +291,39 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   NoAutoAdverse: [
     { name: 'legalBasis', datatype: 'xsd:string', required: true },
     { name: 'scope', datatype: 'xsd:string', required: true },
+  ],
+  PassengerCount: [
+    { name: 'onboardPct', datatype: 'xsd:decimal', required: true, min: 0, max: 100, unit: '%', qudt: 'unit:PERCENT', note: '재차율 — 좌석+입석 대비' },
+    { name: 'observedAt', datatype: 'xsd:dateTime', required: true },
+  ],
+  StopEvent: [
+    { name: 'stopName', datatype: 'xsd:string', required: true },
+    { name: 'dwellSec', datatype: 'xsd:decimal', required: true, min: 0, max: 600, unit: '초', qudt: 'unit:SEC', note: '정차 시간' },
+    { name: 'observedAt', datatype: 'xsd:dateTime', required: true },
+  ],
+  EnvReading: [
+    { name: 'condition', datatype: 'xsd:string', required: true, oneOf: ['맑음', '폭우', '폭염'] },
+    { name: 'tempC', datatype: 'xsd:decimal', required: true, min: -30, max: 50, unit: '℃', qudt: 'unit:DEG_C' },
+    { name: 'rainMm', datatype: 'xsd:decimal', required: true, min: 0, max: 200, unit: 'mm', qudt: 'unit:MilliM' },
+    { name: 'observedAt', datatype: 'xsd:dateTime', required: true },
+  ],
+  /** 연료 낭비 4요인 — 「얼마나 썼나」가 아니라 「왜 더 썼나」를 답하는 자리 */
+  FuelWaste: [
+    { name: 'idleM3', datatype: 'xsd:decimal', required: true, min: 0, unit: 'm³', qudt: 'unit:M3', note: '공회전' },
+    { name: 'harshM3', datatype: 'xsd:decimal', required: true, min: 0, unit: 'm³', qudt: 'unit:M3', note: '급조작' },
+    { name: 'habitM3', datatype: 'xsd:decimal', required: true, min: 0, unit: 'm³', qudt: 'unit:M3', note: '운전 습관' },
+    { name: 'acM3', datatype: 'xsd:decimal', required: true, min: 0, unit: 'm³', qudt: 'unit:M3', note: '냉난방' },
+  ],
+  CrowdLevel: [{ name: 'grade', datatype: 'xsd:string', required: true, oneOf: ['여유', '보통', '혼잡'] }],
+  WasteFactor: [{ name: 'factor', datatype: 'xsd:string', required: true, oneOf: ['공회전', '급조작', '습관', '냉난방'] }],
+  CrowdingVerdict: [
+    { name: 'verdict', datatype: 'xsd:string', required: true, oneOf: ['여유', '보통', '혼잡'] },
+    { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1, unit: '비율', qudt: 'unit:UNITLESS' },
+  ],
+  Ridership: [
+    { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, unit: '명', qudt: 'unit:UNITLESS' },
+    { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성', '미측정'] },
+    { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
   ],
   /** 유효 구간 — OWL-Time의 Interval에 대응. 끝이 없는 구간(validTo 없음)이 정상이므로 선택 */
   Validity: [
