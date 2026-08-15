@@ -2,6 +2,7 @@ import { ROUTES } from '../sim/routes'
 import { RISK_EVENT_TYPES } from '../sim/types'
 import type { SimSnapshot } from '../sim/types'
 import { REL_META } from './standards'
+import { RISK_WEIGHT } from './meta'
 import { FUEL_LIMIT, perKm } from './rules'
 import { issuedList } from './issued'
 
@@ -187,12 +188,18 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
 
   /* ── 규정 ── */
   ;[
-    ['pol-access-city', 'AccessPolicy', '시 — 노선·통계 범위'],
-    ['pol-access-op', 'AccessPolicy', '운수사 — 자사 차량 범위'],
-    ['pol-retention-raw', 'RetentionPolicy', '원본 보존 5년'],
-    ['pol-pseudo', 'Pseudonymization', '기사 식별정보 분리'],
-    ['pol-noauto', 'NoAutoAdverse', '불이익 결정 자동화 금지'],
-  ].forEach(([k, t, l]) => node(`qdi:${k}`, t, 'Policy', l))
+    ['pol-access-city', 'AccessPolicy', '시 — 노선·통계 범위', '여객자동차법 위탁 사무 · 데이터 제공 협약', '노선·통계 단위'],
+    ['pol-access-op', 'AccessPolicy', '운수사 — 자사 차량 범위', '운송사업자 자사 데이터 처리 권한', '자사 차량'],
+    ['pol-retention-raw', 'RetentionPolicy', '원본 보존 5년', '교통안전법 운행기록 보관 의무', '원본 패킷'],
+    ['pol-pseudo', 'Pseudonymization', '기사 식별정보 분리', '개인정보보호법 가명정보 처리', '기사 식별정보'],
+    ['pol-noauto', 'NoAutoAdverse', '불이익 결정 자동화 금지', '개인정보보호법 자동화 결정 대응권', '평가·징계·정산 확정'],
+  ].forEach(([k, t, l, basis, scope]) => {
+    node(`qdi:${k}`, t, 'Policy', l)
+    // 규정에 근거 조문을 값으로 붙인다 — 「왜 막느냐」에 그래프가 답할 수 있어야 규정이다
+    add(`qdi:${k}`, 'qd:legalBasis', str(basis))
+    if (t === 'RetentionPolicy') add(`qdi:${k}`, 'qd:retentionDays', '1825')
+    else add(`qdi:${k}`, 'qd:scope', str(scope))
+  })
 
   /* ── 자산 ── */
   ROUTES.forEach((r) => {
@@ -218,7 +225,10 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(iri, 'qd:vehicleId', str(v.id))
     add(iri, 'qd:routeId', str(v.routeId))
     add(iri, 'qd:odometerKm', dec(v.distanceKm))
-    node(`qdi:dev-${key(v.id)}`, 'Device', 'Resource', `${v.id} 차내 단말`)
+    const dv = `qdi:dev-${key(v.id)}`
+    node(dv, 'Device', 'Resource', `${v.id} 차내 단말`)
+    add(dv, 'qd:deviceModel', str('DTG-STD-409'))
+    add(dv, 'qd:installedAt', dt(0))
   })
 
   /* ── 주체 ── */
@@ -235,16 +245,32 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(iri, P('운전한다'), mine.join(', '))
   })
   node('qdi:ctl-1', 'Controller', 'Subject', '관제 담당 1')
+  add('qdi:ctl-1', 'qd:operatorId', str('OP-대구1'))
   node('qdi:ofc-1', 'Officer', 'Subject', '담당 공무원')
+  add('qdi:ofc-1', 'qd:orgName', str('대구광역시'))
   add('qdi:ctl-1', P('관리한다'), `qdi:veh-${key(vehicles[0]?.id ?? 'x')}`)
   add('qdi:pol-noauto', P('승인을 요구한다'), 'qdi:ctl-1')
   add('qdi:pol-access-city', P('허용한다'), 'qdi:ofc-1')
   add('qdi:pol-access-op', P('금지한다'), 'qdi:ofc-1')
 
   /* ── 개념 ── */
-  RISK_EVENT_TYPES.forEach((t) => node(`qdi:rt-${key(t)}`, 'RiskType', 'Concept', t))
-  ;['A', 'B', 'C'].forEach((g) => node(`qdi:grade-${g}`, 'RouteGrade', 'Concept', `효율 ${g}등급`))
-  ;['CNG', 'EV'].forEach((f) => node(`qdi:fuel-${f}`, 'FuelType', 'Concept', f))
+  RISK_EVENT_TYPES.forEach((t) => {
+    const iri = `qdi:rt-${key(t)}`
+    node(iri, 'RiskType', 'Concept', t)
+    add(iri, 'qd:stdCode', str(t))
+    // 「개념 스페이스가 감점 가중치를 들고 있다」를 코드 주석에만 적어 두었었다. 그래프에도 있어야 한다 —
+    // 게이트가 안전점수를 계산할 때 쓰는 바로 그 값이다
+    add(iri, 'qd:riskWeight', dec(RISK_WEIGHT[t] ?? 0))
+  })
+  ;['A', 'B', 'C'].forEach((g) => {
+    node(`qdi:grade-${g}`, 'RouteGrade', 'Concept', `효율 ${g}등급`)
+    add(`qdi:grade-${g}`, 'qd:grade', str(g))
+  })
+  ;([['CNG', 2.68], ['EV', 0]] as [string, number][]).forEach(([f, k]) => {
+    node(`qdi:fuel-${f}`, 'FuelType', 'Concept', f)
+    // CO2 환산에 쓰는 배출계수 — 근거 사슬의 «환산» 표기가 이 값을 가리킨다
+    add(`qdi:fuel-${f}`, 'qd:co2Factor', dec(k))
+  })
 
   /* ── 성과 ── */
   vehicles.forEach((v) => {
@@ -253,7 +279,11 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(s, 'qd:value', dec(v.score))
     add(s, 'qd:basis', str('실측'))
     add(s, 'qd:periodStart', dt(0))
-    node(`qdi:eco-${key(v.id)}`, 'EcoScore', 'Outcome', `${v.id} 경제운전 점수`)
+    const ec = `qdi:eco-${key(v.id)}`
+    node(ec, 'EcoScore', 'Outcome', `${v.id} 경제운전 점수`)
+    add(ec, 'qd:value', dec(v.ecoScore))
+    add(ec, 'qd:basis', str('실측'))
+    add(ec, 'qd:periodStart', dt(0))
   })
   /**
    * 배차 간격 — 성과 스페이스로 승격했다.
@@ -286,19 +316,35 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     })
 
   node('qdi:out-fuelsaving', 'FuelSaving', 'Outcome', '연료 절감률')
+  add('qdi:out-fuelsaving', 'qd:value', dec(snap.kpi.fuelSavedPct))
+  add('qdi:out-fuelsaving', 'qd:basis', str('실측'))
+  add('qdi:out-fuelsaving', 'qd:periodStart', dt(0))
   node('qdi:out-co2', 'Co2Reduction', 'Outcome', 'CO₂ 감축량')
-  ROUTES.forEach((r) => node(`qdi:punc-${r.id}`, 'Punctuality', 'Outcome', `${r.name} 정시율`))
+  add('qdi:out-co2', 'qd:value', dec(snap.kpi.totalCo2SavedKg))
+  add('qdi:out-co2', 'qd:basis', str('환산'))
+  add('qdi:out-co2', 'qd:periodStart', dt(0))
+  ROUTES.forEach((r) => {
+    const iri = `qdi:punc-${r.id}`
+    node(iri, 'Punctuality', 'Outcome', `${r.name} 정시율`)
+    // 값은 붙이지 않는다 — 원천(APC·정류장 도착 실측)이 없다.
+    // 스키마가 value를 선택으로 두고 basis에 «미측정»을 허용해, 모른다는 사실을 그래프가 말한다
+    add(iri, 'qd:basis', str('미측정'))
+  })
 
   /* ── 집단 ── */
   ;[
     ['coh-model', '모범 운전군'],
     ['coh-avg', '평균 운전군'],
     ['coh-coach', '코칭 대상군'],
-  ].forEach(([k, l]) => {
+  ].forEach(([k, l], i) => {
     node(`qdi:${k}`, 'DriverCohort', 'Community', l)
     add(`qdi:${k}`, P('묶는다'), 'qdi:rt-급가속')
+    // 조치 시뮬레이터가 쓰는 운전군별 개선율 — 계수의 출처가 그래프에 있어야 한다
+    add(`qdi:${k}`, 'qd:size', String(Math.max(1, Math.round(vehicles.length / 3))))
+    add(`qdi:${k}`, 'qd:improveRate', dec([2.86, 5.25, 6.34][i] ?? 0))
   })
   node('qdi:clu-express', 'RouteCluster', 'Community', '급행군')
+  add('qdi:clu-express', 'qd:size', String(ROUTES.length))
   add('qdi:clu-express', P('요약한다'), 'qdi:grade-A')
 
   /* ── 개념 → 성과 ── */
@@ -393,6 +439,8 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(`qdi:veh-${key(t.vehicleId)}`, P('기록된다'), tr)
 
     node(rc, 'RouteCompliance', 'Claim', `${t.vehicleId} 노선 준수 판정`)
+    add(rc, 'qd:verdict', str('준수'))
+    add(rc, 'qd:deviationM', dec(0))
     add(rc, P('반영된다'), 'qdi:out-fuelsaving')
   })
 
@@ -404,6 +452,8 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     const lo = `qdi:loc-${key(v.id)}`
     const fp = `qdi:fp-${key(v.id)}`
     node(fp, 'FaultPrediction', 'Claim', `${v.id} 고장 예측`)
+    add(fp, 'qd:verdict', str('정상'))
+    add(fp, 'qd:confidence', dec(0.78))
     add(fp, P('반영된다'), 'qdi:out-co2')
 
     node(sr, 'SensorReading', 'Evidence', `${v.id} 엔진 회전수`)
@@ -429,6 +479,8 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     snap.pleas.slice(0, 4).forEach((p) => {
       const pl = `qdi:plea-${p.id}`
       node(pl, 'Plea', 'Evidence', `${p.vehicleId} 소명 — ${p.method}`)
+      add(pl, 'qd:method', str(p.method))
+      add(pl, 'qd:submittedAt', dt(0))
       add(pl, P('분류된다'), `qdi:rt-${key(p.eventType)}`)
       add(pl, P('뒷받침한다'), firstJv)
     })
@@ -451,6 +503,7 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(iri, P('최적화한다'), 'qdi:out-co2')
   })
   node('qdi:lev-incentive', 'Incentive', 'Lever', '안전 인센티브')
+  add('qdi:lev-incentive', 'qd:stage', str('2차'))
   add('qdi:lev-incentive', P('올린다'), `qdi:score-${key(vehicles[0]?.id ?? 'x')}`)
   add('qdi:lev-incentive', P('바꾼다'), 'qdi:rt-급가속')
 

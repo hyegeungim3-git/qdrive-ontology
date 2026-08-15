@@ -267,6 +267,96 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'routeName', datatype: 'xsd:string', required: true },
     { name: 'authorizedPath', datatype: 'geo:wktLiteral', required: true, note: '인가노선 — 정산 검증 기준' },
   ],
+  /* ── ⑭ 카탈로그가 「속성 스키마가 없는 데이터셋」으로 지목한 자리들 ──
+     라벨만 있고 값이 없는 노드는 «검사받지 않는 데이터»다. 게다가 AI가 받아 쓸 때
+     이름만 있고 숫자가 없으면 아무것도 못 한다. 그래서 스키마를 정의하는 김에
+     **엔진이 이미 쓰고 있던 숫자를 그래프로 올린다** — 특히 개념 스페이스의 감점 가중치는
+     「개념이 값을 들고 있다」고 코드 주석에 적어 두고도 정작 그래프에는 없었다. */
+
+  // 규정 — ODRL Policy. 발주처가 가장 먼저 묻는 자리라 근거 조문을 값으로 넣는다
+  AccessPolicy: [
+    { name: 'legalBasis', datatype: 'xsd:string', required: true, note: '이 통제의 법적·계약적 근거' },
+    { name: 'scope', datatype: 'xsd:string', required: true, note: '적용 범위' },
+  ],
+  RetentionPolicy: [
+    { name: 'legalBasis', datatype: 'xsd:string', required: true },
+    { name: 'retentionDays', datatype: 'xsd:integer', required: true, min: 0, max: 3650, unit: '일', qudt: 'unit:DAY' },
+  ],
+  Pseudonymization: [
+    { name: 'legalBasis', datatype: 'xsd:string', required: true },
+    { name: 'scope', datatype: 'xsd:string', required: true },
+  ],
+  NoAutoAdverse: [
+    { name: 'legalBasis', datatype: 'xsd:string', required: true },
+    { name: 'scope', datatype: 'xsd:string', required: true },
+  ],
+
+  // 개념 — 감점 가중치가 여기 있다는 것이 이 온톨로지의 설계다. 그래프에도 있어야 한다
+  RiskType: [
+    { name: 'stdCode', datatype: 'xsd:string', required: true, note: '공단 위험운전 8종 코드' },
+    { name: 'riskWeight', datatype: 'xsd:decimal', required: true, min: 0, max: 5, unit: '점', qudt: 'unit:UNITLESS', note: '안전점수 감점 가중치 — 게이트가 이 값으로 계산한다' },
+  ],
+  RouteGrade: [{ name: 'grade', datatype: 'xsd:string', required: true, oneOf: ['A', 'B', 'C'] }],
+  FuelType: [
+    { name: 'co2Factor', datatype: 'xsd:decimal', required: true, min: 0, max: 5, unit: 'kg/m³', qudt: 'unit:KiloGM-PER-M3', note: '연료→CO₂ 배출계수' },
+  ],
+
+  // 집단 — 조치 시뮬레이터가 쓰는 개선율이 여기서 나온다
+  DriverCohort: [
+    { name: 'size', datatype: 'xsd:integer', required: true, min: 0, unit: '명', qudt: 'unit:UNITLESS' },
+    { name: 'improveRate', datatype: 'xsd:decimal', required: true, min: 0, max: 100, unit: '%', qudt: 'unit:PERCENT', note: '코칭 적용 시 개선율' },
+  ],
+  RouteCluster: [{ name: 'size', datatype: 'xsd:integer', required: true, min: 0, unit: '개', qudt: 'unit:UNITLESS' }],
+
+  // 성과 — SafetyScore·Headway와 같은 모양. 정시율만 «미측정»을 쓴다
+  EcoScore: [
+    { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 100, unit: '점', qudt: 'unit:UNITLESS' },
+    { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
+    { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
+  ],
+  FuelSaving: [
+    { name: 'value', datatype: 'xsd:decimal', required: true, min: -100, max: 100, unit: '%', qudt: 'unit:PERCENT' },
+    { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
+    { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
+  ],
+  Co2Reduction: [
+    { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, unit: 'kg', qudt: 'unit:KiloGM' },
+    { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
+    { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
+  ],
+  /** 정시율은 원천이 없다. 값을 필수로 두면 「없는 숫자를 채우라」는 압력이 생긴다 —
+      값은 선택으로, 근거는 «미측정»을 허용해 **모른다는 사실 자체를 스키마가 표현**하게 했다. */
+  Punctuality: [
+    { name: 'value', datatype: 'xsd:decimal', required: false, min: 0, max: 100, unit: '%', qudt: 'unit:PERCENT' },
+    { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성', '미측정'] },
+  ],
+
+  // 자산·주체·관측·조치의 나머지
+  Device: [
+    { name: 'deviceModel', datatype: 'xsd:string', required: true, note: 'DTG 표준의 운행기록장치 모델명' },
+    { name: 'installedAt', datatype: 'xsd:dateTime', required: true },
+  ],
+  Controller: [{ name: 'operatorId', datatype: 'xsd:string', required: true }],
+  Officer: [{ name: 'orgName', datatype: 'xsd:string', required: true }],
+  Plea: [
+    { name: 'method', datatype: 'xsd:string', required: true, oneOf: ['앱', '전화', '대면'] },
+    { name: 'submittedAt', datatype: 'xsd:dateTime', required: true },
+  ],
+  ComplaintVerdict: [
+    { name: 'verdict', datatype: 'xsd:string', required: true, oneOf: ['사실', '사실 아님', '확인 불가'] },
+    { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1, unit: '비율', qudt: 'unit:UNITLESS' },
+  ],
+  RouteCompliance: [
+    { name: 'verdict', datatype: 'xsd:string', required: true, oneOf: ['준수', '이탈', '확인 불가'] },
+    { name: 'deviationM', datatype: 'xsd:decimal', required: true, min: 0, unit: 'm', qudt: 'unit:M', note: '인가노선 대비 최대 이탈 거리' },
+  ],
+  FaultPrediction: [
+    { name: 'verdict', datatype: 'xsd:string', required: true, oneOf: ['정상', '주의', '경고'] },
+    { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1, unit: '비율', qudt: 'unit:UNITLESS' },
+  ],
+  Incentive: [{ name: 'stage', datatype: 'xsd:string', required: true, oneOf: ['1차', '2차', '3차'] }],
+  Electrification: [{ name: 'stage', datatype: 'xsd:string', required: true, oneOf: ['1차', '2차', '3차'] }],
+
   // 노드 타입 이름과 정확히 같아야 한다 — 다르면 아무 인스턴스도 target되지 않는 유령 셰이프가 된다
   PredictiveMaint: [
     { name: 'kind', datatype: 'xsd:string', required: true },

@@ -123,12 +123,16 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
     L.push('')
   })
 
-  /* ── 4) 도메인 규칙 — 문법을 넘어선 업무 원칙 ── */
+  /* ── 4) 도메인 규칙 — 문법을 넘어선 업무 원칙 ──
+     셰이프 IRI에 **Rule 접두사**를 붙인다. 노드 타입 셰이프가 `qd:${type}Shape`로 생성되므로
+     규칙 이름이 노드 타입 이름과 겹치면 **같은 IRI의 셰이프 둘이 RDF에서 하나로 합쳐진다.**
+     실제로 규정 노드 타입 NoAutoAdverse에 속성 스키마를 정의하자 정당 판정이 legalBasis를,
+     규정 노드가 decidedBy를 요구받았다. 이름 공간이 하나라는 것을 잊기 쉽다. */
   L.push('# ── 4. 도메인 규칙 — 문법이 아니라 업무 원칙 ──', '')
   // 문법 개정으로 꺼진 규칙은 아예 내보내지 않는다 — 꺼 놓고 파일에는 남기면 어느 쪽이 진짜인지 알 수 없다
   if (!DISABLED_RULES.has('ClaimNeedsEvidence')) {
     L.push('# 판정은 근거(관측) 없이 존재할 수 없다')
-    L.push('qd:ClaimNeedsEvidenceShape a sh:NodeShape ;')
+    L.push('qd:RuleClaimNeedsEvidenceShape a sh:NodeShape ;')
     L.push('  sh:targetClass qd:Claim ;')
     L.push('  sh:property [')
     L.push('    sh:path [ sh:inversePath qd:supports ] ;')
@@ -139,7 +143,7 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
     L.push('')
   }
   L.push('# 불이익으로 이어지는 판정은 사람이 확정해야 한다')
-  L.push('qd:NoAutoAdverseShape a sh:NodeShape ;')
+  L.push('qd:RuleNoAutoAdverseShape a sh:NodeShape ;')
   L.push('  sh:targetClass qd:JustifyVerdict ;')
   L.push('  sh:property [')
   L.push('    sh:path qd:decidedBy ;')
@@ -149,7 +153,7 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
   L.push('  ] .')
   L.push('')
   L.push('# 기사 식별정보는 분석셋에 들어올 수 없다')
-  L.push('qd:DriverPseudonymShape a sh:NodeShape ;')
+  L.push('qd:RuleDriverPseudonymShape a sh:NodeShape ;')
   L.push('  sh:targetClass qd:Driver ;')
   L.push('  sh:property [')
   L.push('    sh:path qd:driverName ;')
@@ -163,7 +167,7 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
   L.push('# 회차 연료는 구간값이어야 한다 (누적값 금지)')
   L.push(`# 시내버스 CNG 실측 소모는 ${perKm(FUEL_LIMIT.min)}~${perKm(FUEL_LIMIT.max)} m³/km 범위에 모인다.`)
   L.push('# 누적값이 들어오면 회차가 거듭될수록 거리 대비 연료가 끝없이 커진다 — 그 지점을 잡는다.')
-  L.push('qd:TripFuelSegmentShape a sh:NodeShape ;')
+  L.push('qd:RuleTripFuelSegmentShape a sh:NodeShape ;')
   L.push('  sh:targetClass qd:Trip ;')
   L.push('  sh:sparql [')
   L.push('    sh:severity sh:Violation ;')
