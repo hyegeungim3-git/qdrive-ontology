@@ -39,10 +39,13 @@ const PRESETS: { q: string; tag: string; c: string }[] = [
 /** 질문 → 시나리오. 실서비스에서는 LLM이 하지만, **매핑 결과를 반드시 보여 줘야** 한다 */
 function route(q: string): { kind: 'trip' | MissionId | 'unknown'; why: string } {
   const t = q.replace(/\s/g, '')
-  if (/운행|1회|한번|온톨로지가무엇/.test(t)) return { kind: 'trip', why: '「운행 1회」로 인식 — 회차 노드를 중심으로 그래프를 펼친다' }
-  if (/증차|감차|노선|배차|수요|혼잡|정책/.test(t)) return { kind: 'policy', why: '「정책 수립」으로 인식 — 재차율·혼잡 판정·수송 실적을 건다' }
+  /* 구체적인 주제를 **먼저** 본다. 처음에는 「운행」을 맨 앞에 뒀다가
+     «이번 운행에서 얼마나 배출했고»가 탄소가 아니라 운행 1회로 분류됐다 —
+     넓은 패턴을 앞에 두면 좁은 패턴이 영영 안 걸린다. */
+  if (/배출|탄소|감축|co2|검증기관|온실/i.test(t)) return { kind: 'carbon', why: '「탄소중립」으로 인식 — 배출 산정·기준선·계수를 건다' }
   if (/위험|코칭|기사|안전|점수|감점/.test(t)) return { kind: 'safety', why: '「안전 운전」으로 인식 — 안전점수·위험운전·낭비 요인을 건다' }
-  if (/배출|탄소|감축|co2|검증|온실/.test(t)) return { kind: 'carbon', why: '「탄소중립」으로 인식 — 배출 산정·기준선·계수를 건다' }
+  if (/증차|감차|노선|배차|수요|혼잡|정책/.test(t)) return { kind: 'policy', why: '「정책 수립」으로 인식 — 재차율·혼잡 판정·수송 실적을 건다' }
+  if (/운행|1회|한번|온톨로지/.test(t)) return { kind: 'trip', why: '「운행 1회」로 인식 — 회차 노드를 중심으로 그래프를 펼친다' }
   return { kind: 'unknown', why: '지표로 옮길 수 없는 질문 — 지어내지 않고 못 한다고 답한다' }
 }
 
