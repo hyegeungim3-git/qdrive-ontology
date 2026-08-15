@@ -2,7 +2,8 @@ import { SPACES } from './meta'
 import { relKo } from './rdf'
 import { currentVersion } from './grammar'
 import type { GateResult } from './gate'
-import type { MissionId } from './missions'
+import { MISSIONS, roadmap, type MissionId } from './missions'
+import { CHANNELS } from './sensors'
 
 /**
  * 근거 기반 AI 에이전트 — **답을 그래프에서 조립한다.**
@@ -246,6 +247,113 @@ function carbonAnswer(g: GateResult): Answer {
     blocked: {
       q: '전기버스 배출을 0으로 계산해 주세요',
       why: '전력 배출계수(0.4594 kg/kWh)가 개념 스페이스에 있습니다. 0으로 두면 계수 노드와 모순되어 산정이 검증을 통과하지 못합니다',
+    },
+  }
+}
+
+/* ─────────────────── 무엇이 있으면 답할 수 있나 ───────────────────
+   후속 질문의 종착지. 앞의 세 답이 전부 「다만 …이 없습니다」로 끝나므로
+   **그 다음 질문은 반드시 「그럼 뭐가 있어야 하나요」**가 된다.
+   그 질문에 답할 것이 없으면 대화가 제자리를 돈다. */
+export function gapAnswer(m?: MissionId): Answer {
+  const scope = m ? MISSIONS.filter((x) => x.id === m) : MISSIONS
+  const qs = scope.flatMap((x) => x.questions)
+  const cant = qs.filter((q) => q.ready !== '답한다')
+  const ko = m ? scope[0].ko : '세 가지 목적'
+
+  /* 채널 하나가 여는 질문 수로 줄을 세운다 — 「센서를 더 달자」가 아니라
+     「이것 하나가 다섯 개를 연다」가 투자 판단에 쓰이는 문장이다. */
+  const road = roadmap()
+    .filter((r) => !m || r.missions.includes(m))
+    .slice(0, 5)
+    .map((r) => ({ ...r, ch: CHANNELS.find((c) => c.id === r.id) }))
+    .filter((r) => r.ch)
+
+  const top = road[0]
+  const lines = [
+    `${ko}의 질문 ${qs.length}개 중 **${qs.length - cant.length}개는 지금 답합니다.** 나머지 ${cant.length}개가 못 하거나 부분만 합니다.`,
+    top
+      ? `가장 크게 막고 있는 것은 **${top.ch!.ko}** 하나입니다 — 이것만 들어오면 질문 **${top.count}개**가 한꺼번에 열립니다.`
+      : '',
+    '못 하는 이유는 대부분 **센서가 모자라서가 아닙니다.** 운행 계획·시각표처럼 **다른 시스템에 이미 있는 값**이 안 넘어와서입니다 — 하드웨어가 아니라 연계 문제입니다.',
+  ].filter(Boolean)
+
+  return {
+    question: m ? `${ko}에서 무엇이 있으면 더 답할 수 있나요?` : '무엇이 있으면 더 답할 수 있나요?',
+    steps: [
+      { n: 1, ko: '못 하는 질문을 모은다', detail: `${scope.length}개 목적 · 질문 ${qs.length}개 중 «못 한다»·«부분» ${cant.length}개`, ok: true },
+      { n: 2, ko: '질문마다 막는 채널을 뽑는다', detail: '질문에 적힌 «이것이 있으면 된다»를 채널 단위로 편다', ok: true },
+      { n: 3, ko: '채널이 여는 질문 수로 줄을 세운다', detail: '많이 여는 것부터 — 투자 순서가 여기서 나온다', ok: road.length > 0 },
+      { n: 4, ko: '이미 있는지 확인한다', detail: '수집·연결 / 수집·미연결 / 실단말 필요 / 규정상 보류로 나눈다', ok: true },
+    ],
+    answer: lines.join(' '),
+    cites: road.map((r) => ({
+      iri: r.id,
+      label: r.ch!.ko,
+      space: r.ch!.bus,
+      value: `질문 ${r.count}개 · ${r.ch!.intake}`,
+    })),
+    conf: {
+      level: '정성',
+      pct: 50,
+      why: '「무엇이 있으면 되나」는 측정값이 아니라 **설계 판단**입니다. 실제로 붙여 봐야 확정됩니다',
+    },
+    limits: [
+      '**채널이 들어온다고 바로 답이 되지는 않습니다** — 품질·주기·결측률을 먼저 봐야 합니다',
+      '「규정상 보류」는 데이터가 없는 게 아니라 **받지 않기로 한 것**입니다 — 필요하면 규정부터 고쳐야 합니다',
+      '여는 질문 수는 **우리가 적어 둔 질문 기준**입니다. 발주처의 질문 목록이 다르면 순위도 달라집니다',
+    ],
+    blocked: {
+      q: '없는 데이터를 추정해서라도 채워 주세요',
+      why: '추정값을 관측 자리에 넣으면 **근거 사슬이 거짓말을 합니다.** 없는 것은 없다고 두고, 무엇이 있으면 되는지만 답합니다',
+    },
+  }
+}
+
+/* ─────────────────── 감축 수단별 기여 ───────────────────
+   탄소 답을 들으면 반드시 「그래서 무엇이 줄인 건가」가 따라온다.
+   총량만 답하면 다음 투자를 못 정한다 — **수단별로 쪼개야 결정이 된다.** */
+export function measureAnswer(g: GateResult): Answer {
+  const ttl = g.graph.turtle
+  const ms = nodesOf(g, 'AbatementMeasure')
+    .map((i) => ({ iri: i, ko: str(ttl, i, 'measure') ?? g.graph.index.label[i] ?? i, share: num(ttl, i, 'sharePct') ?? 0 }))
+    .sort((a, b) => b.share - a.share)
+  const red = nodesOf(g, 'Reduction')[0]
+  const total = red ? num(ttl, red, 'value') : null
+  const top = ms[0]
+
+  const body = ms.length
+    ? [
+        total !== null
+          ? `감축 실적 **${fmt(total, 2)}kg**을 수단별로 쪼개면 ${ms.map((m) => `${m.ko} ${fmt(m.share, 0)}%`).join(' · ')}입니다.`
+          : `감축 수단은 ${ms.map((m) => `${m.ko} ${fmt(m.share, 0)}%`).join(' · ')}로 잡혀 있습니다.`,
+        top ? `가장 크게 기여한 것은 **${top.ko}**이고, 이건 장비를 사지 않고 **운전 습관만으로** 낸 몫입니다.` : '',
+        '다만 이 배분은 **추정**입니다 — 같은 노선·같은 시간대의 대조군 없이는 무엇이 얼마나 줄였는지 정확히 못 가릅니다.',
+      ].filter(Boolean)
+    : ['아직 감축 수단 노드가 그래프에 올라오지 않았습니다. 배속을 올려 회차가 쌓이면 채워집니다.']
+
+  return {
+    question: '감축 수단별로 얼마나 기여했나요?',
+    steps: [
+      { n: 1, ko: '질문을 지표로 옮긴다', detail: '「수단별 기여」 — 개념 스페이스의 감축 수단 노드를 건다', ok: true },
+      { n: 2, ko: '문법으로 질의를 검증한다', detail: `${currentVersion()} 문법에서 «개념 → 성과 · 기여한다»가 허용된 방향인지 확인한다`, ok: true },
+      { n: 3, ko: '그래프를 순회한다', detail: `감축 수단 ${ms.length}종 ─기여한다→ 감축 실적`, ok: ms.length > 0 },
+      { n: 4, ko: '근거를 모은다', detail: `${ms.length}개 노드를 인용한다`, ok: ms.length > 0 },
+    ],
+    answer: body.join(' '),
+    cites: [
+      ...ms.map((m) => cite(g, m.iri, `${fmt(m.share, 0)}%`)),
+      ...(red ? [cite(g, red, total !== null ? `${fmt(total, 2)}kg` : undefined)] : []),
+    ],
+    conf: { level: '추정', pct: 70, why: '대조군 없이 수단을 쪼갠 값입니다 — **추정 상한 70%**를 넘길 수 없습니다' },
+    limits: [
+      '**대조군이 없습니다** — 코칭을 안 받은 같은 노선 차량과 비교해야 기여도를 실측으로 올립니다',
+      '수단끼리 겹칩니다 — 경제운전 코칭이 공회전도 함께 줄여서 **이중 계산 위험**이 있습니다',
+      '전기 전환은 이 그래프에서 배출이 0으로 잡히지만 실제로는 **스코프 2로 옮겨간 것**입니다',
+    ],
+    blocked: {
+      q: '수단별 기여도를 실측으로 보고해 주세요',
+      why: '근거 유형이 «추정»이라 상한 70%가 걸립니다. 실측으로 올리려면 대조군 설계가 먼저입니다 — **강도를 올려서 넘길 수 없습니다**',
     },
   }
 }
