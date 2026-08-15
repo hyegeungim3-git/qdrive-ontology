@@ -345,6 +345,15 @@ function buildAudit(q: QItem[] = []): string {
   return L.join('\n')
 }
 
+/** Markdown **강조**를 굵은 글씨로. 대응표 원문이 내보내기용이라 화면에서만 변환한다. */
+function Emph({ t, cls = 'text-gray-200' }: { t: string; cls?: string }) {
+  return (
+    <>
+      {t.split('**').map((part, i) => (i % 2 ? <b key={i} className={cls}>{part}</b> : <span key={i}>{part}</span>))}
+    </>
+  )
+}
+
 const FORMATS = [
   { key: 'jsonld', ko: 'JSON-LD', ext: 'jsonld', mime: 'application/ld+json', desc: '연결 데이터 표준 — 그대로 트리플 스토어에 적재', build: buildJsonLd },
   { key: 'ttl', ko: 'Turtle (OWL)', ext: 'ttl', mime: 'text/turtle', desc: 'RDF/OWL — domain·range로 문법이 강제된다', build: buildTurtle },
@@ -466,6 +475,7 @@ export default function Export() {
         </pre>
       </Panel>
 
+      {/* 대응표 원문은 내보내기용 Markdown이라 **강조**를 품고 있다. 화면에서는 굵게 그린다. */}
       <Panel title="데모 ↔ 실서비스 — 이 화면에서 본 것이 실제로도 되나">
         <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
           이 도구는 브라우저 안에서 온톨로지 위에 서비스를 돌립니다. 실서비스와{' '}
@@ -498,15 +508,19 @@ export default function Export() {
                       <div className="mt-1.5 grid grid-cols-2 gap-2 max-[640px]:grid-cols-1">
                         <div className="rounded border border-gray-800 bg-gray-950/60 px-2.5 py-1.5">
                           <div className="text-[9.5px] font-black tracking-wide text-gray-600">이 데모</div>
-                          <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-gray-400">{r.demo}</div>
+                          <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-gray-400">
+                            <Emph t={r.demo} />
+                          </div>
                         </div>
                         <div className="rounded border px-2.5 py-1.5" style={{ borderColor: '#34d39933', background: '#34d39910' }}>
                           <div className="text-[9.5px] font-black tracking-wide text-emerald-500">실서비스</div>
-                          <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-emerald-200/80">{r.prod}</div>
+                          <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-emerald-200/80">
+                            <Emph t={r.prod} cls="text-emerald-200" />
+                          </div>
                         </div>
                       </div>
                       <div className="mt-1.5 break-keep text-[10.5px] leading-relaxed text-gray-500">
-                        <b className="text-gray-400">전제</b> · {r.need}
+                        <b className="text-gray-400">전제</b> · <Emph t={r.need} cls="text-gray-400" />
                       </div>
                     </div>
                   ))}
