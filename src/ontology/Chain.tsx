@@ -199,8 +199,8 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
               </div>
               <div className="mt-0.5 break-keep text-[11px] text-gray-500">{c.subject}</div>
             </div>
-            {c.outcomeLines.map((l) => (
-              <Row key={l.k} {...l} />
+            {c.outcomeLines.map((l, i) => (
+              <Row key={`${l.k}-${i}`} {...l} />
             ))}
           </Step>
 
@@ -212,8 +212,8 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
               <>
                 {c.claimBig && (
                   <div className="flex items-center justify-center gap-3">
-                    {c.claimBig.map((b) => (
-                      <div key={b.label} className="text-center">
+                    {c.claimBig.map((b, i) => (
+                      <div key={`${b.label}-${i}`} className="text-center">
                         <div className="text-xl font-black tabular-nums" style={{ color: b.color }}>
                           {b.n}
                         </div>
@@ -223,8 +223,8 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
                   </div>
                 )}
                 <div className={c.claimBig ? 'mt-1.5' : ''}>
-                  {c.claimLines.map((l) => (
-                    <Row key={l.k} {...l} />
+                  {c.claimLines.map((l, i) => (
+                    <Row key={`${l.k}-${i}`} {...l} />
                   ))}
                 </div>
                 {c.claimNote && (
@@ -258,22 +258,22 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
 
         <div className="mt-2 grid grid-cols-3 gap-2 max-[1000px]:grid-cols-1">
           <Step space={S.lever} title="조치" rel="↑ 올린다 · 개입">
-            {c.leverLines.map((l) => (
-              <Row key={l.k} {...l} />
+            {c.leverLines.map((l, i) => (
+              <Row key={`${l.k}-${i}`} {...l} />
             ))}
             <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">{c.leverNote}</div>
           </Step>
           <Step space={S.ctx} title="맥락" rel="판정 보정">
-            {c.contextLines.map((l) => (
-              <Row key={l.k} {...l} />
+            {c.contextLines.map((l, i) => (
+              <Row key={`${l.k}-${i}`} {...l} />
             ))}
           </Step>
           <Step space={S.policy} title="규정" rel="판정 확정의 조건">
             <div className="rounded border border-red-500/25 bg-red-500/10 px-2 py-1.5 break-keep text-[11px] leading-relaxed text-gray-300">
               {c.policyWarn}
             </div>
-            {c.policyLines.map((l) => (
-              <Row key={l.k} {...l} />
+            {c.policyLines.map((l, i) => (
+              <Row key={`${l.k}-${i}`} {...l} />
             ))}
           </Step>
         </div>

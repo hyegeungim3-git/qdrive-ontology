@@ -7,6 +7,7 @@ import { REL_META, SPACE_ALIGN, STANDARDS, TYPE_ALIGN } from './standards'
 import { ruleFeedback, useQuarantine, waiverBlock, type QItem } from './quarantine'
 import { currentVersion, diff, snapshotOf, useGrammar, type Release } from './grammar'
 import { can, denyReason, roleOf, useRole } from './policy'
+import { PROD_GROUPS, PROD_MAP, buildProductionMap } from './production'
 
 /**
  * ⑧ 내보내기 — 문법을 표준 형식으로 꺼낸다.
@@ -352,6 +353,7 @@ const FORMATS = [
   { key: 'md', ko: '문법 명세서', ext: 'md', mime: 'text/markdown', desc: '사람이 읽는 문서 — 협약·제안서 첨부용', build: buildMarkdown },
   { key: 'audit', ko: '격리 이력', ext: 'md', mime: 'text/markdown', desc: '감사 제출용 — 무엇이 막혔고 누가 어떻게 풀었나', build: buildAudit, live: true },
   { key: 'changelog', ko: '개정 이력', ext: 'md', mime: 'text/markdown', desc: '문법이 왜 이렇게 됐나 — 버전별 변경과 근거', build: buildChangelog, live: true },
+  { key: 'prod', ko: '실서비스 대응표', ext: 'md', mime: 'text/markdown', desc: '데모에서 본 것이 실제로도 되나 — 제안서 첨부용', build: buildProductionMap },
 ] as const
 
 export default function Export() {
@@ -386,7 +388,13 @@ export default function Export() {
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download =
-      f.key === 'audit' ? `qdrive-격리이력.${f.ext}` : f.key === 'changelog' ? `qdrive-개정이력.${f.ext}` : `qdrive-ontology-${currentVersion()}.${f.ext}`
+      f.key === 'audit'
+        ? `qdrive-격리이력.${f.ext}`
+        : f.key === 'changelog'
+          ? `qdrive-개정이력.${f.ext}`
+          : f.key === 'prod'
+            ? `qdrive-실서비스대응표.${f.ext}`
+            : `qdrive-ontology-${currentVersion()}.${f.ext}`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -449,13 +457,77 @@ export default function Export() {
             ⬇ 파일로 저장
           </button>
           <span className="text-[11px] text-gray-500">
-            {f.key === 'audit' ? 'qdrive-격리이력' : f.key === 'changelog' ? 'qdrive-개정이력' : `qdrive-ontology-${currentVersion()}`}.{f.ext}
+            {f.key === 'audit' ? 'qdrive-격리이력' : f.key === 'changelog' ? 'qdrive-개정이력' : f.key === 'prod' ? 'qdrive-실서비스대응표' : `qdrive-ontology-${currentVersion()}`}.{f.ext}
           </span>
         </div>
 
         <pre className="mt-2 max-h-[420px] overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-3 text-[11px] leading-relaxed text-gray-300">
           <code>{text}</code>
         </pre>
+      </Panel>
+
+      <Panel title="데모 ↔ 실서비스 — 이 화면에서 본 것이 실제로도 되나">
+        <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
+          이 도구는 브라우저 안에서 온톨로지 위에 서비스를 돌립니다. 실서비스와{' '}
+          <b className="text-gray-200">규모는 다르지만 순서는 같습니다</b> — 들어올 때 검증하고, 걸리면 격리하고, 통과분만 하류로
+          내려보내고, 규칙을 고치려면 문법을 발행합니다. 다만{' '}
+          <b className="text-amber-300">규모만 다른 것이 아닌 항목</b>은 ⚠로 표시했습니다. 숨기지 않는 편이 검토에 도움이 됩니다.
+        </div>
+
+        <div className="mt-3 space-y-3">
+          {PROD_GROUPS.map((g) => {
+            const rows = PROD_MAP.filter((r) => r.group === g)
+            if (!rows.length) return null
+            return (
+              <div key={g}>
+                <div className="mb-1 text-[11px] font-black tracking-wide text-gray-500">{g}</div>
+                <div className="space-y-2">
+                  {rows.map((r) => (
+                    <div
+                      key={r.item}
+                      className="rounded-lg border px-3 py-2.5"
+                      style={{
+                        borderColor: r.differs ? '#f59e0b44' : '#1f2937',
+                        background: r.differs ? '#f59e0b0d' : 'rgba(17,24,39,0.5)',
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {r.differs && <span className="text-[11px]">⚠</span>}
+                        <span className="text-[12.5px] font-bold text-gray-100">{r.item}</span>
+                      </div>
+                      <div className="mt-1.5 grid grid-cols-2 gap-2 max-[640px]:grid-cols-1">
+                        <div className="rounded border border-gray-800 bg-gray-950/60 px-2.5 py-1.5">
+                          <div className="text-[9.5px] font-black tracking-wide text-gray-600">이 데모</div>
+                          <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-gray-400">{r.demo}</div>
+                        </div>
+                        <div className="rounded border px-2.5 py-1.5" style={{ borderColor: '#34d39933', background: '#34d39910' }}>
+                          <div className="text-[9.5px] font-black tracking-wide text-emerald-500">실서비스</div>
+                          <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-emerald-200/80">{r.prod}</div>
+                        </div>
+                      </div>
+                      <div className="mt-1.5 break-keep text-[10.5px] leading-relaxed text-gray-500">
+                        <b className="text-gray-400">전제</b> · {r.need}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div
+          className="mt-3 rounded-lg border px-3 py-2.5 break-keep text-[11.5px] leading-relaxed"
+          style={{ borderColor: '#f59e0b44', background: '#f59e0b12', color: '#fcd34d' }}
+        >
+          ⚠ <b>가장 중요한 차이는 접근 통제입니다.</b> 이 데모의 역할 선택기는 «표시»를 가립니다. 실서비스에서 같은 방식을 쓰면
+          응답에 값이 남아 뚫립니다 — 서버가 애초에 안 내려주는 구조여야 합니다. 데모에서 증명한 것은{' '}
+          <b>«규정이 화면을 막는다»는 흐름</b>이지 그 구현이 아닙니다.
+        </div>
+        <div className="mt-2 break-keep text-[11px] leading-relaxed text-gray-500">
+          위 내용은 <b className="text-gray-300">「실서비스 대응표」</b> 형식으로 그대로 내보낼 수 있습니다 — 화면과 문서가 같은 정의를
+          읽으므로 갈라지지 않습니다.
+        </div>
       </Panel>
 
       <div className="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1">
