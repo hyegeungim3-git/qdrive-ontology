@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ink } from './ink'
 import { Emph } from '../components/ui'
 import { gapAnswer, measureAnswer, runAgent, tripSlice, type Answer } from './agent'
+import { buildReport, buildReportJson, weakest, type Section } from './report'
+import { copyToClipboard } from '../components/ui'
 import { useGate } from './gate'
 import { currentVersion } from './grammar'
 import { SPACES } from './meta'
@@ -26,8 +28,8 @@ import type { MissionId } from './missions'
 
 type Msg =
   | { role: 'user'; text: string }
-  | { role: 'agent'; kind: 'answer'; ans: Answer; calls: Call[]; follow: string[]; self: Kind }
-  | { role: 'agent'; kind: 'trip'; calls: Call[]; follow: string[]; self: Kind }
+  | { role: 'agent'; kind: 'answer'; ans: Answer; calls: Call[]; follow: string[]; self: Kind; sec: Section }
+  | { role: 'agent'; kind: 'trip'; calls: Call[]; follow: string[]; self: Kind; sec: Section }
   | { role: 'agent'; kind: 'unknown'; text: string; need: string[]; calls: Call[]; follow: string[]; self: Kind }
 
 type Call = { fn: string; arg: string; out: string; ok: boolean }
@@ -122,7 +124,8 @@ function route(q: string): { kind: Kind; why: string; scope?: MissionId } {
 export default function AgentChat() {
   const gate = useGate()
   const role = useRole()
-  const [mode, setMode] = useState<'chat' | 'agent'>('chat')
+  const [mode, setMode] = useState<'chat' | 'agent' | 'report'>('chat')
+  const [copied, setCopied] = useState(false)
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -178,6 +181,19 @@ export default function AgentChat() {
             ],
             follow,
             self: r.kind,
+            /* 운행 1회는 Answer가 아니라 그래프 조각이라 절을 여기서 만든다.
+               스페이스마다 대표 노드 하나씩만 인용한다 — 86개를 전부 적으면 표가 보고서를 잡아먹는다. */
+            sec: {
+              q,
+              kind: 'trip',
+              answer: s.story.join(' ').replace(/\*\*/g, ''),
+              cites: s.bySpace.map((sp) => ({ iri: sp.nodes[0].iri, label: sp.nodes[0].label, space: sp.ko, value: `이 운행에 걸린 노드 ${sp.nodes.length}개` })),
+              conf: { level: '실측', pct: 95, why: '회차·관측은 단말이 낸 실측값입니다' },
+              limits: [
+                '한 회차만 펼친 것입니다 — 노선 전체의 경향은 이 표로 말할 수 없습니다',
+                '운행 계획(시각표)이 없어 이 회차가 정시였는지는 판단하지 않았습니다',
+              ],
+            },
           },
         ])
         setBusy(false)
@@ -203,10 +219,129 @@ export default function AgentChat() {
           ],
           follow,
           self: r.kind,
+          sec: { q, kind: r.kind, answer: ans.answer, cites: ans.cites, conf: ans.conf, limits: ans.limits, blocked: ans.blocked },
         },
       ])
       setBusy(false)
     }, 420)
+  }
+
+  /* 절은 답을 만들 때 함께 만들어 둔다 — 나중에 화면에서 긁어모으면
+     화면 표기와 문서가 갈라진다. 같은 질문을 두 번 물으면 뒤엣것만 남긴다. */
+  const secs: Section[] = (() => {
+    const byQ = new Map<string, Section>()
+    msgs.forEach((m) => {
+      if (m.role === 'agent' && 'sec' in m && m.sec) byQ.set(`${m.sec.kind}·${m.sec.q}`, m.sec)
+    })
+    return [...byQ.values()]
+  })()
+
+  /** 대표 질문 한 벌 — 「보고서 한 번에 만들기」가 이 순서로 돈다 */
+  const runAll = async () => {
+    const qs = [PRESETS[0].q, PRESETS[1].q, PRESETS[2].q, PRESETS[3].q, '감축 수단별로 얼마나 기여했나요?', '무엇이 있으면 더 답할 수 있나요?']
+    for (const q of qs) {
+      ask(q)
+      // ask가 420ms 뒤에 답을 넣으므로 그보다 넉넉히 기다린다 — 겹치면 busy로 씹힌다
+      await new Promise((r) => window.setTimeout(r, 620))
+    }
+  }
+
+  /**
+   * 보고서 — **대화를 넘길 수 있는 문서로 바꾼다.**
+   * 채팅은 물어본 사람만 본다. 업무는 「그래서 문서로 주세요」에서 끝난다.
+   */
+  const ReportView = () => {
+    const md = buildReport(secs, gate, role)
+    const w = weakest(secs)
+    const save = (text: string, ext: string, mime: string) => {
+      const url = URL.createObjectURL(new Blob([text], { type: `${mime};charset=utf-8` }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `qdrive-분석보고서.${ext}`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3">
+          <div>
+            <div className="text-[13px] font-black text-gray-100">분석 보고서</div>
+            <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">
+              지금까지 물어본 <b className="text-gray-300">{secs.length}개 항목</b>을 문서로 조립합니다. 모든 수치에 근거 노드가 붙습니다.
+            </div>
+          </div>
+          <div className="ml-auto flex flex-wrap gap-1.5">
+            <button
+              onClick={runAll}
+              disabled={busy}
+              className="rounded-md border border-violet-500/40 bg-violet-500/15 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-violet-200 hover:bg-violet-500/25 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⚡ 대표 6항목 한 번에
+            </button>
+            <button
+              onClick={async () => {
+                setCopied(await copyToClipboard(md))
+                window.setTimeout(() => setCopied(false), 1600)
+              }}
+              disabled={!secs.length}
+              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              {copied ? '✓ 복사됨' : '📋 복사'}
+            </button>
+            <button
+              onClick={() => save(md, 'md', 'text/markdown')}
+              disabled={!secs.length}
+              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⬇ Markdown
+            </button>
+            <button
+              onClick={() => save(buildReportJson(secs, gate, role), 'json', 'application/ld+json')}
+              disabled={!secs.length}
+              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⬇ JSON-LD
+            </button>
+          </div>
+        </div>
+
+        {!!secs.length && (
+          <div className="grid grid-cols-4 gap-2 max-[820px]:grid-cols-2">
+            {[
+              { n: String(secs.length), ko: '분석 항목', sub: '질문 하나가 한 절', c: '#a78bfa' },
+              { n: String(secs.reduce((a, s) => a + s.cites.length, 0)), ko: '근거 노드', sub: '수치마다 되짚기 가능', c: '#34d399' },
+              /* 종합 등급은 최저 등급을 따른다 — 화면에도 그 이유를 적어 둬야 «왜 95가 아니지»가 안 생긴다 */
+              { n: w ? `${w.pct}%` : '—', ko: `신뢰도 상한 · ${w?.level ?? '—'}`, sub: '가장 약한 근거를 따름', c: '#fbbf24' },
+              { n: String(new Set(secs.flatMap((s) => s.limits)).size), ko: '못 하는 것', sub: '숨기지 않고 문서에', c: '#fb7185' },
+            ].map((k) => (
+              <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
+                <div className="text-xl font-black tabular-nums" style={{ color: ink(k.c) }}>
+                  {k.n}
+                </div>
+                <div className="mt-0.5 break-keep text-[11.5px] font-bold text-gray-300">{k.ko}</div>
+                <div className="break-keep text-[11px] text-gray-600">{k.sub}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="rounded-xl border border-gray-800 bg-gray-950/60">
+          <div className="flex items-center justify-between border-b border-gray-800 px-3 py-2">
+            <span className="text-[11.5px] font-black text-gray-400">미리보기 · Markdown</span>
+            <span className="text-[11px] text-gray-600">{md.length.toLocaleString()}자</span>
+          </div>
+          <pre className="max-h-[520px] overflow-auto px-3 py-2.5 text-[11.5px] leading-relaxed whitespace-pre-wrap break-words text-gray-300">
+            {md}
+          </pre>
+        </div>
+
+        <div className="rounded-xl border px-4 py-3 break-keep text-[12px] leading-relaxed text-emerald-200" style={{ borderColor: '#34d39933', background: '#34d3990d' }}>
+          <b>규정이 「원본 그래프는 반출 대상이 아닙니다 — 집계·보고서로 받습니다」라고 적어 둔 자리입니다.</b> 원본 내보내기는 역할에 따라
+          막히지만, 이 보고서는 <b>모든 역할이 받을 수 있습니다</b> — 실명은 이미 가려졌고 수치는 집계이며, 되짚을 IRI만 남습니다. 금지에 대안이
+          없으면 그 규정은 지켜지지 않습니다.
+        </div>
+      </div>
+    )
   }
 
   /**
@@ -255,7 +390,7 @@ export default function AgentChat() {
               ↺ 새 대화
             </button>
           )}
-          {(['chat', 'agent'] as const).map((m) => (
+          {(['chat', 'agent', 'report'] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
@@ -263,12 +398,16 @@ export default function AgentChat() {
                 mode === m ? 'bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/40' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
               }`}
             >
-              {m === 'chat' ? '💬 채팅' : '⚙ 에이전트'}
+              {m === 'chat' ? '💬 채팅' : m === 'agent' ? '⚙ 에이전트' : `📄 보고서${secs.length ? ` ${secs.length}` : ''}`}
             </button>
           ))}
         </div>
       </div>
 
+      {mode === 'report' ? (
+        <ReportView />
+      ) : (
+      <>
       {/* 대화 */}
       <div className={`rounded-xl border border-gray-800 bg-gray-900/40 px-3 py-3 ${msgs.length ? 'min-h-[280px]' : ''}`}>
         {/**
@@ -473,6 +612,8 @@ export default function AgentChat() {
         왔는지가 붙어 있고, 못 하는 것은 못 한다고 적혀 있습니다. <b>⚙ 에이전트</b>로 바꾸면 그 답이 나오기까지 무엇을 호출했는지가 보입니다 —
         특히 <b>문법 검증이 잘못된 질의를 실행 전에 거르는 것</b>이 벡터 검색만으로는 안 되는 부분입니다.
       </div>
+      </>
+      )}
     </div>
   )
 }
