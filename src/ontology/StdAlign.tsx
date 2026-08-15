@@ -37,7 +37,7 @@ export default function Standards() {
             return (
               <span key={m} className={`rounded-md border border-gray-800 bg-gray-900/60 px-2 py-1 text-[11px] font-bold ${MATCH_LABEL[m].tone}`}>
                 {MATCH_LABEL[m].ko} {n}건
-                <span className="ml-1 font-mono text-[9.5px] text-gray-600">{MATCH_LABEL[m].skos}</span>
+                <span className="ml-1 font-mono text-[11px] text-gray-600">{MATCH_LABEL[m].skos}</span>
               </span>
             )
           })}
@@ -92,7 +92,7 @@ export default function Standards() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
+                className={`rounded-md px-2 py-1 max-[640px]:min-h-[40px] text-[11px] font-bold transition-colors ${
                   tab === t ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
                 }`}
               >
@@ -169,7 +169,7 @@ export default function Standards() {
                         <td className="py-2 pr-3">
                           <div className="flex flex-wrap items-center gap-1">
                             <span className="font-bold text-gray-100">{r}</span>
-                            {m.required && <span className="rounded bg-red-500/15 px-1 py-0.5 text-[9.5px] font-bold text-red-400">필수</span>}
+                            {m.required && <span className="rounded bg-red-500/15 px-1 py-0.5 text-[11px] font-bold text-red-400">필수</span>}
                           </div>
                           <div className="text-[10px] text-gray-600">
                             {spaceOf(e.from).ko} → {spaceOf(e.to).ko} · 역 {m.inverse}

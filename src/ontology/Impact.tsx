@@ -59,7 +59,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
                 <button
                   key={s.id}
                   onClick={() => pick(s.id, change, null)}
-                  className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
+                  className={`rounded-md px-2 py-1 max-[640px]:min-h-[40px] text-[11px] font-bold transition-colors ${
                     space === s.id ? 'ring-1' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
                   }`}
                   style={space === s.id ? { background: `${s.color}22`, color: s.color, borderColor: s.color } : undefined}
@@ -77,7 +77,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
                   key={c.id}
                   onClick={() => pick(space, c.id, null)}
                   title={c.desc}
-                  className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${
+                  className={`rounded-md px-2 py-1 max-[640px]:min-h-[40px] text-[11px] font-bold transition-colors ${
                     change === c.id ? 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/40' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
                   }`}
                 >
@@ -114,7 +114,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
                     {i.id}
                   </span>
                   <span className={`text-[12px] font-bold ${on ? 'text-gray-100' : 'text-gray-600'}`}>{i.ko}</span>
-                  {on && always && <span className="ml-auto text-[9.5px] font-bold text-gray-500">항상</span>}
+                  {on && always && <span className="ml-auto text-[11px] font-bold text-gray-500">항상</span>}
                 </div>
                 <div className={`mt-0.5 break-keep text-[11.5px] leading-relaxed ${on ? 'text-gray-400' : 'text-gray-700'}`}>{i.q}</div>
               </div>

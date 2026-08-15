@@ -42,7 +42,7 @@ export default function Grammar() {
                         {b.ko}
                       </span>
                       <span className="ml-1 text-[10.5px] text-gray-600">{b.en}</span>
-                      {e.core && <span className="ml-1.5 rounded bg-sky-500/15 px-1.5 py-0.5 text-[9.5px] font-bold text-sky-300">핵심</span>}
+                      {e.core && <span className="ml-1.5 rounded bg-sky-500/15 px-1.5 py-0.5 text-[11px] font-bold text-sky-300">핵심</span>}
                     </td>
                     <td className="py-2 pr-3">
                       <div className="flex flex-wrap gap-1">

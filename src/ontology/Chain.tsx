@@ -66,8 +66,8 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
                   {m.short(snap, v.id)}
                 </div>
                 <div className="mt-1 flex items-center gap-1">
-                  <span className={`rounded px-1 py-0.5 text-[9.5px] font-bold ${BASIS_TONE[view.basis]}`}>{view.basis}</span>
-                  {m.perVehicle && <span className="text-[9.5px] text-gray-600">차량별</span>}
+                  <span className={`rounded px-1 py-0.5 text-[11px] font-bold ${BASIS_TONE[view.basis]}`}>{view.basis}</span>
+                  {m.perVehicle && <span className="text-[11px] text-gray-600">차량별</span>}
                 </div>
               </button>
             )
@@ -247,7 +247,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
                     <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-gray-500">{r.a}</span>
                     <span className="truncate text-[11.5px] font-bold text-gray-200">{r.b}</span>
                     <span className="ml-auto shrink-0 text-[10.5px] tabular-nums text-gray-500">{r.c}</span>
-                    {r.ok && <span className="shrink-0 rounded bg-emerald-500/15 px-1 py-0.5 text-[9.5px] font-bold text-emerald-400">정상</span>}
+                    {r.ok && <span className="shrink-0 rounded bg-emerald-500/15 px-1 py-0.5 text-[11px] font-bold text-emerald-400">정상</span>}
                   </div>
                 ))}
                 {!!c.evidenceMore && c.evidenceMore > 0 && <div className="text-center text-[10.5px] text-gray-600">외 {c.evidenceMore}건</div>}

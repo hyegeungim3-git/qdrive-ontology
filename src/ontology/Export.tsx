@@ -518,13 +518,13 @@ export default function Export() {
                       </div>
                       <div className="mt-1.5 grid grid-cols-2 gap-2 max-[640px]:grid-cols-1">
                         <div className="rounded border border-gray-800 bg-gray-950/60 px-2.5 py-1.5">
-                          <div className="text-[9.5px] font-black tracking-wide text-gray-600">이 데모</div>
+                          <div className="text-[11px] font-black tracking-wide text-gray-600">이 데모</div>
                           <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-gray-400">
                             <Emph t={r.demo} />
                           </div>
                         </div>
                         <div className="rounded border px-2.5 py-1.5" style={{ borderColor: '#34d39933', background: '#34d39910' }}>
-                          <div className="text-[9.5px] font-black tracking-wide text-emerald-500">실서비스</div>
+                          <div className="text-[11px] font-black tracking-wide text-emerald-500">실서비스</div>
                           <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-emerald-200/80">
                             <Emph t={r.prod} cls="text-emerald-200" />
                           </div>

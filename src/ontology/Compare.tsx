@@ -228,7 +228,7 @@ function SideBySide({ a, b, leftKo, rightKo }: { a: Snapshot; b: Snapshot; leftK
                 <td className="py-1.5 pr-2 whitespace-nowrap font-bold" style={{ color: spaceOf(ref.from).color }}>
                   {spaceOf(ref.from).ko} <span className="text-gray-600">→</span>{' '}
                   <span style={{ color: spaceOf(ref.to).color }}>{spaceOf(ref.to).ko}</span>
-                  {ref.core && <span className="ml-1 rounded bg-sky-400/15 px-1 py-px text-[9.5px] font-bold text-sky-300">핵심</span>}
+                  {ref.core && <span className="ml-1 rounded bg-sky-400/15 px-1 py-px text-[11px] font-bold text-sky-300">핵심</span>}
                 </td>
                 <td className="py-1.5 pr-2">
                   {ae ? (

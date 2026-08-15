@@ -185,7 +185,7 @@ function Picker({
             <button
               key={x}
               onClick={() => onChange(x)}
-              className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors ${on ? '' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'}`}
+              className={`rounded-md px-2 py-1 max-[640px]:min-h-[40px] text-[11px] font-bold transition-colors ${on ? '' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'}`}
               style={on ? { background: `${colorOf?.(x) ?? '#38bdf8'}22`, color: colorOf?.(x) ?? '#7dd3fc' } : undefined}
             >
               {render(x)}

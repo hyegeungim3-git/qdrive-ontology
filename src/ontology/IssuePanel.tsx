@@ -262,7 +262,7 @@ function Row({ c }: { c: Check }) {
     >
       <div className="flex items-baseline gap-1.5">
         <span className="text-[11px]">{c.ok ? '✓' : '✗'}</span>
-        <span className="rounded px-1 py-px text-[9.5px] font-black" style={{ color: TONE[c.source], background: `${TONE[c.source]}1a` }}>
+        <span className="rounded px-1 py-px text-[11px] font-black" style={{ color: TONE[c.source], background: `${TONE[c.source]}1a` }}>
           {c.source}
         </span>
         <span className="text-[11.5px] font-bold text-gray-200">{c.ko}</span>

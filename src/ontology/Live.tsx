@@ -121,7 +121,7 @@ function RecordAudit({ res, iri, onClear }: { res: RunResult; iri: string; onCle
                 <tr key={i} className="border-b border-gray-800/60 align-top">
                   <td className="py-1.5 pr-2">
                     <span
-                      className="whitespace-nowrap rounded px-1 py-0.5 text-[9.5px] font-black"
+                      className="whitespace-nowrap rounded px-1 py-0.5 text-[11px] font-black"
                       style={{ color: tone, background: `${tone}1f`, border: `1px solid ${tone}55` }}
                     >
                       {c.family}
@@ -305,7 +305,7 @@ export default function Live({
               >
                 <div className="flex items-center gap-1.5">
                   <span
-                    className="shrink-0 rounded px-1 py-0.5 text-[9.5px] font-black"
+                    className="shrink-0 rounded px-1 py-0.5 text-[11px] font-black"
                     style={{ color: tone, background: `${tone}1f`, border: `1px solid ${tone}55` }}
                   >
                     {f.family}
@@ -400,7 +400,7 @@ export default function Live({
                           <td className="py-1.5 pr-2">
                             <span className="whitespace-nowrap font-mono text-[11px] text-violet-300">sh:{f.constraint}</span>
                             {f.engine === 'JS' && (
-                              <span className="ml-1 whitespace-nowrap rounded bg-gray-800 px-1 py-0.5 text-[9.5px] font-bold text-gray-400">보조 검사</span>
+                              <span className="ml-1 whitespace-nowrap rounded bg-gray-800 px-1 py-0.5 text-[11px] font-bold text-gray-400">보조 검사</span>
                             )}
                           </td>
                           <td className="py-1.5 break-keep text-gray-400">{f.message}</td>

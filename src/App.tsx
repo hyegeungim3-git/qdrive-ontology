@@ -186,7 +186,7 @@ export default function App() {
                 key={r.id}
                 onClick={() => setRole(r.id)}
                 title={`${r.org} · ${r.basis}`}
-                className={`whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-bold focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                className={`whitespace-nowrap rounded-md border px-2 py-1 max-[640px]:min-h-[40px] text-[11px] font-bold focus-visible:ring-2 focus-visible:ring-sky-500 ${
                   role === r.id ? 'border-amber-400/60 bg-amber-400/15 text-amber-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
                 }`}
               >

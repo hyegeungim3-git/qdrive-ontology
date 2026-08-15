@@ -22,6 +22,45 @@ function edgePt(fx: number, fy: number, tx: number, ty: number, pad = 6) {
   return { x: fx + dx * s, y: fy + dy * s }
 }
 
+/** 라벨 폭 어림 — 한글은 글자당 8.5px, 나머지는 5px 정도 */
+const labelW = (t: string) => [...t].reduce((n, ch) => n + (/[가-힣]/.test(ch) ? 8.8 : 5.2), 0)
+
+/**
+ * 라벨 자리 — 선의 법선 양쪽에 후보를 놓고 **스페이스 상자에 안 걸리는 쪽**을 고른다.
+ * 둘 다 걸리면 더 밀어 본다. 눈으로 맞추면 좌표를 바꿀 때마다 다시 깨진다.
+ */
+function labelSpot(p1: { x: number; y: number }, p2: { x: number; y: number }, label: string) {
+  const cx = (p1.x + p2.x) / 2
+  const cy = (p1.y + p2.y) / 2
+  const dx = p2.x - p1.x
+  const dy = p2.y - p1.y
+  const len = Math.hypot(dx, dy) || 1
+  const nx = -dy / len
+  const ny = dx / len
+  const w = labelW(label)
+  // 라벨은 두 줄(어휘 + 실연결 수)이라 위아래로 여유를 둔다
+  const hit = (x: number, y: number) =>
+    SPACES.some((sp) => {
+      const bx = sp.x - W / 2
+      const by = sp.y - H / 2
+      return x - w / 2 < bx + W && x + w / 2 > bx && y - 14 < by + H && y + 13 > by
+    })
+  /* 중점만 시도하면 짧은 대각선(규정→자산·주체→자산)에서 양쪽 다 상자에 걸린다.
+     **선 위의 다른 지점**까지 후보에 넣으면 대부분 빈자리를 찾는다. */
+  for (const t of [0.5, 0.62, 0.38, 0.72, 0.28]) {
+    const px = p1.x + dx * t
+    const py = p1.y + dy * t
+    for (const off of [15, 24, 34, 46]) {
+      for (const sgn of [-1, 1]) {
+        const x = px + nx * off * sgn
+        const y = py + ny * off * sgn
+        if (!hit(x, y)) return { x, y }
+      }
+    }
+  }
+  return { x: cx, y: cy - 15 }
+}
+
 export default function SpaceGraph({
   snap,
   onGoto,
@@ -112,21 +151,26 @@ export default function SpaceGraph({
                 const b = spaceOf(e.to)
                 const p1 = edgePt(a.x, a.y, b.x, b.y)
                 const p2 = edgePt(b.x, b.y, a.x, a.y)
-                const mx = e.bow ? (p1.x + p2.x) / 2 + e.bow * 0.5 : (p1.x + p2.x) / 2
-                const my = (p1.y + p2.y) / 2
-                const on = lit(e)
+                /* 라벨을 선 한가운데 얹고 검은 윤곽선으로 파내던 방식을 버렸다 — 촌스럽고,
+                   배경색이 바뀌면 그대로 깨진다. 대신 **선의 법선 방향으로 밀어** 선을 비켜 놓는다.
+
+                   다만 한쪽으로만 밀면 짧은 선에서 출발 상자 안으로 들어간다(실제로 «운전한다»와
+                   «보호한다»가 그랬다). 그래서 **양쪽 후보를 놓고 상자에 안 걸리는 쪽을 고른다** —
+                   눈으로 맞추면 배치를 바꿀 때마다 다시 깨진다. */
                 const label = e.relations.length > 2 ? `${e.relations[0]} 외 ${e.relations.length - 1}` : e.relations.join(' · ')
+                const { x: mx, y: my } = labelSpot(p1, p2, label)
+                const on = lit(e)
+
                 const n = linkOf(e)
                 return (
                   <g key={`l-${e.from}-${e.to}`} fillOpacity={on ? 0.95 : 0.1}>
                     <text
                       x={mx}
-                      y={my - 4}
+                      y={my - 6}
                       textAnchor="middle"
                       fontSize={8.5}
                       fontWeight={700}
                       fill={spaceOf(e.to).color}
-                      style={{ paintOrder: 'stroke', stroke: 'var(--color-gray-900)', strokeWidth: 3.5, strokeLinejoin: 'round' }}
                     >
                       {label}
                     </text>
@@ -134,13 +178,12 @@ export default function SpaceGraph({
                     {n > 0 && (
                       <text
                         x={mx}
-                        y={my + 6}
+                        y={my + 7}
                         textAnchor="middle"
-                        fontSize={7.5}
+                        fontSize={8.5}
                         fontWeight={800}
                         fill="var(--color-gray-400)"
-                        style={{ paintOrder: 'stroke', stroke: 'var(--color-gray-900)', strokeWidth: 3.5, strokeLinejoin: 'round' }}
-                      >
+                        >
                         실연결 {fmt(n)}
                       </text>
                     )}
@@ -178,10 +221,10 @@ export default function SpaceGraph({
                     <text x={s.x} y={s.y - 12} textAnchor="middle" fontSize={13} fontWeight={900} fill={s.color}>
                       {s.ko}
                     </text>
-                    <text x={s.x} y={s.y + 1} textAnchor="middle" fontSize={8} fill={s.color} fillOpacity={0.75}>
+                    <text x={s.x} y={s.y + 1} textAnchor="middle" fontSize={8.5} fill={s.color} fillOpacity={0.75}>
                       {s.en}
                     </text>
-                    <text x={s.x} y={s.y + 17} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="var(--color-gray-400)">
+                    <text x={s.x} y={s.y + 17} textAnchor="middle" fontSize={8.5} fontWeight={700} fill="var(--color-gray-400)">
                       {s.types.length}종 · {fmt(n)}
                     </text>
                   </g>
@@ -227,7 +270,7 @@ export default function SpaceGraph({
                         <span className="text-[12px] font-bold tabular-nums" style={{ color: sp.color }}>
                           {fmt(t.count(snap))}
                         </span>
-                        <span className={`rounded px-1.5 py-0.5 text-[9.5px] font-bold ${t.live ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-700/40 text-gray-500'}`}>
+                        <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${t.live ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-700/40 text-gray-500'}`}>
                           {t.live ? 'LIVE' : '정적'}
                         </span>
                       </div>
@@ -250,7 +293,7 @@ export default function SpaceGraph({
                       <span className="font-bold" style={{ color: spaceOf(e.to).color }}>
                         {spaceOf(e.to).ko}
                       </span>
-                      {e.core && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[9.5px] font-bold text-sky-300">핵심</span>}
+                      {e.core && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[11px] font-bold text-sky-300">핵심</span>}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {e.relations.map((r) => (

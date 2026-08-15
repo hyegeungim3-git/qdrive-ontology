@@ -89,7 +89,7 @@ export default function Catalog({ jump }: { jump: Jump }) {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                className={`rounded-md px-2 py-1 max-[640px]:min-h-[40px] text-[11px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
                   filter === f ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
                 }`}
               >

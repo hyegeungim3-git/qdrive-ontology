@@ -59,7 +59,7 @@ export default function TimePanel() {
                 <div key={r} className="rounded-lg border px-2.5 py-1.5" style={{ borderColor: '#38bdf833', background: '#38bdf80d' }}>
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-[11.5px] font-bold text-gray-100">{r}</span>
-                    <span className="font-mono text-[9.5px] text-gray-600">{REL_META[r]?.en}</span>
+                    <span className="font-mono text-[11px] text-gray-600">{REL_META[r]?.en}</span>
                   </div>
                   <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">{TEMPORAL[r]}</div>
                 </div>
@@ -75,7 +75,7 @@ export default function TimePanel() {
                   <div key={r} className="rounded-lg border border-gray-800 bg-gray-900/50 px-2.5 py-1.5">
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-[11.5px] font-bold text-gray-300">{r}</span>
-                      <span className="font-mono text-[9.5px] text-gray-600">{REL_META[r]?.en}</span>
+                      <span className="font-mono text-[11px] text-gray-600">{REL_META[r]?.en}</span>
                     </div>
                     <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">{TIMELESS[r]}</div>
                   </div>

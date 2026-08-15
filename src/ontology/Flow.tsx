@@ -47,13 +47,43 @@ const NODES: N[] = [
 ]
 const byId = (id: string) => NODES.find((n) => n.id === id)!
 
-/** 세로 선의 x — 서로 다른 자리를 써야 라벨이 겹치지 않는다 */
+/** 세로 선의 x — 서로 다른 자리를 써야 라벨 자리가 겹치지 않는다 */
 const DOWN_X = 540 // 검사대 → 막힌 데이터
 /* 되먹임은 **말 바꾸기(…408)와 검사대(498…) 사이의 빈 복도**로 올라온다.
    처음 610을 썼더니 막힌 데이터 상자(498~648) 한가운데를 뚫었다.
    복도를 고를 때는 «그 x가 어느 상자의 가로 범위에도 안 들어가는지»를 먼저 확인해야 한다. */
 const BACK_X = 453
 const FLOOR = 292
+
+/**
+ * 라벨은 **선 위쪽에 얹는다** — 선 한가운데 놓고 검은 테두리로 파내던 방식을 버렸다.
+ * 테두리로 글자를 파내면 어디서든 읽히긴 하지만 촌스럽고, 배경색이 바뀌면 그대로 깨진다.
+ * 선 위 여백에 두면 아무 장치 없이도 겹치지 않는다 — 대신 **여백이 있는지 먼저 확인해야 한다.**
+ */
+type Lab = { x: number; y: number; t: string; c: string; anchor?: 'start' | 'middle'; strong?: string }
+
+/** 모서리를 둥글린 직각 경로 — 꺾이는 점마다 짧은 호를 넣는다 */
+const elbow = (pts: [number, number][], r = 10) => {
+  let d = `M ${pts[0][0]} ${pts[0][1]}`
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i - 1]
+    const [cx, cy] = pts[i]
+    const [nx, ny] = pts[i + 1]
+    const inDir = [Math.sign(cx - px), Math.sign(cy - py)]
+    const outDir = [Math.sign(nx - cx), Math.sign(ny - cy)]
+    d += ` L ${cx - inDir[0] * r} ${cy - inDir[1] * r}`
+    d += ` Q ${cx} ${cy} ${cx + outDir[0] * r} ${cy + outDir[1] * r}`
+  }
+  const last = pts[pts.length - 1]
+  d += ` L ${last[0]} ${last[1]}`
+  return d
+}
+
+const ARROWS: [string, string][] = [
+  ['a-gray', '#64748b'],
+  ['a-rose', '#fb7185'],
+  ['a-violet', '#c084fc'],
+]
 
 export function Pipeline({ jump }: { jump: Jump }) {
   const gate = useGate()
@@ -68,56 +98,82 @@ export function Pipeline({ jump }: { jump: Jump }) {
     return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
   }
 
-  const lines: { d: string; c: string; dash?: boolean }[] = [
-    ...['s1', 's2', 's3'].map((s) => ({ d: curve(byId(s), byId('adp')), c: '#475569' })),
-    { d: curve(byId('adp'), byId('gate')), c: '#475569' },
-    { d: curve(byId('gate'), byId('graph')), c: '#475569' },
-    ...['u1', 'u2', 'u3', 'u4'].map((u) => ({ d: curve(byId('graph'), byId(u)), c: '#475569' })),
-    { d: `M ${DOWN_X} 152 L ${DOWN_X} 218`, c: '#fb7185' },
-    { d: `M 648 242 L 738 242`, c: '#c084fc' },
-    { d: `M ${BACK_X} 266 L ${BACK_X} ${FLOOR} L ${BACK_X} ${FLOOR}`, c: '#c084fc', dash: true },
+  const lines: { d: string; c: string; m: string; dash?: boolean }[] = [
+    ...['s1', 's2', 's3'].map((s) => ({ d: curve(byId(s), byId('adp')), c: '#3f4a5a', m: 'a-gray' })),
+    { d: curve(byId('adp'), byId('gate')), c: '#3f4a5a', m: 'a-gray' },
+    { d: curve(byId('gate'), byId('graph')), c: '#3f4a5a', m: 'a-gray' },
+    ...['u1', 'u2', 'u3', 'u4'].map((u) => ({ d: curve(byId('graph'), byId(u)), c: '#3f4a5a', m: 'a-gray' })),
+    { d: `M ${DOWN_X} 152 L ${DOWN_X} 218`, c: '#fb7185', m: 'a-rose' },
+    { d: `M 648 242 L 738 242`, c: '#c084fc', m: 'a-violet' },
+    {
+      // 규칙 고치기 아래 → 바닥 → 왼쪽 복도 → 검사대 왼쪽 아래로
+      d: elbow([
+        [817, 266],
+        [817, FLOOR],
+        [BACK_X, FLOOR],
+        [BACK_X, 152],
+        [498, 152],
+      ]),
+      c: '#c084fc',
+      m: 'a-violet',
+      dash: true,
+    },
   ]
-  // 되먹임: 규칙 고치기 아래 → 바닥 → BACK_X 로 올라와 검사대 아래로
-  const back = `M 817 266 L 817 ${FLOOR} L ${BACK_X} ${FLOOR} L ${BACK_X} 152 L 498 152`
-  lines[lines.length - 1] = { d: back, c: '#c084fc', dash: true }
 
-  const labels = [
-    { x: 453, y: 112, t: '옮겨서', c: '#64748b' },
-    { x: 693, y: 112, t: `통과한 것만 ${passed}`, c: '#34d399' },
-    { x: DOWN_X, y: 190, t: `어긋나면 ${gate.held.size}건`, c: '#fb7185' },
-    { x: 693, y: 234, t: '자꾸 막히면', c: '#c084fc' },
-    { x: 645, y: 286, t: '고친 규칙이 검사대에 반영된다', c: '#c084fc' },
+  // 선 위쪽 여백에 얹는다. 숫자는 한 줄 아래에 굵게 — 한 줄로 붙이면 폭이 복도를 넘는다.
+  const labels: Lab[] = [
+    { x: 453, y: 108, t: '옮겨서', c: '#7c8798' },
+    { x: 693, y: 100, t: '통과한 것만', c: '#7c8798' },
+    { x: 693, y: 114, t: String(passed), c: '#34d399', strong: '1' },
+    { x: 556, y: 182, t: '어긋나면', c: '#7c8798', anchor: 'start' },
+    { x: 556, y: 196, t: `${gate.held.size}건`, c: '#fb7185', anchor: 'start', strong: '1' },
+    { x: 693, y: 232, t: '자꾸 막히면', c: '#a78bfa' },
+    { x: 645, y: 284, t: '고친 규칙이 검사대에 반영된다', c: '#8b7bb8' },
   ]
 
   return (
     <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[880px]" role="img" aria-label="데이터 흐름도">
+        <defs>
+          {ARROWS.map(([id, c]) => (
+            <marker key={id} id={id} viewBox="0 0 7 6" refX="7" refY="3" markerWidth="7" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L7 3 L0 6 z" fill={c} opacity={0.85} />
+            </marker>
+          ))}
+        </defs>
         {lines.map((l, i) => (
-          <path key={i} d={l.d} fill="none" stroke={l.c} strokeWidth={1.4} strokeDasharray={l.dash ? '5 4' : undefined} opacity={0.8} />
+          <path
+            key={i}
+            d={l.d}
+            fill="none"
+            stroke={l.c}
+            strokeWidth={1.3}
+            strokeLinecap="round"
+            strokeDasharray={l.dash ? '6 5' : undefined}
+            markerEnd={`url(#${l.m})`}
+          />
         ))}
-        {labels.map((l) => (
+        {labels.map((l, i) => (
           <text
-            key={l.t}
+            key={i}
             x={l.x}
             y={l.y}
-            textAnchor="middle"
-            fontSize={11}
-            fontWeight={700}
+            textAnchor={l.anchor ?? 'middle'}
+            fontSize={l.strong ? 11.5 : 10.5}
+            fontWeight={l.strong ? 800 : 600}
             fill={l.c}
-            stroke="#030712"
-            strokeWidth={3.5}
-            paintOrder="stroke"
+            letterSpacing="0.01em"
           >
             {l.t}
           </text>
         ))}
         {NODES.map((n) => (
           <g key={n.id} onClick={() => n.step && jump(n.step)} style={{ cursor: n.step ? 'pointer' : 'default' }}>
-            <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={8} fill={`${n.c}14`} stroke={`${n.c}66`} strokeWidth={1.1} />
-            <text x={n.x + n.w / 2} y={n.y + (n.h > 50 ? 27 : 20)} textAnchor="middle" fontSize={12.5} fontWeight={800} fill={n.c}>
+            <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={10} fill={`${n.c}12`} stroke={`${n.c}55`} strokeWidth={1} />
+            <text x={n.x + n.w / 2} y={n.y + (n.h > 50 ? 28 : 21)} textAnchor="middle" fontSize={12} fontWeight={700} fill={n.c}>
               {n.ko}
             </text>
-            <text x={n.x + n.w / 2} y={n.y + (n.h > 50 ? 45 : 34)} textAnchor="middle" fontSize={10} fill="#94a3b8">
+            <text x={n.x + n.w / 2} y={n.y + (n.h > 50 ? 45 : 34)} textAnchor="middle" fontSize={10.5} fill="#8b95a5">
               {n.sub}
             </text>
           </g>
@@ -162,14 +218,20 @@ export function Connections({ jump }: { jump: Jump }) {
               <span className="mx-1 text-gray-600">→</span>
               <span style={{ color: r.to.color }}>{r.to.ko}</span>
             </span>
-            {r.core && <span className="shrink-0 rounded bg-pink-400/15 px-1 py-px text-[9.5px] font-black text-pink-300">핵심</span>}
+            {r.core && <span className="shrink-0 rounded bg-pink-400/15 px-1 py-px text-[11px] font-black text-pink-300">핵심</span>}
             <span className="min-w-0 flex-1">
               <span className="block h-2 rounded-full" style={{ width: `${Math.max(2, (r.n / max) * 100)}%`, background: `${r.to.color}88` }} />
             </span>
             <span className="w-[52px] shrink-0 text-right text-[11.5px] font-bold tabular-nums" style={{ color: r.n ? '#e5e7eb' : '#4b5563' }}>
               {r.n}
             </span>
-            <span className="hidden w-[168px] shrink-0 truncate text-[10.5px] text-gray-600 min-[900px]:block">{r.rels.join(' · ')}</span>
+            {/* 잘라 버리면 읽는 사람에겐 그냥 사라진 글자다 — 줄여서 «다 보이게» 하고 전체는 title로 */}
+            <span
+              title={r.rels.join(' · ')}
+              className="hidden w-[176px] shrink-0 text-[11px] text-gray-600 min-[900px]:block"
+            >
+              {r.rels.length > 2 ? `${r.rels.slice(0, 2).join(' · ')} 외 ${r.rels.length - 2}` : r.rels.join(' · ')}
+            </span>
           </button>
         ))}
       </div>

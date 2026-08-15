@@ -62,7 +62,7 @@ const sensorRows = (s: SimSnapshot) => Math.floor(s.simTime) * s.vehicles.length
 
 export const SPACES: Space[] = [
   {
-    id: 'policy', ko: '규정', en: 'Policy', color: '#f59e0b', x: 120, y: 90,
+    id: 'policy', ko: '규정', en: 'Policy', color: '#f59e0b', x: 85, y: 78,
     desc: '무엇을 허용하고 무엇을 금지하는가 — 접근·보존·비식별·자동화 한계',
     types: [
       { ko: '접근 권한', en: 'AccessPolicy', count: () => 3, live: false, note: '시 · 운수사 · 기사 각자 자기 범위만' },
@@ -75,7 +75,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'resource', ko: '자산', en: 'Resource', color: '#34d399', x: 120, y: 230,
+    id: 'resource', ko: '자산', en: 'Resource', color: '#34d399', x: 258, y: 157,
     desc: '주체가 다루는 대상 — 차량·노선·정류장·단말',
     types: [
       { ko: '차량', en: 'Vehicle', count: (s) => s.vehicles.length, live: true, note: '차량번호가 자연키 — 모든 원천의 조인 축' },
@@ -85,7 +85,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'subject', ko: '주체', en: 'Subject', color: '#a78bfa', x: 120, y: 370,
+    id: 'subject', ko: '주체', en: 'Subject', color: '#a78bfa', x: 85, y: 236,
     desc: '의도와 권한을 가진 행위자 — 기사·관제·담당 공무원',
     types: [
       { ko: '기사', en: 'Driver', count: uniqDrivers, live: true, note: '분석셋에서는 가명 처리' },
@@ -94,7 +94,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'evidence', ko: '관측', en: 'Evidence', color: '#22d3ee', x: 390, y: 230,
+    id: 'evidence', ko: '관측', en: 'Evidence', color: '#22d3ee', x: 258, y: 320,
     desc: '실제로 일어난 일의 기록 — 판정의 근거가 되는 원 데이터',
     types: [
       { ko: '운행 기록', en: 'Trip', count: (s) => s.trips.length, live: true, note: 'DTG 521 — 온톨로지의 시간 축' },
@@ -105,7 +105,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'concept', ko: '개념', en: 'Concept', color: '#b8bb26', x: 390, y: 370,
+    id: 'concept', ko: '개념', en: 'Concept', color: '#b8bb26', x: 486, y: 400,
     desc: '반복해서 쓰는 분류 어휘 — 표준 코드를 그대로 쓴다',
     types: [
       { ko: '위험운전 유형', en: 'RiskType', count: () => RISK_EVENT_TYPES.length, live: false, note: '공단 표준 8종 — 자체 정의 금지 · 유형별 감점 가중치를 여기가 들고 있다' },
@@ -114,7 +114,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'claim', ko: '판정', en: 'Claim', color: '#fb7185', x: 620, y: 90,
+    id: 'claim', ko: '판정', en: 'Claim', color: '#fb7185', x: 486, y: 236,
     desc: '관측에서 끌어낸 주장 — 반드시 근거를 달고 다닌다',
     types: [
       { ko: '정당 판정', en: 'JustifyVerdict', count: (s) => s.kpi.totalEvents, live: true, note: '급조작이 방어운전이었나 — 인정 시 감점 복원' },
@@ -131,7 +131,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'community', ko: '집단', en: 'Community', color: '#8ec07c', x: 620, y: 230,
+    id: 'community', ko: '집단', en: 'Community', color: '#8ec07c', x: 72, y: 400,
     desc: '비슷한 것끼리 묶은 군 — 개인이 아니라 군 단위로 봐야 보이는 것',
     types: [
       { ko: '운전군', en: 'DriverCohort', count: () => 3, live: false, note: '모범 · 평균 · 코칭 대상 — A/B 효과 검증 단위' },
@@ -139,7 +139,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'outcome', ko: '성과', en: 'Outcome', color: '#38bdf8', x: 860, y: 230,
+    id: 'outcome', ko: '성과', en: 'Outcome', color: '#38bdf8', x: 726, y: 236,
     desc: '측정 가능한 결과 — 조치가 움직이려는 대상',
     types: [
       { ko: '안전점수', en: 'SafetyScore', count: (s) => s.vehicles.length, live: true, note: '차량·기사 단위 0~100' },
@@ -157,7 +157,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'lever', ko: '조치', en: 'Lever', color: '#d3869b', x: 860, y: 370,
+    id: 'lever', ko: '조치', en: 'Lever', color: '#d3869b', x: 726, y: 400,
     desc: '성과를 움직이려고 우리가 당기는 손잡이 — 여기가 서비스의 실체',
     types: [
       { ko: '실시간 코칭', en: 'Coaching', count: (s) => s.kpi.totalEvents, live: true, note: '급조작 감지 즉시 기사에게' },
@@ -195,7 +195,7 @@ export const META_EDGES: MetaEdge[] = [
   { from: 'lever', to: 'concept', relations: ['바꾼다'], desc: '조치는 습관·상태 같은 개념도 바꾼다' },
   { from: 'community', to: 'concept', relations: ['묶는다', '요약한다'], desc: '군 단위로 묶어야 보이는 패턴' },
   { from: 'policy', to: 'resource', relations: ['보호한다', '등급을 매긴다', '제한한다'], desc: '규정이 자산의 취급을 정한다' },
-  { from: 'policy', to: 'subject', relations: ['허용한다', '금지한다', '승인을 요구한다'], desc: '규정이 주체가 할 수 있는 일을 정한다', bow: -78 },
+  { from: 'policy', to: 'subject', relations: ['허용한다', '금지한다', '승인을 요구한다'], desc: '규정이 주체가 할 수 있는 일을 정한다' },
 ]
 
 /** 관계 어휘 사전 — 문법표에서 뜻을 보여준다 */

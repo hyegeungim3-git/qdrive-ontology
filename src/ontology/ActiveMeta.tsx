@@ -84,7 +84,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
                         {s.ko}
                       </span>
                       {SPACE_META[s.id].pii && (
-                        <span className="ml-1.5 rounded bg-red-500/15 px-1.5 py-0.5 text-[9.5px] font-bold text-red-400">개인정보</span>
+                        <span className="ml-1.5 rounded bg-red-500/15 px-1.5 py-0.5 text-[11px] font-bold text-red-400">개인정보</span>
                       )}
                     </td>
                     {KEY_ATTRS.map((a) => (

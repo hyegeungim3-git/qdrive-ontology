@@ -52,7 +52,7 @@ export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jum
               >
                 <div className="flex items-center justify-between gap-1">
                   <span className={`text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{l.ko}</span>
-                  <span className={`shrink-0 rounded border px-1 py-0.5 text-[9.5px] font-bold ${stageTone[l.stage]}`}>{l.stage}</span>
+                  <span className={`shrink-0 rounded border px-1 py-0.5 text-[11px] font-bold ${stageTone[l.stage]}`}>{l.stage}</span>
                 </div>
                 <div className="mt-0.5 truncate text-[10.5px] text-gray-500">{l.targets.length}개 성과에 연결</div>
                 <div className="mt-1 text-[11px] font-bold tabular-nums" style={{ color: on ? lv.color : undefined }}>
