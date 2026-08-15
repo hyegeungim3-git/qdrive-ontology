@@ -182,37 +182,42 @@ export const REL_META: Record<string, RelMeta> = {
 }
 
 /* ── 노드 타입 속성 (SHACL 제약의 근거) ── */
-export type PropDef = { name: string; datatype: string; required: boolean; note?: string; min?: number; max?: number; oneOf?: string[] }
+/**
+ * `unit`은 QUDT 대신 둔 최소 장치다. 3차에 「QUDT는 지금 규모엔 과함」으로 뺐는데,
+ * AI가 이 데이터를 받아 쓰는 순간 **값에 단위가 안 붙어 있으면 `0.54`를 해석할 수 없다**.
+ * 전체 QUDT 온톨로지를 끌어오지 않고, 단위 기호와 QUDT 단위 IRI만 붙인다.
+ */
+export type PropDef = { name: string; datatype: string; required: boolean; note?: string; min?: number; max?: number; oneOf?: string[]; unit?: string; qudt?: string }
 
 export const TYPE_PROPS: Record<string, PropDef[]> = {
   Vehicle: [
     { name: 'vehicleId', datatype: 'xsd:string', required: true, note: '차량번호 — 모든 원천의 조인 키' },
     { name: 'routeId', datatype: 'xsd:string', required: true },
-    { name: 'odometerKm', datatype: 'xsd:decimal', required: false, min: 0 },
+    { name: 'odometerKm', datatype: 'xsd:decimal', required: false, min: 0, unit: 'km', qudt: 'unit:KiloM' },
   ],
   Trip: [
     { name: 'startTime', datatype: 'xsd:dateTime', required: true },
     { name: 'endTime', datatype: 'xsd:dateTime', required: true },
-    { name: 'distanceKm', datatype: 'xsd:decimal', required: true, min: 0 },
-    { name: 'fuelM3', datatype: 'xsd:decimal', required: true, min: 0, note: '구간값 — 누적값 금지' },
-    { name: 'co2Kg', datatype: 'xsd:decimal', required: true, min: 0 },
+    { name: 'distanceKm', datatype: 'xsd:decimal', required: true, min: 0, unit: 'km', qudt: 'unit:KiloM' },
+    { name: 'fuelM3', datatype: 'xsd:decimal', required: true, min: 0, unit: 'm³', qudt: 'unit:M3', note: '구간값 — 누적값 금지' },
+    { name: 'co2Kg', datatype: 'xsd:decimal', required: true, min: 0, unit: 'kg', qudt: 'unit:KiloGM' },
   ],
   RiskEvent: [
     { name: 'eventType', datatype: 'xsd:string', required: true, note: '공단 표준 8종만', oneOf: ['급가속', '급출발', '급감속', '급정지', '급진로변경', '급앞지르기', '급좌우회전', '급유턴'] },
-    { name: 'speedKmh', datatype: 'xsd:decimal', required: true, min: 0, max: 120, note: '시내버스 사양 범위' },
-    { name: 'rpm', datatype: 'xsd:integer', required: true, min: 0, max: 3000 },
+    { name: 'speedKmh', datatype: 'xsd:decimal', required: true, min: 0, max: 120, unit: 'km/h', qudt: 'unit:KiloM-PER-HR', note: '시내버스 사양 범위' },
+    { name: 'rpm', datatype: 'xsd:integer', required: true, min: 0, max: 3000, unit: 'rpm', qudt: 'unit:REV-PER-MIN' },
     { name: 'occurredAt', datatype: 'xsd:dateTime', required: true },
   ],
   SensorReading: [
     { name: 'channel', datatype: 'xsd:string', required: true, note: 'OBD/CAN 21종 채널' },
-    { name: 'value', datatype: 'xsd:decimal', required: true },
-    { name: 'unit', datatype: 'xsd:string', required: true, note: '℃ · bar · m³ 등' },
+    { name: 'value', datatype: 'xsd:decimal', required: true, note: '단위는 같은 레코드의 unit 필드가 들고 있다 — 채널마다 달라 스키마에 고정할 수 없다' },
+    { name: 'unit', datatype: 'xsd:string', required: true, note: '℃ · bar · m³ 등 — 이 레코드의 value가 무슨 단위인지' },
     { name: 'observedAt', datatype: 'xsd:dateTime', required: true },
   ],
   Location: [
-    { name: 'lat', datatype: 'xsd:decimal', required: true, min: 33, max: 39, note: '대한민국 위도 범위' },
-    { name: 'lng', datatype: 'xsd:decimal', required: true, min: 124, max: 132 },
-    { name: 'accuracyM', datatype: 'xsd:decimal', required: true, min: 0, max: 50 },
+    { name: 'lat', datatype: 'xsd:decimal', required: true, min: 33, max: 39, unit: '°', qudt: 'unit:DEG', note: '대한민국 위도 범위' },
+    { name: 'lng', datatype: 'xsd:decimal', required: true, min: 124, max: 132, unit: '°', qudt: 'unit:DEG' },
+    { name: 'accuracyM', datatype: 'xsd:decimal', required: true, min: 0, max: 50, unit: 'm', qudt: 'unit:M' },
     { name: 'fixType', datatype: 'xsd:string', required: true, oneOf: ['RTK Fixed', 'RTK Float', 'Single'] },
   ],
   Driver: [
@@ -221,23 +226,23 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   ],
   JustifyVerdict: [
     { name: 'verdict', datatype: 'xsd:string', required: true, oneOf: ['정당 인정', '감점', '검토 대기'] },
-    { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1, note: '확신도 — 낮으면 사람에게 회부' },
+    { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1, unit: '비율', qudt: 'unit:UNITLESS', note: '확신도 — 낮으면 사람에게 회부' },
     { name: 'decidedBy', datatype: 'xsd:string', required: false, note: '확정한 담당자 — 자동 확정 금지' },
   ],
   // 배차 간격 — 성과 스페이스로 승격하면서 제약도 함께 정의한다. 노드만 만들고 규칙이 없으면
   // «검사받지 않는 성과»가 하나 생기는 셈이다.
   Headway: [
-    { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 60, note: '이상 간격 대비 편차(분)' },
+    { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 60, unit: '분', qudt: 'unit:MIN', note: '이상 간격 대비 편차' },
     { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
     { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
   ],
   BunchingVerdict: [
     { name: 'verdict', datatype: 'xsd:string', required: true, oneOf: ['정상', '몰림', '벌어짐'] },
-    { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1 },
+    { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1, unit: '비율', qudt: 'unit:UNITLESS' },
     { name: 'decidedBy', datatype: 'xsd:string', required: false, note: '배차 조정 확정은 관제가 한다' },
   ],
   SafetyScore: [
-    { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 100 },
+    { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 100, unit: '점', qudt: 'unit:UNITLESS' },
     { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
     { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
   ],
@@ -247,7 +252,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   ],
   Stop: [
     { name: 'stopName', datatype: 'xsd:string', required: true },
-    { name: 'atRatio', datatype: 'xsd:decimal', required: true, min: 0, max: 1 },
+    { name: 'atRatio', datatype: 'xsd:decimal', required: true, min: 0, max: 1, unit: '비율', qudt: 'unit:UNITLESS' },
   ],
   Route: [
     { name: 'routeName', datatype: 'xsd:string', required: true },
@@ -257,7 +262,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   PredictiveMaint: [
     { name: 'kind', datatype: 'xsd:string', required: true },
     { name: 'status', datatype: 'xsd:string', required: true, oneOf: ['초안', '발행됨'] },
-    { name: 'estHours', datatype: 'xsd:decimal', required: true, min: 0 },
+    { name: 'estHours', datatype: 'xsd:decimal', required: true, min: 0, unit: 'h', qudt: 'unit:HR' },
   ],
 }
 

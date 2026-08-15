@@ -8,6 +8,9 @@ import { ruleFeedback, useQuarantine, waiverBlock, type QItem } from './quaranti
 import { currentVersion, diff, snapshotOf, useGrammar, type Release } from './grammar'
 import { can, denyReason, roleOf, useRole } from './policy'
 import { PROD_GROUPS, PROD_MAP, buildProductionMap } from './production'
+import { buildCroissant } from './croissant'
+import { buildCatalog } from './catalog'
+import { useGate } from './gate'
 
 /**
  * ⑧ 내보내기 — 문법을 표준 형식으로 꺼낸다.
@@ -363,6 +366,8 @@ const FORMATS = [
   { key: 'audit', ko: '격리 이력', ext: 'md', mime: 'text/markdown', desc: '감사 제출용 — 무엇이 막혔고 누가 어떻게 풀었나', build: buildAudit, live: true },
   { key: 'changelog', ko: '개정 이력', ext: 'md', mime: 'text/markdown', desc: '문법이 왜 이렇게 됐나 — 버전별 변경과 근거', build: buildChangelog, live: true },
   { key: 'prod', ko: '실서비스 대응표', ext: 'md', mime: 'text/markdown', desc: '데모에서 본 것이 실제로도 되나 — 제안서 첨부용', build: buildProductionMap },
+  // 라이브 형식은 아래 text 분기에서 만든다(카탈로그·리니지를 받아야 하므로). build는 호출되지 않는다.
+  { key: 'croissant', ko: 'Croissant', ext: 'json', mime: 'application/ld+json', desc: 'AI 학습셋 서술 — 의미·단위·프로버넌스·이용 정책', build: () => '', live: true },
 ] as const
 
 export default function Export() {
@@ -371,12 +376,21 @@ export default function Export() {
   const queue = useQuarantine()
   const releases = useGrammar()
   const role = useRole()
+  const gate = useGate()
   // 규정이 막는다 — 원본 그래프 반출은 권한이 필요하다
   const mayExport = can(role, 'exportRaw')
   const f = FORMATS.find((x) => x.key === key)!
   // 라이브 상태를 받는 형식만 따로 부른다 — 나머지는 문법에서만 나온다
   const text =
-    f.key === 'audit' ? buildAudit(queue) : f.key === 'changelog' ? buildChangelog(releases) : f.key === 'jsonld' ? buildJsonLd(releases) : f.build()
+    f.key === 'audit'
+      ? buildAudit(queue)
+      : f.key === 'changelog'
+        ? buildChangelog(releases)
+        : f.key === 'jsonld'
+          ? buildJsonLd(releases)
+          : f.key === 'croissant'
+            ? buildCroissant(buildCatalog(gate))
+            : f.build()
 
   const copy = async () => {
     try {
@@ -403,6 +417,8 @@ export default function Export() {
           ? `qdrive-개정이력.${f.ext}`
           : f.key === 'prod'
             ? `qdrive-실서비스대응표.${f.ext}`
+            : f.key === 'croissant'
+            ? `qdrive-croissant.${f.ext}`
             : `qdrive-ontology-${currentVersion()}.${f.ext}`
     a.click()
     URL.revokeObjectURL(a.href)
@@ -466,7 +482,7 @@ export default function Export() {
             ⬇ 파일로 저장
           </button>
           <span className="text-[11px] text-gray-500">
-            {f.key === 'audit' ? 'qdrive-격리이력' : f.key === 'changelog' ? 'qdrive-개정이력' : f.key === 'prod' ? 'qdrive-실서비스대응표' : `qdrive-ontology-${currentVersion()}`}.{f.ext}
+            {f.key === 'audit' ? 'qdrive-격리이력' : f.key === 'changelog' ? 'qdrive-개정이력' : f.key === 'prod' ? 'qdrive-실서비스대응표' : f.key === 'croissant' ? 'qdrive-croissant' : `qdrive-ontology-${currentVersion()}`}.{f.ext}
           </span>
         </div>
 

@@ -22,6 +22,7 @@ import Validator from './ontology/Validator'
 import { LEVERS, META_EDGES, SPACES } from './ontology/meta'
 import { qStats, useQuarantine } from './ontology/quarantine'
 import { runGate } from './ontology/gate'
+import Catalog from './ontology/CatalogView'
 import { ROLES, setRole, useRole } from './ontology/policy'
 import type { Jump, Preset, StepId } from './ontology/nav'
 import type { FaultId } from './ontology/rdf'
@@ -69,6 +70,12 @@ const GROUPS = [
       { id: 'compare', n: '⑫', label: '문법 비교', desc: '개정 전후를 나란히' },
       { id: 'export', n: '⑬', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
     ],
+  },
+  {
+    // 화면 번호는 뒤에 붙인다 — 원문자가 코드 주석에서 목록 기호로도 쓰여
+    // 기존 번호를 밀면 «⑨ 실검증»이 «⑩»으로 조용히 바뀐 것처럼 보이는 자리가 100군데 넘는다.
+    ko: '공급', desc: 'AI가 받아 쓸 수 있게',
+    steps: [{ id: 'catalog', n: '⑭', label: '데이터 카탈로그', desc: '무엇이 있고 어디서 왔나' }],
   },
 ] as const
 
@@ -211,10 +218,11 @@ export default function App() {
                   <span className="text-[11px] font-black text-pink-300">{g.ko}</span>
                   <span className="truncate text-[10.5px] text-gray-600">{g.desc}</span>
                 </div>
-                {/* 좁은 화면에서는 그룹이 한 줄을 통째로 쓰므로 2열로 접는다 — 4열이면 한글 라벨이 잘린다 */}
+                {/* 좁은 화면에서는 그룹이 한 줄을 통째로 쓰므로 2열로 접는다 — 4열이면 한글 라벨이 잘린다.
+                    단계가 하나뿐인 그룹은 1열로 둔다 — 2열로 두면 버튼이 절반 폭만 받아 라벨이 잘린다. */}
                 <div
-                  className={`grid gap-2 max-[640px]:grid-cols-2 ${
-                    g.steps.length === 4 ? 'grid-cols-4' : g.steps.length === 3 ? 'grid-cols-3' : 'grid-cols-2'
+                  className={`grid gap-2 ${g.steps.length === 1 ? 'grid-cols-1' : 'max-[640px]:grid-cols-2'} ${
+                    g.steps.length === 4 ? 'grid-cols-4' : g.steps.length === 3 ? 'grid-cols-3' : 'grid-cols-1'
                   }`}
                 >
                   {g.steps.map((s) => {
@@ -264,6 +272,7 @@ export default function App() {
           {step === 'release' && <Release snap={snap} onGoto={jump} />}
           {step === 'compare' && <Compare onGoto={jump} />}
           {step === 'export' && <Export />}
+          {step === 'catalog' && <Catalog jump={jump} />}
         </div>
 
         <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">

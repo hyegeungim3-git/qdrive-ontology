@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { RISK_WEIGHT, SCORE_FLOOR } from './meta'
 import { relKo, type FaultId, type GraphResult } from './rdf'
 import { currentVersion } from './grammar'
+import { record as recordRun } from './lineage'
 import { runValidation, type Finding } from './validate'
 import type { SimSnapshot } from '../sim/types'
 
@@ -54,6 +55,8 @@ export type GateResult = {
   error?: string
   /** 이번 실행에서 새로 찍힌 스탬프 수 / 옛 문법 스탬프를 단 레코드 수 */
   stamped: { fresh: number; stale: number }
+  /** 이 결과를 만든 활동 — prov:Activity. 「어느 실행이 만들었나」의 답 */
+  runId: string
 }
 
 const EMPTY: GateResult = {
@@ -71,6 +74,7 @@ const EMPTY: GateResult = {
   },
   ms: 0,
   stamped: { fresh: 0, stale: 0 },
+  runId: '',
 }
 
 /**
@@ -83,7 +87,7 @@ const EMPTY: GateResult = {
  * 그래야 «v1.0으로 검증된 레코드가 아직 N건 남아 있다»가 보이고, 재검증이 **결정**이 된다.
  * PROV로 치면 `prov:wasGeneratedBy` + 활동의 버전에 해당한다.
  */
-export type Stamp = { version: string; at: number; status: '통과' | '격리' }
+export type Stamp = { version: string; at: number; status: '통과' | '격리'; runId: string }
 
 const stamps = new Map<string, Stamp>()
 export const stampOf = (iri: string) => stamps.get(iri)
@@ -169,15 +173,29 @@ export async function runGate(snap: SimSnapshot, faults: Set<FaultId>): Promise<
     }
   })
 
-  /* 스탬프 — 처음 본 레코드에만 찍는다(sticky). 이미 찍힌 건 건드리지 않는다. */
+  /* 실행 자체를 활동으로 남긴다 — 스탬프가 이 활동을 가리킨다(prov:wasGeneratedBy) */
   const version = currentVersion()
+  const ms = Math.round(performance.now() - t0)
+  const run = recordRun({
+    at: snap.simTime,
+    ms,
+    version,
+    agent: '온톨로지 적재 게이트',
+    used: { vehicles: snap.vehicles.length, triples: r.graph.triples, nodes: nodes.length },
+    generated: { passed: nodes.length - held.size, held: held.size, stamped: 0 },
+    status: r.error ? '실패' : '성공',
+    error: r.error,
+  })
+
+  /* 스탬프 — 처음 본 레코드에만 찍는다(sticky). 이미 찍힌 건 건드리지 않는다. */
   let fresh = 0
   nodes.forEach((iri) => {
     if (stamps.has(iri)) return
-    stamps.set(iri, { version, at: snap.simTime, status: held.has(iri) ? '격리' : '통과' })
+    stamps.set(iri, { version, at: snap.simTime, status: held.has(iri) ? '격리' : '통과', runId: run.id })
     fresh++
   })
   const stale = [...stamps.values()].filter((x) => x.version !== version).length
+  run.generated.stamped = fresh
 
   result = {
     at: snap.simTime,
@@ -192,9 +210,10 @@ export async function runGate(snap: SimSnapshot, faults: Set<FaultId>): Promise<
       co2Kg: { raw: Math.round(sumTrip(trips, 'co2Kg') * 10) / 10, passed: Math.round(sumTrip(passedTrips, 'co2Kg') * 10) / 10 },
       scores,
     },
-    ms: Math.round(performance.now() - t0),
+    ms,
     error: r.error,
     stamped: { fresh, stale },
+    runId: run.id,
   }
   running = false
   emit()

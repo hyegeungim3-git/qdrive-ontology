@@ -21,6 +21,7 @@ export type StepId =
   | 'release'
   | 'compare'
   | 'export'
+  | 'catalog'
 
 export type Preset = {
   validator?: { from: SpaceId; to: SpaceId; rel: string }

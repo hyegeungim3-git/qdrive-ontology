@@ -90,14 +90,20 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
             { ko: '보류 중', v: s.held, sub: '하류로 안 내려감', tone: '#fb7185' },
             { ko: '처리 완료', v: s.done, sub: '재처리·승인·수정 요청', tone: '#6ee7b7' },
             { ko: '예외 불가', v: s.blocked, sub: '규정상 승인으로 못 푼다', tone: '#f59e0b' },
-            { ko: '영향받는 성과', v: s.outcomes.length, sub: s.outcomes.slice(0, 2).join(' · ') || '없음', tone: '#38bdf8' },
+            // 성과 이름을 두 개 이어 붙이면 375px 카드에서 잘린다 — 하나만 적고 나머지는 세어서 보인다
+            {
+              ko: '영향받는 성과',
+              v: s.outcomes.length,
+              sub: s.outcomes.length ? `${s.outcomes[0]}${s.outcomes.length > 1 ? ` 외 ${s.outcomes.length - 1}` : ''}` : '없음',
+              tone: '#38bdf8',
+            },
           ].map((k) => (
             <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
               <div className="text-[10.5px] font-semibold text-gray-500">{k.ko}</div>
               <div className="text-[19px] font-black tabular-nums" style={{ color: k.tone }}>
                 {k.v}
               </div>
-              <div className="truncate text-[10.5px] text-gray-500">{k.sub}</div>
+              <div className="break-keep text-[10.5px] leading-snug text-gray-500">{k.sub}</div>
             </div>
           ))}
         </div>
