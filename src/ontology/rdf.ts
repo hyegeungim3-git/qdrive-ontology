@@ -296,6 +296,39 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     node(`qdi:wf-${f}`, 'WasteFactor', 'Concept', `낭비 ${f}`)
     add(`qdi:wf-${f}`, 'qd:factor', str(f))
   })
+
+  /* 배출계수 — **코드 상수가 아니라 그래프에 둔다.**
+     「얼마나 배출했나」보다 「어느 계수로 냈나」가 검증의 첫 질문이다. */
+  ;(
+    [
+      ['CNG', 2.68, '국가 온실가스 배출계수 (연료 연소)'],
+      ['경유', 2.61, '국가 온실가스 배출계수 (연료 연소)'],
+      ['전력', 0.4594, '한국 전력배출계수 — 전기버스는 배출이 0이 아니라 발전으로 옮겨간다'],
+    ] as [string, number, string][]
+  ).forEach(([kind, f, src]) => {
+    const iri = `qdi:ef-${kind}`
+    node(iri, 'EmissionFactor', 'Concept', `${kind} 배출계수`)
+    add(iri, 'qd:factorValue', dec(f))
+    add(iri, 'qd:fuelKind', str(kind))
+    add(iri, 'qd:source', str(src))
+    add(iri, P('제약한다'), 'qdi:out-co2')
+  })
+
+  /* 감축 수단 — 수단별로 쪼개야 다음 투자를 정한다 */
+  ;(
+    [
+      ['경제운전', 40],
+      ['배차 최적화', 25],
+      ['공회전 제한', 10],
+      ['전기 전환', 25],
+    ] as [string, number][]
+  ).forEach(([m, share]) => {
+    const iri = `qdi:am-${m}`
+    node(iri, 'AbatementMeasure', 'Concept', `감축 수단 ${m}`)
+    add(iri, 'qd:measure', str(m))
+    add(iri, 'qd:sharePct', dec(share))
+    add(iri, P('기여한다'), 'qdi:out-reduction')
+  })
   ;([['CNG', 2.68], ['EV', 0]] as [string, number][]).forEach(([f, k]) => {
     node(`qdi:fuel-${f}`, 'FuelType', 'Concept', f)
     // CO2 환산에 쓰는 배출계수 — 근거 사슬의 «환산» 표기가 이 값을 가리킨다
@@ -309,11 +342,14 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(s, 'qd:value', dec(v.score))
     add(s, 'qd:basis', str('실측'))
     add(s, 'qd:periodStart', dt(0))
+    // 목표치 — 정책은 절대값이 아니라 «목표 대비 차이»로 말한다
+    add(s, 'qd:target', dec(90))
     const ec = `qdi:eco-${key(v.id)}`
     node(ec, 'EcoScore', 'Outcome', `${v.id} 경제운전 점수`)
     add(ec, 'qd:value', dec(v.ecoScore))
     add(ec, 'qd:basis', str('실측'))
     add(ec, 'qd:periodStart', dt(0))
+    add(ec, 'qd:target', dec(85))
   })
   /**
    * 배차 간격 — 성과 스페이스로 승격했다.
@@ -335,6 +371,7 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
       add(hw, 'qd:value', dec(Math.abs((v.headway?.frontGapMin ?? 0) - (v.headway?.idealMin ?? 0))))
       add(hw, 'qd:basis', str('실측'))
       add(hw, 'qd:periodStart', dt(0))
+      add(hw, 'qd:target', dec(2))
 
       node(bv, 'BunchingVerdict', 'Claim', `${v.id} 몰림 판정`)
       const st = v.headway?.status
@@ -375,6 +412,26 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
   })
   node('qdi:clu-express', 'RouteCluster', 'Community', '급행군')
   add('qdi:clu-express', 'qd:size', String(ROUTES.length))
+
+  /* 정책은 개인이 아니라 **군 단위**로 결정한다 — 운수사·시간대가 집계 축이다 */
+  node('qdi:op-1', 'Operator', 'Community', '대구버스운송')
+  add('qdi:op-1', 'qd:operatorId', str('OP-대구1'))
+  add('qdi:op-1', 'qd:fleetSize', int(vehicles.length))
+  add('qdi:op-1', P('요약한다'), 'qdi:grade-A')
+  ;(
+    [
+      ['출근', 7],
+      ['낮', 10],
+      ['퇴근', 17],
+      ['심야', 22],
+    ] as [string, number][]
+  ).forEach(([band, h]) => {
+    const iri = `qdi:tb-${band}`
+    node(iri, 'TimeBand', 'Community', `${band} 시간대`)
+    add(iri, 'qd:band', str(band))
+    add(iri, 'qd:fromHour', int(h))
+    add(iri, P('묶는다'), `qdi:crowd-보통`)
+  })
   add('qdi:clu-express', P('요약한다'), 'qdi:grade-A')
 
   /* ── 개념 → 성과 ── */
@@ -612,9 +669,55 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(env, P('뒷받침한다'), envAnchor)
   }
 
+  /* ── 탄소 산정 사슬 ──
+     활동자료(회차 연료) × 배출계수 = 배출 산정(판정) → 감축 실적(성과).
+     **계산이 아니라 판정으로 두는 이유**: 근거와 계수와 규칙 버전이 함께 남아야
+     제3자가 되짚을 수 있다. MRV(측정·보고·검증)가 그것을 요구한다. */
+  trips.forEach((t) => {
+    const em = iriOf('em', t.vehicleId, t.startSimTime)
+    const tr = iriOf('trip', t.vehicleId, t.startSimTime)
+    node(em, 'Emission', 'Claim', `${t.vehicleId} 배출 산정`)
+    add(em, 'qd:scope', str('1 직접연소'))
+    add(em, 'qd:activityValue', dec(t.fuelM3))
+    add(em, 'qd:co2Kg', dec(t.co2Kg))
+    add(em, 'qd:basis', str('환산'))
+    add(tr, P('뒷받침한다'), em)
+    add(em, P('반영된다'), 'qdi:out-reduction')
+  })
+
+  /* 감축 실적 — **기준선 대비.** 기준선 없는 감축 주장은 검증이 안 된다.
+     엔진이 코칭 미적용 가정의 기준선 연료를 함께 계산하므로 외생 요인이 제거된 순수 효과다. */
+  const baseCo2 = Math.round(vehicles.reduce((n, v) => n + (v.baselineFuelM3 ?? 0) * 2.68, 0) * 100) / 100
+  const realCo2 = Math.round(vehicles.reduce((n, v) => n + v.co2Kg, 0) * 100) / 100
+  node('qdi:out-reduction', 'Reduction', 'Outcome', 'CO₂ 감축 실적')
+  add('qdi:out-reduction', 'qd:value', dec(Math.max(0, baseCo2 - realCo2)))
+  add('qdi:out-reduction', 'qd:baseline', dec(baseCo2))
+  add('qdi:out-reduction', 'qd:basis', str('환산'))
+  add('qdi:out-reduction', 'qd:periodStart', dt(0))
+
+  /* 위험 구간 — 위험운전이 난 지점을 격자(약 100m)로 묶는다.
+     「그 기사가 문제」와 「그 구간이 문제」는 완전히 다른 정책으로 이어진다. */
+  const zones = new Map<string, { lat: number; lng: number; n: number }>()
+  events.slice(0, 40).forEach((e) => {
+    const zk = `${e.lat.toFixed(3)}_${e.lng.toFixed(3)}`
+    const z = zones.get(zk) ?? { lat: e.lat, lng: e.lng, n: 0 }
+    z.n += 1
+    zones.set(zk, z)
+  })
+  ;[...zones.entries()].slice(0, 6).forEach(([zk, z], i) => {
+    const iri = `qdi:rz-${i + 1}`
+    node(iri, 'RiskZone', 'Concept', `위험 구간 ${i + 1}`)
+    add(iri, 'qd:zoneId', str(zk))
+    add(iri, 'qd:eventCount', int(z.n))
+    add(iri, 'qd:lat', dec(z.lat))
+    add(iri, 'qd:lng', dec(z.lng))
+    add(iri, P('악화시킨다'), `qdi:score-${key(vehicles[0]?.id ?? 'x')}`)
+  })
+
   /* 수송 실적 — 누적 탑승객. 배차 효과의 최종 지표 */
   node('qdi:out-ridership', 'Ridership', 'Outcome', '수송 실적')
   add('qdi:out-ridership', 'qd:value', dec(snap.passengers))
+  add('qdi:out-ridership', 'qd:target', dec(3000))
   add('qdi:out-ridership', 'qd:basis', str('실측'))
   add('qdi:out-ridership', 'qd:periodStart', dt(0))
 

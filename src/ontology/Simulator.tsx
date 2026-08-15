@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Panel } from '../components/ui'
 import IssuePanel from './IssuePanel'
+import MissionView from './MissionView'
 import type { Jump } from './nav'
 import type { SimSnapshot } from '../sim/types'
 import { BASIS_CAP, IMPACT_ON_LEVER, LEVERS, simulate, spaceOf, type Basis, type LeverDef } from './meta'
@@ -218,6 +219,8 @@ export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jum
           없습니다. 실증에서는 각 계수를 실측으로 교체하고, 근거 유형이 «추정»인 항목부터 «실측»으로 승격시키는 것이 목표입니다.
         </div>
       </Panel>
+
+      <MissionView />
 
       <IssuePanel snap={snap} jump={jump} />
     </div>

@@ -234,6 +234,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   // 배차 간격 — 성과 스페이스로 승격하면서 제약도 함께 정의한다. 노드만 만들고 규칙이 없으면
   // «검사받지 않는 성과»가 하나 생기는 셈이다.
   Headway: [
+    { name: 'target', datatype: 'xsd:decimal', required: false, note: '목표치 — 정책은 절대값이 아니라 차이로 말한다' },
     { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 60, unit: '분', qudt: 'unit:MIN', note: '이상 간격 대비 편차' },
     { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
     { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
@@ -244,6 +245,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'decidedBy', datatype: 'xsd:string', required: false, note: '배차 조정 확정은 관제가 한다' },
   ],
   SafetyScore: [
+    { name: 'target', datatype: 'xsd:decimal', required: false, note: '목표치 — 정책은 절대값이 아니라 차이로 말한다' },
     { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 100, unit: '점', qudt: 'unit:UNITLESS' },
     { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
     { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
@@ -292,6 +294,49 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'legalBasis', datatype: 'xsd:string', required: true },
     { name: 'scope', datatype: 'xsd:string', required: true },
   ],
+  /* ── 탄소중립 ── */
+  /** 배출계수 — 코드 상수가 아니라 그래프에. 「어느 계수를 썼나」가 MRV의 첫 질문이다 */
+  EmissionFactor: [
+    { name: 'factorValue', datatype: 'xsd:decimal', required: true, min: 0, max: 10, unit: 'kg/단위', qudt: 'unit:KiloGM', note: '활동자료 1단위당 CO₂' },
+    { name: 'fuelKind', datatype: 'xsd:string', required: true, oneOf: ['CNG', '경유', '전력'] },
+    { name: 'source', datatype: 'xsd:string', required: true, note: '계수 출처 — 국가 온실가스 배출계수 등' },
+  ],
+  /** 배출 산정 — 계산이 아니라 «판정»이다. 근거와 계수가 함께 남아야 검증된다 */
+  Emission: [
+    { name: 'scope', datatype: 'xsd:string', required: true, oneOf: ['1 직접연소', '2 전력', '3 기타'] },
+    { name: 'activityValue', datatype: 'xsd:decimal', required: true, min: 0, unit: 'm³', qudt: 'unit:M3', note: '활동자료 — 연료 소모량' },
+    { name: 'co2Kg', datatype: 'xsd:decimal', required: true, min: 0, unit: 'kg', qudt: 'unit:KiloGM' },
+    { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
+  ],
+  AbatementMeasure: [
+    { name: 'measure', datatype: 'xsd:string', required: true, oneOf: ['경제운전', '배차 최적화', '공회전 제한', '전기 전환'] },
+    { name: 'sharePct', datatype: 'xsd:decimal', required: true, min: 0, max: 100, unit: '%', qudt: 'unit:PERCENT', note: '감축 기여도' },
+  ],
+  Reduction: [
+    { name: 'value', datatype: 'xsd:decimal', required: true, unit: 'kg', qudt: 'unit:KiloGM', note: '기준선 대비 감축량' },
+    { name: 'baseline', datatype: 'xsd:decimal', required: true, min: 0, unit: 'kg', qudt: 'unit:KiloGM', note: '기준선 — 없으면 감축 주장이 성립하지 않는다' },
+    { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성', '미측정'] },
+    { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
+  ],
+
+  /* ── 안전 ── */
+  RiskZone: [
+    { name: 'zoneId', datatype: 'xsd:string', required: true, note: '격자 좌표 기반 구간 식별자' },
+    { name: 'eventCount', datatype: 'xsd:integer', required: true, min: 0, unit: '건', qudt: 'unit:UNITLESS' },
+    { name: 'lat', datatype: 'xsd:decimal', required: true, min: 33, max: 39, unit: '°', qudt: 'unit:DEG' },
+    { name: 'lng', datatype: 'xsd:decimal', required: true, min: 124, max: 132, unit: '°', qudt: 'unit:DEG' },
+  ],
+
+  /* ── 정책 — 집계 단위 ── */
+  Operator: [
+    { name: 'operatorId', datatype: 'xsd:string', required: true },
+    { name: 'fleetSize', datatype: 'xsd:integer', required: true, min: 0, unit: '대', qudt: 'unit:UNITLESS' },
+  ],
+  TimeBand: [
+    { name: 'band', datatype: 'xsd:string', required: true, oneOf: ['출근', '낮', '퇴근', '심야'] },
+    { name: 'fromHour', datatype: 'xsd:integer', required: true, min: 0, max: 23, unit: '시', qudt: 'unit:HR' },
+  ],
+
   PassengerCount: [
     { name: 'onboardPct', datatype: 'xsd:decimal', required: true, min: 0, max: 100, unit: '%', qudt: 'unit:PERCENT', note: '재차율 — 좌석+입석 대비' },
     { name: 'observedAt', datatype: 'xsd:dateTime', required: true },
@@ -321,6 +366,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1, unit: '비율', qudt: 'unit:UNITLESS' },
   ],
   Ridership: [
+    { name: 'target', datatype: 'xsd:decimal', required: false, note: '목표치 — 정책은 절대값이 아니라 차이로 말한다' },
     { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, unit: '명', qudt: 'unit:UNITLESS' },
     { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성', '미측정'] },
     { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
@@ -351,6 +397,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
 
   // 성과 — SafetyScore·Headway와 같은 모양. 정시율만 «미측정»을 쓴다
   EcoScore: [
+    { name: 'target', datatype: 'xsd:decimal', required: false, note: '목표치 — 정책은 절대값이 아니라 차이로 말한다' },
     { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 100, unit: '점', qudt: 'unit:UNITLESS' },
     { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
     { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
@@ -368,6 +415,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   /** 정시율은 원천이 없다. 값을 필수로 두면 「없는 숫자를 채우라」는 압력이 생긴다 —
       값은 선택으로, 근거는 «미측정»을 허용해 **모른다는 사실 자체를 스키마가 표현**하게 했다. */
   Punctuality: [
+    { name: 'target', datatype: 'xsd:decimal', required: false, note: '목표치 — 정책은 절대값이 아니라 차이로 말한다' },
     { name: 'value', datatype: 'xsd:decimal', required: false, min: 0, max: 100, unit: '%', qudt: 'unit:PERCENT' },
     { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성', '미측정'] },
   ],

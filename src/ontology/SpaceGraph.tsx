@@ -13,7 +13,7 @@ const W = 152
 const H = 58
 
 /** 사각 경계에서 선을 끊는다 — 선이 상자 위로 올라오지 않게 */
-function edgePt(fx: number, fy: number, tx: number, ty: number, pad = 6) {
+function edgePt(fx: number, fy: number, tx: number, ty: number, pad = 2) {
   const dx = tx - fx
   const dy = ty - fy
   const hw = W / 2 + pad
@@ -47,10 +47,10 @@ function labelSpot(p1: { x: number; y: number }, p2: { x: number; y: number }, l
     })
   /* 중점만 시도하면 짧은 대각선(규정→자산·주체→자산)에서 양쪽 다 상자에 걸린다.
      **선 위의 다른 지점**까지 후보에 넣으면 대부분 빈자리를 찾는다. */
-  for (const t of [0.5, 0.62, 0.38, 0.72, 0.28]) {
+  for (const t of [0.5, 0.58, 0.42, 0.66, 0.34]) {
     const px = p1.x + dx * t
     const py = p1.y + dy * t
-    for (const off of [15, 24, 34, 46]) {
+    for (const off of [14, 20, 27, 34]) {
       for (const sgn of [-1, 1]) {
         const x = px + nx * off * sgn
         const y = py + ny * off * sgn
@@ -120,7 +120,7 @@ export default function SpaceGraph({
       >
         {view === 'instance' && <InstanceMap snap={snap} onGoto={onGoto} />}
         <div className={view === 'meta' ? 'overflow-x-auto' : 'hidden'}>
-          <svg viewBox="0 0 950 460" className="w-full min-w-[760px]" role="img" aria-label="메타 온톨로지 스페이스 그래프">
+          <svg viewBox="0 0 1020 460" className="w-full min-w-[980px]" role="img" aria-label="메타 온톨로지 스페이스 그래프">
             {/* ① 간선 */}
             <g fill="none">
               {META_EDGES.map((e) => {

@@ -62,7 +62,7 @@ const sensorRows = (s: SimSnapshot) => Math.floor(s.simTime) * s.vehicles.length
 
 export const SPACES: Space[] = [
   {
-    id: 'policy', ko: '규정', en: 'Policy', color: '#f59e0b', x: 85, y: 78,
+    id: 'policy', ko: '규정', en: 'Policy', color: '#f59e0b', x: 85, y: 70,
     desc: '무엇을 허용하고 무엇을 금지하는가 — 접근·보존·비식별·자동화 한계',
     types: [
       { ko: '접근 권한', en: 'AccessPolicy', count: () => 3, live: false, note: '시 · 운수사 · 기사 각자 자기 범위만' },
@@ -75,7 +75,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'resource', ko: '자산', en: 'Resource', color: '#34d399', x: 258, y: 157,
+    id: 'resource', ko: '자산', en: 'Resource', color: '#34d399', x: 335, y: 175,
     desc: '주체가 다루는 대상 — 차량·노선·정류장·단말',
     types: [
       { ko: '차량', en: 'Vehicle', count: (s) => s.vehicles.length, live: true, note: '차량번호가 자연키 — 모든 원천의 조인 축' },
@@ -85,7 +85,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'subject', ko: '주체', en: 'Subject', color: '#a78bfa', x: 85, y: 236,
+    id: 'subject', ko: '주체', en: 'Subject', color: '#a78bfa', x: 85, y: 175,
     desc: '의도와 권한을 가진 행위자 — 기사·관제·담당 공무원',
     types: [
       { ko: '기사', en: 'Driver', count: uniqDrivers, live: true, note: '분석셋에서는 가명 처리' },
@@ -94,7 +94,7 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'evidence', ko: '관측', en: 'Evidence', color: '#22d3ee', x: 258, y: 320,
+    id: 'evidence', ko: '관측', en: 'Evidence', color: '#22d3ee', x: 335, y: 280,
     desc: '실제로 일어난 일의 기록 — 판정의 근거가 되는 원 데이터',
     types: [
       { ko: '운행 기록', en: 'Trip', count: (s) => s.trips.length, live: true, note: 'DTG 521 — 온톨로지의 시간 축' },
@@ -109,24 +109,30 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'concept', ko: '개념', en: 'Concept', color: '#b8bb26', x: 486, y: 400,
+    id: 'concept', ko: '개념', en: 'Concept', color: '#b8bb26', x: 585, y: 385,
     desc: '반복해서 쓰는 분류 어휘 — 표준 코드를 그대로 쓴다',
     types: [
       { ko: '위험운전 유형', en: 'RiskType', count: () => RISK_EVENT_TYPES.length, live: false, note: '공단 표준 8종 — 자체 정의 금지 · 유형별 감점 가중치를 여기가 들고 있다' },
       { ko: '노선 등급', en: 'RouteGrade', count: () => 3, live: false, note: '효율 A·B·C' },
+      // 탄소 — 계수를 코드 상수가 아니라 그래프에 둔다. 「어느 계수를 썼나」에 답해야 검증이 된다
+      { ko: '배출계수', en: 'EmissionFactor', count: () => 3, live: false, note: 'CNG 2.68 · 전력 0.4594 · 경유 2.61 kg-CO₂ 단위당' },
+      { ko: '감축 수단', en: 'AbatementMeasure', count: () => 4, live: false, note: '경제운전 · 배차 최적화 · 공회전 제한 · 전기 전환' },
+      // 안전 — 위험운전을 공간으로 묶는다. 「그 기사가 문제」와 「그 구간이 문제」는 다른 정책이다
+      { ko: '위험 구간', en: 'RiskZone', count: (s) => Math.min(6, s.events.length), live: true, note: '위험운전이 반복되는 지점 — 격자로 묶는다' },
       { ko: '혼잡 등급', en: 'CrowdLevel', count: () => 3, live: false, note: '여유 · 보통 · 혼잡 — 재차율 구간' },
       { ko: '낭비 요인', en: 'WasteFactor', count: () => 4, live: false, note: '공회전 · 급조작 · 습관 · 냉난방' },
       { ko: '연료 종류', en: 'FuelType', count: () => 2, live: false, note: 'CNG · 전기' },
     ],
   },
   {
-    id: 'claim', ko: '판정', en: 'Claim', color: '#fb7185', x: 486, y: 236,
+    id: 'claim', ko: '판정', en: 'Claim', color: '#fb7185', x: 585, y: 175,
     desc: '관측에서 끌어낸 주장 — 반드시 근거를 달고 다닌다',
     types: [
       { ko: '정당 판정', en: 'JustifyVerdict', count: (s) => s.kpi.totalEvents, live: true, note: '급조작이 방어운전이었나 — 인정 시 감점 복원' },
       { ko: '민원 사실 판정', en: 'ComplaintVerdict', count: (s) => s.complaints.filter((c) => c.evidence).length, live: true, note: '증빙 매칭 결과 + 사실 가능성 %' },
       { ko: '노선 준수 판정', en: 'RouteCompliance', count: (s) => s.trips.length, live: true, note: '인가노선 대조 — 정산 검증 근거' },
       { ko: '연료 낭비 분해', en: 'FuelWaste', count: (s) => s.trips.length, live: true, note: '공회전·급조작·습관·냉난방 — 「왜 더 썼나」에 답한다' },
+      { ko: '배출 산정', en: 'Emission', count: (s) => s.trips.length, live: true, note: '활동자료 × 배출계수 — 계산이 아니라 판정이다' },
       { ko: '혼잡 판정', en: 'CrowdingVerdict', count: (s) => s.vehicles.length, live: true, note: '재차율이 혼잡 구간에 들었나' },
       { ko: '고장 예측', en: 'FaultPrediction', count: (s) => (s.fault ? 1 : 0) + s.workOrders.length, live: true, note: '센서 이상 징후 → 잔여수명 추정' },
       {
@@ -139,15 +145,17 @@ export const SPACES: Space[] = [
     ],
   },
   {
-    id: 'community', ko: '집단', en: 'Community', color: '#8ec07c', x: 72, y: 400,
+    id: 'community', ko: '집단', en: 'Community', color: '#8ec07c', x: 335, y: 385,
     desc: '비슷한 것끼리 묶은 군 — 개인이 아니라 군 단위로 봐야 보이는 것',
     types: [
       { ko: '운전군', en: 'DriverCohort', count: () => 3, live: false, note: '모범 · 평균 · 코칭 대상 — A/B 효과 검증 단위' },
+      { ko: '운수사', en: 'Operator', count: () => 1, live: false, note: '경영·서비스 평가의 단위' },
+      { ko: '시간대군', en: 'TimeBand', count: () => 4, live: false, note: '출근 · 낮 · 퇴근 · 심야 — 증차·감차 판단의 축' },
       { ko: '노선군', en: 'RouteCluster', count: () => 2, live: false, note: '급행 · 순환' },
     ],
   },
   {
-    id: 'outcome', ko: '성과', en: 'Outcome', color: '#38bdf8', x: 726, y: 236,
+    id: 'outcome', ko: '성과', en: 'Outcome', color: '#38bdf8', x: 835, y: 175,
     desc: '측정 가능한 결과 — 조치가 움직이려는 대상',
     types: [
       { ko: '안전점수', en: 'SafetyScore', count: (s) => s.vehicles.length, live: true, note: '차량·기사 단위 0~100' },
@@ -161,12 +169,13 @@ export const SPACES: Space[] = [
         live: true,
         note: '앞차 간격 편차 — 관측·판정을 거쳐 성과가 된다',
       },
+      { ko: '감축 실적', en: 'Reduction', count: () => 1, live: true, note: '기준선 대비 — 기준선 없는 감축 주장은 검증이 안 된다' },
       { ko: '수송 실적', en: 'Ridership', count: (s) => s.passengers, live: true, note: '누적 탑승객 — 배차 효과의 최종 지표' },
       { ko: '정시율', en: 'Punctuality', count: () => ROUTES.length, live: false, note: '노선별 — 2차 APC 연동 시 실측' },
     ],
   },
   {
-    id: 'lever', ko: '조치', en: 'Lever', color: '#d3869b', x: 726, y: 400,
+    id: 'lever', ko: '조치', en: 'Lever', color: '#d3869b', x: 835, y: 385,
     desc: '성과를 움직이려고 우리가 당기는 손잡이 — 여기가 서비스의 실체',
     types: [
       { ko: '실시간 코칭', en: 'Coaching', count: (s) => s.kpi.totalEvents, live: true, note: '급조작 감지 즉시 기사에게' },
