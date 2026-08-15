@@ -5,6 +5,9 @@ import { currentVersion } from './grammar'
 import { useQuarantine } from './quarantine'
 import { roleOf, useRole } from './policy'
 import { POLICY_VALIDITY, clock, policyActive } from './validity'
+import { missionStats } from './missions'
+import { integrationStats } from './integrations'
+import IntegrationView from './IntegrationView'
 import type { Jump, StepId } from './nav'
 import { Connections, Pipeline } from './Flow'
 
@@ -68,6 +71,8 @@ export default function Guide({ jump }: { jump: Jump }) {
   const role = useRole()
   const held = queue.filter((q) => q.status === '격리').length
   const pending = POLICY_VALIDITY.filter((p) => !policyActive(p.id, gate.at))
+  const ms = missionStats()
+  const ints = integrationStats()
 
   return (
     <div className="space-y-3">
@@ -106,13 +111,16 @@ export default function Guide({ jump }: { jump: Jump }) {
         </div>
       </Panel>
 
+      <IntegrationView />
+
       <Panel title="지금 이 순간" right={<span className="text-[11px] text-gray-500">그림이 아니라 실제로 돌고 있습니다</span>}>
-        <div className="grid grid-cols-5 gap-2 max-[900px]:grid-cols-2">
+        <div className="grid grid-cols-6 gap-2 max-[1100px]:grid-cols-3 max-[700px]:grid-cols-2">
           {[
             { n: String(gate.graph.subjects || 0), ko: '그래프 노드', sub: `트리플 ${gate.graph.triples || 0}`, c: '#34d399' },
             { n: String(runs.length), ko: '적재 실행', sub: gate.at ? clock(gate.at) : '대기 중', c: '#f472b6' },
             { n: String(gate.held.size), ko: '격리된 레코드', sub: '하류에서 빠짐', c: gate.held.size ? '#fb7185' : '#64748b' },
             { n: String(held), ko: '큐 보류', sub: '처리 대기', c: held ? '#fbbf24' : '#64748b' },
+            { n: `${ints.linked}/${ints.total}`, ko: '연계 시스템', sub: `기관 ${ints.orgs}곳`, c: '#38bdf8' },
             { n: currentVersion(), ko: '문법 버전', sub: `${gate.ms}ms 검증`, c: '#c084fc' },
           ].map((k) => (
             <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
@@ -134,6 +142,37 @@ export default function Guide({ jump }: { jump: Jump }) {
             아직 생성되지 않습니다 — 배속을 올려 시행 시각을 지나면 같은 결함이 걸리기 시작합니다.
           </div>
         )}
+      </Panel>
+
+      {/* 「다 됩니다」로 끝나면 발주처가 안 믿는다. 아직 안 되는 것을 진입 화면에 먼저 적는다. */}
+      <Panel title="아직 안 되는 것" right={<span className="text-[11px] text-gray-500">숨기지 않습니다</span>}>
+        <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">
+          목적별 질문 <b className="text-gray-200">{ms.questions}개</b> 중 지금 답하는 것은{' '}
+          <b className="text-emerald-400">{ms.ready}개</b>입니다. 나머지는 <b className="text-amber-300">부분 {ms.partial}</b> ·{' '}
+          <b className="text-gray-400">못 함 {ms.no}</b>입니다.
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2 max-[820px]:grid-cols-1">
+          {[
+            ['정시율', '정류장 실제 도착 시각과 운행 계획 시각이 둘 다 없습니다. 관측을 늘려도 이 둘 없이는 못 만듭니다.'],
+            ['공차 · 결행', '운행 상태 구분과 계획 운행횟수가 없습니다. 센서가 아니라 배차 시스템 연계가 필요합니다.'],
+            ['코칭 효과', '조치 전후 비교가 없어 「원래 좋아지던 중」과 못 가립니다.'],
+          ].map(([t, d]) => (
+            <div key={t} className="rounded-lg border px-3 py-2" style={{ borderColor: '#f59e0b2b', background: '#f59e0b0a' }}>
+              <div className="text-[12.5px] font-bold text-amber-200">{t}</div>
+              <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">{d}</div>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => jump('sim')}
+          className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/12 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-amber-300 hover:bg-amber-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+        >
+          ⑥ 목적별 활용에서 «무엇이 있으면 되는지» 보기 →
+        </button>
+        <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
+          못 하는 이유가 데이터가 없어서인지, 규칙이 없어서인지, 연계가 없어서인지는 완전히 다른 문제입니다.
+          <b className="text-gray-400"> 발주처는 「다 됩니다」보다 「이건 되고, 이건 이게 있어야 됩니다」를 신뢰합니다.</b>
+        </div>
       </Panel>
 
       <Panel title="어떤 순서로 보면 되나" right={<span className="text-[11px] text-gray-500">누르면 바로 이동</span>}>

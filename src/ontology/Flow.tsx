@@ -32,6 +32,8 @@ const NODES: N[] = [
   { id: 's1', x: 16, y: 46, w: 152, h: 42, ko: 'DTG 운행기록', sub: '공단 · 1초마다', c: '#94a3b8', step: 'standards' },
   { id: 's2', x: 16, y: 98, w: 152, h: 42, ko: 'GTFS-RT', sub: '국제 표준 위치', c: '#94a3b8', step: 'standards' },
   { id: 's3', x: 16, y: 150, w: 152, h: 42, ko: '대구 BIS', sub: '정류소 도착', c: '#94a3b8', step: 'standards' },
+  // 데이터는 차량에서만 오지 않는다 — 노선망·날씨·충전·차적은 다른 시스템이 준다
+  { id: 's4', x: 16, y: 202, w: 152, h: 42, ko: '타 시스템 연계', sub: '기상 · 카드 · 충전 · 차적', c: '#94a3b8', step: 'guide' },
 
   { id: 'adp', x: 258, y: 86, w: 150, h: 66, ko: '말 바꾸기', sub: '남의 용어 → 우리 용어', c: '#38bdf8', step: 'standards' },
   { id: 'gate', x: 498, y: 86, w: 150, h: 66, ko: '검사대', sub: '규칙에 맞는지 확인', c: '#f472b6', step: 'live' },
@@ -99,7 +101,7 @@ export function Pipeline({ jump }: { jump: Jump }) {
   }
 
   const lines: { d: string; c: string; m: string; dash?: boolean }[] = [
-    ...['s1', 's2', 's3'].map((s) => ({ d: curve(byId(s), byId('adp')), c: '#3f4a5a', m: 'a-gray' })),
+    ...['s1', 's2', 's3', 's4'].map((s) => ({ d: curve(byId(s), byId('adp')), c: '#3f4a5a', m: 'a-gray' })),
     { d: curve(byId('adp'), byId('gate')), c: '#3f4a5a', m: 'a-gray' },
     { d: curve(byId('gate'), byId('graph')), c: '#3f4a5a', m: 'a-gray' },
     ...['u1', 'u2', 'u3', 'u4'].map((u) => ({ d: curve(byId('graph'), byId(u)), c: '#3f4a5a', m: 'a-gray' })),
