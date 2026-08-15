@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { SPACES } from './meta'
 import { buildDataGraph, degreeOf, metricOf, relKo, vehicleOf, type GraphIndex } from './rdf'
 import { METRICS } from './chains'
+import { useGate } from './gate'
 import type { Jump } from './nav'
 import type { SimSnapshot } from '../sim/types'
 
@@ -85,6 +86,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
         .sort((a, b) => degreeOf(ix, b) - degreeOf(ix, a)),
     [ix],
   )
+  const gate = useGate()
   const [seed, setSeed] = useState<string>('')
   const [pick, setPick] = useState<string | null>(null)
 
@@ -241,6 +243,8 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
               const on = litNode(p.iri)
               const label = name(p.iri)
               const d = degreeOf(ix, p.iri)
+              // 게이트에 막힌 레코드 — 이 노드는 하류로 안 내려간다. 그래프에서도 보여야 한다.
+              const blocked = gate.held.has(p.iri)
               return (
                 <g
                   key={p.iri}
@@ -255,13 +259,23 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
                     height={NH}
                     rx={8}
                     fill="var(--color-gray-900)"
-                    stroke={c}
-                    strokeWidth={isPick ? 2.4 : 1.2}
-                    strokeOpacity={isPick ? 1 : 0.7}
+                    stroke={blocked ? '#fb7185' : c}
+                    strokeWidth={isPick ? 2.4 : blocked ? 2 : 1.2}
+                    strokeDasharray={blocked ? '4 3' : undefined}
+                    strokeOpacity={isPick || blocked ? 1 : 0.7}
                   />
-                  <rect x={p.x - NW / 2} y={p.y - NH / 2} width={NW} height={NH} rx={8} fill={c} fillOpacity={isPick ? 0.22 : 0.08} />
-                  <text x={p.x} y={p.y - 2} textAnchor="middle" fontSize={9.5} fontWeight={800} fill={c}>
-                    {label.length > 16 ? label.slice(0, 15) + '…' : label}
+                  <rect
+                    x={p.x - NW / 2}
+                    y={p.y - NH / 2}
+                    width={NW}
+                    height={NH}
+                    rx={8}
+                    fill={blocked ? '#fb7185' : c}
+                    fillOpacity={isPick ? 0.22 : blocked ? 0.14 : 0.08}
+                  />
+                  <text x={p.x} y={p.y - 2} textAnchor="middle" fontSize={9.5} fontWeight={800} fill={blocked ? '#fda4af' : c}>
+                    {blocked && '⛔ '}
+                    {label.length > 15 ? label.slice(0, 14) + '…' : label}
                   </text>
                   <text x={p.x} y={p.y + 10} textAnchor="middle" fontSize={7.5} fontWeight={600} fill="var(--color-gray-500)">
                     {/* 표준 코드 분류는 선 대신 노드 안에 적는다 — 개념 노드를 열로 세우면
@@ -292,8 +306,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
           </>
         ) : (
           <span>
-            <b className="text-gray-300">굵은 선 = 핵심 사슬</b>(뒷받침한다 · 반영된다 · 올린다) — 관측이 판정을 받치고, 판정이 성과에 반영되고, 조치가
-            성과를 올리는 길입니다.
+            <b className="text-gray-300">굵은 선 = 핵심 사슬</b>(뒷받침한다 · 반영된다 · 올린다). <b className="text-rose-300">⛔ 점선 = 게이트에 막힌 레코드</b> — 하류로 안 내려갑니다.
           </span>
         )}
       </div>

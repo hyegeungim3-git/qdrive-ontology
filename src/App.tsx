@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { KpiCard } from './components/ui'
 import DemoControls from './components/DemoControls'
 import { toggleTheme, useTheme } from './theme'
@@ -21,6 +21,7 @@ import SpaceGraph from './ontology/SpaceGraph'
 import Validator from './ontology/Validator'
 import { LEVERS, META_EDGES, SPACES } from './ontology/meta'
 import { qStats, useQuarantine } from './ontology/quarantine'
+import { runGate } from './ontology/gate'
 import type { Jump, Preset, StepId } from './ontology/nav'
 import type { FaultId } from './ontology/rdf'
 import { fmt } from './ontology/util'
@@ -80,6 +81,12 @@ export default function App() {
   const [preset, setPreset] = useState<Preset>({})
   // ⑨에서 주입한 결함은 ⑩을 다녀와도 유지된다
   const [faults, setFaults] = useState<Set<FaultId>>(new Set())
+  // 결함을 바꾸면 게이트를 즉시 다시 돌린다 — 하류 숫자가 바로 따라와야 «막았다»가 사실이 된다
+  const applyFaults = (f: Set<FaultId>) => {
+    setFaults(f)
+    faultsRef.current = f
+    void runGate(snapRef.current, f)
+  }
   // ①의 메타/인스턴스 뷰도 마찬가지 — ⑤로 넘어갔다 돌아오면 보던 그래프가 남아 있어야 한다
   const [spaceView, setSpaceView] = useState<'meta' | 'instance'>('meta')
   const [seq, setSeq] = useState(0)
@@ -88,6 +95,20 @@ export default function App() {
     setSeq((n) => n + 1)
     setStep(s)
   }
+
+  /**
+   * 온톨로지 적재 게이트를 주기적으로 돌린다 — 이 앱의 데이터 흐름이 여기를 지난다.
+   * 250ms 스냅샷마다 돌리면 검증(약 100ms)이 CPU를 먹으므로 3초 간격(마이크로배치).
+   * 실서비스의 적재 파이프라인도 같은 성격이다 — 순서가 같고 규모만 다르다.
+   */
+  const snapRef = useRef(snap)
+  snapRef.current = snap
+  const faultsRef = useRef<Set<FaultId>>(new Set())
+  useEffect(() => {
+    void runGate(snapRef.current, faultsRef.current)
+    const t = setInterval(() => void runGate(snapRef.current, faultsRef.current), 3000)
+    return () => clearInterval(t)
+  }, [])
 
   const held = qStats(useQuarantine()).held
   // 발행하면 문법 정의 자체가 바뀐다 — 화면이 옛 정의를 들고 있으면 안 되므로 통째로 다시 그린다
@@ -220,7 +241,7 @@ export default function App() {
           {step === 'sim' && <Simulator snap={snap} />}
           {step === 'impact' && <Impact key={`i${seq}`} preset={preset.impact} />}
           {step === 'meta' && <ActiveMeta onGoto={jump} />}
-          {step === 'live' && <Live key={`l${seq}`} snap={snap} onGoto={jump} faults={faults} setFaults={setFaults} preset={preset.live} />}
+          {step === 'live' && <Live key={`l${seq}`} snap={snap} onGoto={jump} faults={faults} setFaults={applyFaults} preset={preset.live} />}
           {step === 'quarantine' && <Quarantine snap={snap} onGoto={jump} />}
           {step === 'release' && <Release snap={snap} onGoto={jump} />}
           {step === 'compare' && <Compare onGoto={jump} />}

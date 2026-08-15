@@ -20,6 +20,7 @@ import {
 } from './quarantine'
 import { analyse } from './impactmeta'
 import { addToDraft } from './grammar'
+import { heldSummary, useGate } from './gate'
 import { spaceOf } from './meta'
 import type { SimSnapshot } from '../sim/types'
 import type { Jump } from './nav'
@@ -173,6 +174,8 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
         </Panel>
       )}
 
+      <Downstream />
+
       {s.done > 0 && <Feedback rows={ruleFeedback(list)} onGoto={onGoto} />}
 
       <Drawer
@@ -298,6 +301,136 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
         )}
       </Drawer>
     </div>
+  )
+}
+
+/**
+ * 하류 반영 — 「격리하면 하류로 안 내려간다」의 증거.
+ *
+ * 이 문장은 오래 적혀만 있었고 실제로는 아무 숫자도 안 바뀌었다. 지금은 적재 게이트(gate.ts)가
+ * 검증에 걸린 레코드를 하류 집계에서 빼고, **안전점수를 개념 스페이스의 감점 가중치로 다시 계산**한다.
+ * 그래서 결함을 켜면 여기 숫자가 실제로 움직인다.
+ */
+function Downstream() {
+  const g = useGate()
+  const d = g.downstream
+  const rows: { ko: string; raw: number; passed: number; unit: string }[] = [
+    { ko: '위험운전 패킷', raw: d.events.raw, passed: d.events.passed, unit: '건' },
+    { ko: '운행 회차', raw: d.trips.raw, passed: d.trips.passed, unit: '건' },
+    { ko: '연료 소모', raw: d.fuelM3.raw, passed: d.fuelM3.passed, unit: 'm³' },
+    { ko: 'CO₂', raw: d.co2Kg.raw, passed: d.co2Kg.passed, unit: 'kg' },
+  ]
+  const moved = rows.filter((r) => r.raw !== r.passed)
+  const blocked = d.scores.filter((s) => s.blocked > 0)
+  const gap = d.scores.filter((s) => Math.abs(s.ontology - s.engine) >= 0.1)
+
+  return (
+    <Panel
+      title="하류 반영 — 격리하면 실제로 무엇이 빠지나"
+      right={
+        <span className="text-[11px] text-gray-500">
+          게이트 {g.version} · {g.ms}ms · {g.graph.subjects}개 노드 검사
+        </span>
+      }
+    >
+      <p className="mb-3 break-keep text-[12.5px] leading-relaxed text-gray-400">
+        이 앱의 데이터는 <b className="text-gray-200">엔진 → 온톨로지 게이트 → 화면</b> 순으로 흐릅니다. 게이트에 걸린 레코드는 아래 집계에서 빠지고,{' '}
+        <b className="text-gray-200">안전점수는 개념 스페이스의 감점 가중치로 다시 계산</b>됩니다 — 엔진이 준 점수는 단말 참고치입니다.
+      </p>
+
+      <div className="-mx-1 overflow-x-auto px-1">
+        <table className="w-full min-w-[560px] border-collapse text-[12px]">
+          <thead>
+            <tr className="border-b border-gray-800 text-left text-[10.5px] text-gray-500">
+              <th className="py-1.5 pr-3 font-semibold">하류 집계</th>
+              <th className="py-1.5 pr-3 text-right font-semibold">게이트 이전</th>
+              <th className="py-1.5 pr-3 text-center font-semibold"> </th>
+              <th className="py-1.5 pr-3 text-right font-semibold">하류로 내려간 값</th>
+              <th className="py-1.5 font-semibold">판정</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.ko} className="border-b border-gray-800/60">
+                <td className="py-1.5 pr-3 font-semibold text-gray-300">{r.ko}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-gray-500">
+                  {r.raw} {r.unit}
+                </td>
+                <td className="py-1.5 pr-3 text-center text-gray-600">→</td>
+                <td className={`py-1.5 pr-3 text-right font-bold tabular-nums ${r.raw !== r.passed ? 'text-rose-300' : 'text-gray-300'}`}>
+                  {r.passed} {r.unit}
+                </td>
+                <td className="py-1.5 text-[11px]">
+                  {r.raw !== r.passed ? (
+                    <span className="font-bold text-rose-300">−{Math.round((r.raw - r.passed) * 10) / 10} 차단</span>
+                  ) : (
+                    <span className="text-gray-600">전부 통과</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {(blocked.length > 0 || gap.length > 0) && (
+        <div className="mt-3 -mx-1 overflow-x-auto px-1">
+          <div className="mb-1 text-[11px] font-black text-gray-400">안전점수 — 온톨로지가 계산한 확정값</div>
+          <table className="w-full min-w-[560px] border-collapse text-[11.5px]">
+            <thead>
+              <tr className="border-b border-gray-800 text-left text-[10.5px] text-gray-500">
+                <th className="py-1.5 pr-3 font-semibold">차량</th>
+                <th className="py-1.5 pr-3 text-right font-semibold">단말 참고치</th>
+                <th className="py-1.5 pr-3 text-right font-semibold">온톨로지 확정</th>
+                <th className="py-1.5 pr-3 text-right font-semibold">감점에 쓴 패킷</th>
+                <th className="py-1.5 font-semibold">격리로 빠진 패킷</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...new Set([...blocked, ...gap])].slice(0, 8).map((s) => (
+                <tr key={s.vehicleId} className="border-b border-gray-800/60">
+                  <td className="py-1.5 pr-3 font-semibold text-gray-300">{s.vehicleId}</td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums text-gray-500">{s.engine}</td>
+                  <td className="py-1.5 pr-3 text-right font-bold tabular-nums text-emerald-300">{s.ontology}</td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums text-gray-400">{s.counted}</td>
+                  <td className={`py-1.5 tabular-nums ${s.blocked > 0 ? 'font-bold text-rose-300' : 'text-gray-600'}`}>{s.blocked}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {moved.length === 0 && blocked.length === 0 && (
+        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] text-gray-500">
+          지금은 막힌 레코드가 없어 게이트 앞뒤 값이 같습니다. ⑨에서 결함을 켜면 <b className="text-gray-300">이 표의 숫자가 실제로 줄어듭니다</b> —
+          그게 「하류로 안 내려간다」의 증거입니다.
+        </div>
+      )}
+
+      <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11px] leading-relaxed text-gray-500">
+        ⓘ <b className="text-gray-300">두 가지를 그대로 밝힙니다.</b> ① 패킷이 격리되면 <b className="text-gray-400">그 차량의 점수는 오릅니다</b> — 감점의
+        근거가 사라졌기 때문입니다. 「근거 없는 판정은 만들지 않는다」의 결과이지 점수를 봐주는 것이 아닙니다. ② 단말 참고치와 온톨로지 확정값이 벌어지는
+        것은 계산 창이 다르기 때문입니다 — 단말은 운행 시작부터 누적하고, 온톨로지는{' '}
+        <b className="text-gray-400">그래프에 올라온 최근 관측 구간</b>만 셉니다. 실서비스에서는 집계 구간을 규정으로 못 박아야 하는 지점입니다.
+      </div>
+
+      {g.held.size > 0 && (
+        <div className="mt-3 rounded-xl border border-rose-400/25 bg-rose-400/[0.07] px-3.5 py-3">
+          <div className="text-[11.5px] font-black text-rose-200">하류로 못 내려간 레코드 {g.held.size}건</div>
+          <div className="mt-1.5 space-y-0.5">
+            {heldSummary(g)
+              .slice(0, 6)
+              .map((h) => (
+                <div key={h.iri} className="break-keep text-[11px] text-gray-400">
+                  <span className="font-mono text-gray-300">{h.iri}</span> {h.label && <span className="text-gray-500">· {h.label}</span>}{' '}
+                  <span className="text-gray-600">— 끊긴 연결: {h.via}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+    </Panel>
   )
 }
 

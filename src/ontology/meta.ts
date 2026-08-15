@@ -35,6 +35,28 @@ export type Space = {
   y: number
 }
 
+/**
+ * 위험운전 유형별 감점 가중치 — **개념 스페이스가 들고 있는 값**.
+ *
+ * 원래는 시뮬레이터 엔진(`EVENT_SCORE`)에 상수로 박혀 있었다. 그러면 «위험운전 가중치를 바꾸려면
+ * 코드를 고친다»가 되어, 온톨로지는 그 결정을 구경만 하는 층이 된다.
+ * 여기로 올려야 «규칙을 바꾸려면 개념 스페이스를 고치고 문법을 발행한다»가 성립한다.
+ *
+ * 엔진의 값은 이제 «단말이 준 참고치»이고, **하류로 나가는 확정 점수는 이 값으로 계산한다**(gate.ts).
+ */
+export const RISK_WEIGHT: Record<string, number> = {
+  급가속: 1.5,
+  급출발: 1.5,
+  급감속: 2.0,
+  급정지: 2.2,
+  급진로변경: 1.8,
+  급앞지르기: 2.4,
+  급좌우회전: 1.2,
+  급유턴: 2.6,
+}
+/** 안전점수 하한 — 아무리 감점돼도 여기 아래로 내려가지 않는다(제도적 하한) */
+export const SCORE_FLOOR = 40
+
 const uniqDrivers = (s: SimSnapshot) => new Set(s.vehicles.map((v) => v.driverName)).size
 const sensorRows = (s: SimSnapshot) => Math.floor(s.simTime) * s.vehicles.length
 
@@ -83,7 +105,7 @@ export const SPACES: Space[] = [
     id: 'concept', ko: '개념', en: 'Concept', color: '#b8bb26', x: 390, y: 370,
     desc: '반복해서 쓰는 분류 어휘 — 표준 코드를 그대로 쓴다',
     types: [
-      { ko: '위험운전 유형', en: 'RiskType', count: () => RISK_EVENT_TYPES.length, live: false, note: '공단 표준 8종 — 자체 정의 금지' },
+      { ko: '위험운전 유형', en: 'RiskType', count: () => RISK_EVENT_TYPES.length, live: false, note: '공단 표준 8종 — 자체 정의 금지 · 유형별 감점 가중치를 여기가 들고 있다' },
       { ko: '노선 등급', en: 'RouteGrade', count: () => 3, live: false, note: '효율 A·B·C' },
       { ko: '연료 종류', en: 'FuelType', count: () => 2, live: false, note: 'CNG · 전기' },
     ],
