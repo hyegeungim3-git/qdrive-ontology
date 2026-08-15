@@ -60,7 +60,36 @@ export type GraphIndex = {
   space: Record<string, string>
   /** 나가는 간선 */
   out: Record<string, { p: string; o: string }[]>
+  /** 들어오는 간선 — 그래프를 걸어 다니려면 양방향이 필요하다 */
+  inc: Record<string, { p: string; s: string }[]>
 }
+
+/** 영문 관계명 → 한국어. 그래프 라벨은 사람이 읽는 말이어야 한다. */
+const REL_KO: Record<string, string> = Object.fromEntries(Object.entries(REL_META).map(([ko, m]) => [m.en, ko]))
+export const relKo = (en: string) => REL_KO[en.replace('qd:', '')] ?? en.replace('qd:', '')
+
+/**
+ * 스페이스 방향별 «실제로 몇 개가 연결돼 있나».
+ * 메타 그래프의 간선이 «허용된다»만 말하면 추상적이다. 지금 몇 건이 실제로 걸려 있는지가 붙어야
+ * 그 선이 살아 있는 것으로 읽힌다.
+ */
+export function edgeLinkCounts(ix: GraphIndex): Record<string, number> {
+  const out: Record<string, number> = {}
+  Object.entries(ix.out).forEach(([s, links]) => {
+    const from = ix.space[s]
+    if (!from) return
+    links.forEach(({ o }) => {
+      const to = ix.space[o]
+      if (!to) return
+      const k = `${from}→${to}`
+      out[k] = (out[k] ?? 0) + 1
+    })
+  })
+  return out
+}
+
+/** 이 노드에 붙은 간선 수 — 들어오는 것과 나가는 것을 모두 센다 */
+export const degreeOf = (ix: GraphIndex, iri: string) => (ix.out[iri]?.length ?? 0) + (ix.inc[iri]?.length ?? 0)
 
 export type GraphResult = { turtle: string; triples: number; subjects: number; byClass: { ko: string; n: number }[]; index: GraphIndex }
 
@@ -357,7 +386,7 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
   bySubject.forEach((ts, s) => body.push(`${s} ${ts.map(([p, o]) => `${p} ${o}`).join(' ;\n  ')} .`))
 
   const classCount = new Map<string, number>()
-  const index: GraphIndex = { label: {}, type: {}, space: {}, out: {} }
+  const index: GraphIndex = { label: {}, type: {}, space: {}, out: {}, inc: {} }
   T.forEach(([s, p, o]) => {
     if (p === 'a') {
       const [t, sp] = o.split(',').map((x) => x.trim().replace('qd:', ''))
@@ -373,6 +402,7 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
         .filter((x) => x.startsWith('qdi:'))
         .forEach((target) => {
           ;(index.out[s] ??= []).push({ p, o: target })
+          ;(index.inc[target] ??= []).push({ p, s })
         })
     }
   })

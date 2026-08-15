@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Panel } from '../components/ui'
 import type { SimSnapshot } from '../sim/types'
 import { META_EDGES, RELATION_GLOSSARY, SPACES, spaceOf, type SpaceId } from './meta'
+import { buildDataGraph, edgeLinkCounts } from './rdf'
+import InstanceMap from './InstanceMap'
 import { Drawer, Sec } from './ui'
 import { fmt } from './util'
 
@@ -22,7 +24,14 @@ function edgePt(fx: number, fy: number, tx: number, ty: number, pad = 6) {
 export default function SpaceGraph({ snap }: { snap: SimSnapshot }) {
   const [open, setOpen] = useState<SpaceId | null>(null)
   const [hover, setHover] = useState<SpaceId | null>(null)
+  const [view, setView] = useState<'meta' | 'instance'>('meta')
   const sp = open ? spaceOf(open) : null
+
+  // 방향마다 «실제로 몇 개가 걸려 있나». 허용된다는 말만 있으면 그 선은 추상적으로 읽힌다.
+  // 스냅샷마다 다시 만들면 250ms마다 그래프 숫자가 떨리므로 한 번만 만든다.
+  const links = useMemo(() => edgeLinkCounts(buildDataGraph(snap).index), []) // eslint-disable-line react-hooks/exhaustive-deps
+  const linkOf = (e: { from: SpaceId; to: SpaceId }) => links[`${spaceOf(e.from).en}→${spaceOf(e.to).en}`] ?? 0
+  const totalLinks = Object.values(links).reduce((a, b) => a + b, 0)
 
   const lit = (e: { from: SpaceId; to: SpaceId }) => !hover || e.from === hover || e.to === hover
   const litNode = (id: SpaceId) => !hover || id === hover || META_EDGES.some((e) => (e.from === hover && e.to === id) || (e.to === hover && e.from === id))
@@ -32,14 +41,35 @@ export default function SpaceGraph({ snap }: { snap: SimSnapshot }) {
   return (
     <div className="space-y-3">
       <Panel
-        title="9개 스페이스 — 데이터가 서 있는 의미 구조"
+        title={view === 'meta' ? '9개 스페이스 — 데이터가 서 있는 의미 구조' : '인스턴스 그래프 — 레코드가 실제로 어떻게 걸려 있나'}
         right={
-          <span className="text-[11px] font-semibold text-gray-500">
-            노드 타입 {typeCount} · 인스턴스 {fmt(total)} · 스페이스를 누르면 상세
-          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <span className="text-[11px] font-semibold text-gray-500">
+              {view === 'meta' ? `노드 타입 ${typeCount} · 인스턴스 ${fmt(total)} · 실연결 ${fmt(totalLinks)}` : '노드를 누르면 그 레코드로 걸어갑니다'}
+            </span>
+            <div className="flex gap-1">
+              {(
+                [
+                  ['meta', '메타 그래프'],
+                  ['instance', '인스턴스 그래프'],
+                ] as const
+              ).map(([k, ko]) => (
+                <button
+                  key={k}
+                  onClick={() => setView(k)}
+                  className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                    view === k ? 'border-sky-400/50 bg-sky-400/15 text-sky-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  {ko}
+                </button>
+              ))}
+            </div>
+          </div>
         }
       >
-        <div className="overflow-x-auto">
+        {view === 'instance' && <InstanceMap snap={snap} />}
+        <div className={view === 'meta' ? 'overflow-x-auto' : 'hidden'}>
           <svg viewBox="0 0 950 460" className="w-full min-w-[760px]" role="img" aria-label="메타 온톨로지 스페이스 그래프">
             {/* ① 간선 */}
             <g fill="none">
@@ -75,20 +105,35 @@ export default function SpaceGraph({ snap }: { snap: SimSnapshot }) {
                 const my = (p1.y + p2.y) / 2
                 const on = lit(e)
                 const label = e.relations.length > 2 ? `${e.relations[0]} 외 ${e.relations.length - 1}` : e.relations.join(' · ')
+                const n = linkOf(e)
                 return (
-                  <text
-                    key={`l-${e.from}-${e.to}`}
-                    x={mx}
-                    y={my - 4}
-                    textAnchor="middle"
-                    fontSize={8.5}
-                    fontWeight={700}
-                    fill={spaceOf(e.to).color}
-                    fillOpacity={on ? 0.95 : 0.1}
-                    style={{ paintOrder: 'stroke', stroke: 'var(--color-gray-900)', strokeWidth: 3.5, strokeLinejoin: 'round' }}
-                  >
-                    {label}
-                  </text>
+                  <g key={`l-${e.from}-${e.to}`} fillOpacity={on ? 0.95 : 0.1}>
+                    <text
+                      x={mx}
+                      y={my - 4}
+                      textAnchor="middle"
+                      fontSize={8.5}
+                      fontWeight={700}
+                      fill={spaceOf(e.to).color}
+                      style={{ paintOrder: 'stroke', stroke: 'var(--color-gray-900)', strokeWidth: 3.5, strokeLinejoin: 'round' }}
+                    >
+                      {label}
+                    </text>
+                    {/* 실제로 몇 건이 걸려 있나 — 이 숫자가 있어야 선이 살아 있는 것으로 읽힌다 */}
+                    {n > 0 && (
+                      <text
+                        x={mx}
+                        y={my + 6}
+                        textAnchor="middle"
+                        fontSize={7.5}
+                        fontWeight={800}
+                        fill="var(--color-gray-400)"
+                        style={{ paintOrder: 'stroke', stroke: 'var(--color-gray-900)', strokeWidth: 3.5, strokeLinejoin: 'round' }}
+                      >
+                        실연결 {fmt(n)}
+                      </text>
+                    )}
+                  </g>
                 )
               })}
             </g>
