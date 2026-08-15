@@ -5,7 +5,7 @@ import { META_LAYERS, SPACE_IMPACTS } from './impactmeta'
 import { buildShacl } from './shacl'
 import { REL_META, SPACE_ALIGN, STANDARDS, TYPE_ALIGN } from './standards'
 import { ruleFeedback, useQuarantine, waiverBlock, type QItem } from './quarantine'
-import { currentVersion } from './grammar'
+import { currentVersion, diff, snapshotOf, useGrammar, type Release } from './grammar'
 
 /**
  * ⑧ 내보내기 — 문법을 표준 형식으로 꺼낸다.
@@ -15,7 +15,7 @@ import { currentVersion } from './grammar'
 const slug = (en: string) => en.replace(/[^A-Za-z0-9]/g, '')
 const relSlug = (ko: string) => REL_META[ko]?.en ?? slug(ko)
 
-function buildJsonLd() {
+function buildJsonLd(releases: Release[] = []) {
   return JSON.stringify(
     {
       '@context': {
@@ -24,8 +24,14 @@ function buildJsonLd() {
         ko: 'https://qdrive.ai/ontology/ko',
       },
       '@id': `https://qdrive.ai/ontology/${currentVersion()}`,
-      version: '1.0.0',
+      version: currentVersion().replace('v', '') + '.0',
       title: 'Qdrive 대구 시내버스 운행 온톨로지',
+      // 이 파일이 몇 번째 개정인지, 무엇이 왜 바뀌었는지를 파일 자체가 들고 다닌다
+      revisions: releases.map((r) => ({
+        version: r.version,
+        approvedBy: r.approvedBy,
+        amendments: r.amendments.map((a) => ({ kind: a.kind, ko: a.ko, basedOnRule: a.id, waivers: a.basis.waived })),
+      })),
       standards: STANDARDS.map((x) => ({ '@id': x.prefix, uri: x.uri, ko: x.ko, org: x.org })),
       spaces: SPACES.map((s) => ({
         '@id': s.en,
@@ -188,6 +194,83 @@ function buildMarkdown() {
   return L.join('\n')
 }
 
+const hhmm = (s: number) => `${String(Math.floor(s / 3600) + 5).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
+
+/**
+ * 문법 개정 이력.
+ *
+ * 다른 도시·사업자에게 문법 파일만 넘기면 «지금 이 규격»은 전달된다. 하지만 규격을 받아 쓰는 쪽이
+ * 정말 알고 싶은 것은 **왜 이렇게 됐나**다 — 어떤 조항이 나중에 열렸고, 무엇이 그것을 요구했는지.
+ * 그게 없으면 다음 개정 때 같은 논쟁을 처음부터 다시 한다.
+ */
+function buildChangelog(releases: Release[] = []): string {
+  const L: string[] = [
+    '# Qdrive 온톨로지 개정 이력',
+    '',
+    `현재 버전 **${currentVersion()}** · 개정 ${releases.length}회 · 최초 정의 v1.0`,
+    '',
+    '## 개정 원칙',
+    '',
+    '- **개정은 데이터가 요구할 때 한다.** 같은 규칙이 격리 큐에서 반복해서 예외 승인으로 풀리면, 틀린 것은 데이터가 아니라 규칙일 수 있다.',
+    '- **규정에서 온 규칙은 완화 대상이 아니다.** 「불이익 결정 자동화 금지」·「가명 처리」는 예외가 쌓여도 개정안에 담기지 않는다 — 규칙이 아니라 현실을 고친다.',
+    '- **핵심 사슬을 느슨하게 하는 개정은 별도 승인을 받는다.** 근거 없는 판정이 만들어질 수 있게 되는 변경이 조용히 지나가면 안 된다.',
+    '- **발행은 소급하지 않는다.** 새 문법은 앞으로 들어오는 데이터에 적용되고, 이미 격리된 레코드는 자동으로 풀리지 않는다.',
+    '',
+  ]
+
+  if (!releases.length) {
+    L.push('## 개정 없음', '')
+    L.push('최초 정의 **v1.0** 그대로입니다. 아직 문법을 고쳐야 할 만큼 반복된 예외가 없었다는 뜻입니다.')
+    L.push('')
+    L.push('개정 횟수가 0이라는 것은 그 자체로 나쁜 신호가 아닙니다 — 다만 **검증을 실제로 돌리고 있는지**는 격리 이력으로 함께 확인해야 합니다.')
+    return L.join('\n')
+  }
+
+  releases.forEach((r, i) => {
+    const before = snapshotOf(i === 0 ? 'v1.0' : releases[i - 1].version)
+    const d = diff(before, r.snapshot)
+    const prevKo = i === 0 ? 'v1.0' : releases[i - 1].version
+
+    L.push(`## ${r.version}`, '')
+    L.push(`${hhmm(r.at)} · 승인 **${r.approvedBy}** · 개정 ${r.amendments.length}건`, '')
+
+    L.push('### 요약', '')
+    L.push(`| 축 | ${prevKo} | ${r.version} | |`, '|---|---|---|---|')
+    d.stats.forEach((s) => L.push(`| ${s.ko} | ${s.before} | ${s.after} | ${s.moved ? '**바뀜**' : '그대로' } |`))
+    L.push('')
+
+    if (d.rows.length) {
+      L.push('### 무엇이 바뀌었나', '')
+      L.push(`| 구분 | 영역 | 항목 | ${prevKo} | ${r.version} |`, '|---|---|---|---|---|')
+      d.rows.forEach((x) => L.push(`| ${x.kind === 'add' ? '추가' : x.kind === 'remove' ? '제거' : '변경'} | ${x.area} | ${x.key} | ${x.before} | ${x.after} |`))
+      L.push('')
+    }
+
+    L.push('### 왜 바꿨나', '')
+    r.amendments.forEach((a, k) => {
+      L.push(`${k + 1}. **${a.ko}**`)
+      L.push(`   - 근거 규칙: \`${a.id}\` — 격리 후 예외 승인 **${a.basis.waived}건**${a.basis.held ? ` · 보류 ${a.basis.held}건` : ''}`)
+      if (a.basis.notes.length) L.push(`   - 담당자 사유: ${a.basis.notes.map((n) => `“${n}”`).join(' · ')}`)
+      L.push(`   - 영향 좌표: ${spaceOf(a.space).ko} × ${a.change}`)
+      L.push(`   - 설명: ${a.detail}`)
+    })
+    L.push('')
+  })
+
+  const now = snapshotOf(currentVersion())
+  L.push('## 현재 문법 요약', '')
+  L.push('| 항목 | 값 |', '|---|---|')
+  L.push(`| 버전 | ${currentVersion()} |`)
+  L.push(`| 관계 방향 | ${now.edges.length}개 |`)
+  L.push(`| 관계 어휘 | ${new Set(now.edges.flatMap((e) => e.relations)).size}종 |`)
+  L.push(`| 허용 조합 | ${now.edges.reduce((n, e) => n + e.relations.length, 0)} |`)
+  L.push(`| 필수 관계 | ${Object.values(now.rel).filter((x) => x.required).length}종 |`)
+  L.push(`| 도메인 규칙 | ${4 - now.disabled.length}종 적용${now.disabled.length ? ` · ${now.disabled.length}종 해제됨` : ''} |`)
+  L.push(`| 회차 연비 상한 | ${now.fuelMax.toFixed(1)} m³/km |`)
+
+  return L.join('\n')
+}
+
 /**
  * 감사 제출용 격리 이력.
  *
@@ -196,7 +279,6 @@ function buildMarkdown() {
  * 그리고 **규정에서 온 규칙이 예외로 우회되지 않았나**. 셋을 순서대로 답한다.
  */
 function buildAudit(q: QItem[] = []): string {
-  const hhmm = (s: number) => `${String(Math.floor(s / 3600) + 5).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`
   const L: string[] = ['# Qdrive 품질 격리 이력', '', '데이터 적재 시점 SHACL 검증에서 걸려 하류로 내려보내지 않은 레코드와 그 처리 내역입니다.', '']
 
   if (!q.length) {
@@ -268,15 +350,18 @@ const FORMATS = [
   { key: 'shacl', ko: 'SHACL 제약', ext: 'shacl.ttl', mime: 'text/turtle', desc: '실제로 막는 규칙 — 적재 시점 검사', build: buildShacl },
   { key: 'md', ko: '문법 명세서', ext: 'md', mime: 'text/markdown', desc: '사람이 읽는 문서 — 협약·제안서 첨부용', build: buildMarkdown },
   { key: 'audit', ko: '격리 이력', ext: 'md', mime: 'text/markdown', desc: '감사 제출용 — 무엇이 막혔고 누가 어떻게 풀었나', build: buildAudit, live: true },
+  { key: 'changelog', ko: '개정 이력', ext: 'md', mime: 'text/markdown', desc: '문법이 왜 이렇게 됐나 — 버전별 변경과 근거', build: buildChangelog, live: true },
 ] as const
 
 export default function Export() {
   const [key, setKey] = useState<(typeof FORMATS)[number]['key']>('jsonld')
   const [copied, setCopied] = useState(false)
   const queue = useQuarantine()
+  const releases = useGrammar()
   const f = FORMATS.find((x) => x.key === key)!
-  // 격리 이력만 라이브 상태를 받는다 — 나머지는 문법에서만 나온다
-  const text = f.key === 'audit' ? buildAudit(queue) : f.build()
+  // 라이브 상태를 받는 형식만 따로 부른다 — 나머지는 문법에서만 나온다
+  const text =
+    f.key === 'audit' ? buildAudit(queue) : f.key === 'changelog' ? buildChangelog(releases) : f.key === 'jsonld' ? buildJsonLd(releases) : f.build()
 
   const copy = async () => {
     try {
@@ -296,7 +381,8 @@ export default function Export() {
     const blob = new Blob([text], { type: f.mime })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = f.key === 'audit' ? `qdrive-격리이력.${f.ext}` : `qdrive-ontology-${currentVersion()}.${f.ext}`
+    a.download =
+      f.key === 'audit' ? `qdrive-격리이력.${f.ext}` : f.key === 'changelog' ? `qdrive-개정이력.${f.ext}` : `qdrive-ontology-${currentVersion()}.${f.ext}`
     a.click()
     URL.revokeObjectURL(a.href)
   }
@@ -307,7 +393,7 @@ export default function Export() {
         title="내보내기 — 우리끼리만 아는 구조가 아니다"
         right={<span className="text-[11px] text-gray-500">{text.split('\n').length}줄 · {(text.length / 1024).toFixed(1)}KB</span>}
       >
-        <div className="grid grid-cols-6 gap-2 max-[1200px]:grid-cols-3 max-[640px]:grid-cols-2">
+        <div className="grid grid-cols-4 gap-2 max-[900px]:grid-cols-2">
           {FORMATS.map((x) => {
             const on = x.key === key
             return (
@@ -344,7 +430,9 @@ export default function Export() {
           >
             ⬇ 파일로 저장
           </button>
-          <span className="text-[11px] text-gray-500">qdrive-ontology-{currentVersion()}.{f.ext}</span>
+          <span className="text-[11px] text-gray-500">
+            {f.key === 'audit' ? 'qdrive-격리이력' : f.key === 'changelog' ? 'qdrive-개정이력' : `qdrive-ontology-${currentVersion()}`}.{f.ext}
+          </span>
         </div>
 
         <pre className="mt-2 max-h-[420px] overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-3 text-[11px] leading-relaxed text-gray-300">
