@@ -3,6 +3,8 @@ import { Panel } from '../components/ui'
 import type { SimSnapshot } from '../sim/types'
 import { spaceOf } from './meta'
 import { BASIS_TONE, METRICS, shortId, type Line } from './chains'
+import { mergeWalk, walkChain } from './chainwalk'
+import { useGate } from './gate'
 
 /**
  * ⑤ 근거 사슬 — "이 숫자는 어디서 왔나"를 역추적한다. 성과 지표 6종 전체.
@@ -17,11 +19,18 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
   // 인스턴스 그래프에서 «이 레코드를 되짚어 보자»로 넘어온 경우, 그 좌표로 연다
   const [key, setKey] = useState(preset?.metric ?? 'safety')
   const [vid, setVid] = useState<string | null>(preset?.vehicleId ?? null)
+  const gate = useGate()
   const metric = METRICS.find((m) => m.key === key)!
   const v = snap.vehicles.find((x) => x.id === vid) ?? snap.vehicles[0]
 
   if (!v) return <Panel title="근거 사슬">엔진이 아직 차량을 만들지 않았습니다.</Panel>
-  const c = metric.build(snap, v.id)
+
+  /**
+   * 사슬을 **그래프에서 걸어** 만든다. 손으로 쓴 빌더는 성과 값·맥락·규정만 담당하고,
+   * 판정·관측·조치·개념 칸은 순회 결과가 덮는다 — 그래야 문법을 고치면 사슬이 실제로 달라진다.
+   */
+  const walk = walkChain(gate, key, v.id)
+  const c = mergeWalk(metric.build(snap, v.id), walk)
 
   const S = {
     outcome: spaceOf('outcome'),
@@ -81,6 +90,89 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
               })}
             </div>
           </div>
+        )}
+      </Panel>
+
+      <Panel
+        title="그래프 순회 — 문법이 허용한 관계만 따라 걷는다"
+        right={<span className="text-[11px] text-gray-500">게이트 {gate.version} · 노드 {gate.graph.subjects}</span>}
+      >
+        {!walk.ok ? (
+          <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[12px] leading-relaxed text-gray-400">
+            ⓘ {walk.reason}
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-sky-400/25 bg-sky-400/[0.07] px-3.5 py-2.5 text-[12px]">
+              <span className="font-black text-sky-200">{walk.outcome?.label}</span>
+              {walk.claims.length > 0 && (
+                <>
+                  <span className="text-gray-500">←«{walk.claims[0].via}»←</span>
+                  <span className="font-bold text-rose-300">판정 {walk.claims.length}</span>
+                </>
+              )}
+              {walk.evidence.length > 0 && (
+                <>
+                  <span className="text-gray-500">←«{walk.evidence[0].via}»←</span>
+                  <span className="font-bold text-cyan-300">관측 {walk.evidence.length}</span>
+                </>
+              )}
+              {walk.levers.length > 0 && (
+                <span className="text-gray-400">
+                  · 조치 <b className="text-pink-300">{walk.levers.length}</b>←«{walk.levers[0].via}»
+                </span>
+              )}
+              {walk.blocked > 0 && <span className="font-bold text-amber-300">· 게이트에 막혀 빠짐 {walk.blocked}</span>}
+              {walk.claims.length === 0 && walk.evidence.length === 0 && walk.levers.length === 0 && (
+                <span className="text-gray-500">— 이 성과에 닿은 경로가 그래프에 아직 없습니다(엔진이 아직 만들지 않은 성과입니다)</span>
+              )}
+              {walk.claims.length === 0 && walk.levers.length > 0 && (
+                <span className="text-gray-500">— 판정을 거친 경로는 아직 없고, 조치만 붙어 있습니다</span>
+              )}
+            </div>
+
+            {walk.direct.length > 0 && (
+              <div className="mt-2 rounded-xl border border-amber-400/40 bg-amber-400/10 px-3.5 py-2.5 break-keep text-[12px] leading-relaxed text-amber-100">
+                ⚠ <b>«관측 → 성과» 직접 경로 {walk.direct.length}건</b> — 판정을 거치지 않고 성과에 바로 붙은 관측입니다. 문법이 이 방향을 열어 줬기
+                때문에 순회에 나타납니다. 문법 v1.0에서는 나올 수 없는 경로입니다.
+              </div>
+            )}
+
+            <div className="mt-2 -mx-1 overflow-x-auto px-1">
+              <table className="w-full min-w-[560px] border-collapse text-[11.5px]">
+                <thead>
+                  <tr className="border-b border-gray-800 text-left text-[10.5px] text-gray-500">
+                    <th className="py-1.5 pr-3 font-semibold">순회한 방향</th>
+                    <th className="py-1.5 pr-3 font-semibold">문법이 허용한 어휘</th>
+                    <th className="py-1.5 font-semibold">이 사슬에서 실제로 쓴 것</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {walk.allowed.map((a) => {
+                    const hit = a.rels.filter((r) => walk.used.includes(r))
+                    return (
+                      <tr key={a.dir} className="border-b border-gray-800/60">
+                        <td className="py-1.5 pr-3 font-semibold text-gray-300">{a.dir}</td>
+                        <td className="py-1.5 pr-3 text-gray-500">{a.rels.length ? a.rels.join(' · ') : <span className="text-gray-600">문법에 없음</span>}</td>
+                        <td className="py-1.5">
+                          {hit.length ? (
+                            <span className="font-bold text-emerald-300">{hit.join(' · ')}</span>
+                          ) : (
+                            <span className="text-gray-600">데이터에 없음</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-2.5 break-keep text-[11.5px] leading-relaxed text-gray-500">
+              🧭 술어를 코드에 적지 않고 <b className="text-gray-300">문법에서 꺼내</b> 걷습니다. 그래서 ⑪에서 문법을 발행해 «관측 → 성과»를 열면{' '}
+              <b className="text-gray-300">이 표와 사슬이 실제로 달라집니다</b> — 아래 판정·관측 칸은 이 순회 결과로 채워집니다.
+            </div>
+          </>
         )}
       </Panel>
 
