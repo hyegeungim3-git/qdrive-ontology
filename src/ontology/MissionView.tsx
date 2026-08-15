@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Emph, Panel } from '../components/ui'
-import { MISSIONS, READY_TONE, missionStats, type MissionId } from './missions'
+import { MISSIONS, READY_TONE, missionStats, roadmap, type MissionId } from './missions'
+import { CHANNELS } from './sensors'
 
 /**
  * 목적별 활용 — ⑥ 조치와 효과의 아랫부분.
@@ -76,7 +77,23 @@ export default function MissionView() {
             </div>
             {q.need && (
               <div className="mt-1.5 rounded px-2.5 py-1.5 break-keep text-[11.5px] leading-relaxed" style={{ background: '#f59e0b12', color: '#fcd34d' }}>
-                <b>더 필요한 것</b> — <Emph t={q.need} cls="text-amber-200" />
+                <b>왜 아직 안 되나</b> — <Emph t={q.need} cls="text-amber-200" />
+              </div>
+            )}
+            {/* «못 한다»에서 멈추지 않는다. 무엇이 들어오면 어떻게 되는지까지 적어야 계획이 된다 */}
+            {q.then && (
+              <div className="mt-1.5 rounded border px-2.5 py-2 break-keep text-[11.5px] leading-relaxed" style={{ borderColor: '#34d39933', background: '#34d39910', color: '#a7f3d0' }}>
+                <div className="mb-1 flex flex-wrap gap-1">
+                  {(q.unlock ?? []).map((c) => {
+                    const ch = CHANNELS.find((x) => x.id === c)
+                    return (
+                      <span key={c} className="rounded bg-emerald-400/15 px-1.5 py-0.5 text-[10.5px] font-bold text-emerald-300">
+                        {ch?.ko ?? c}
+                      </span>
+                    )
+                  })}
+                </div>
+                <b>이 데이터가 들어오면</b> — <Emph t={q.then} cls="text-emerald-200" />
               </div>
             )}
             <div className="mt-1.5 flex flex-wrap gap-1">
@@ -103,6 +120,34 @@ export default function MissionView() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 「이것도 필요하고 저것도 필요하다」는 계획이 아니다. 파급이 큰 것부터가 계획이다. */}
+      <div className="mt-4">
+        <div className="mb-1 text-[12px] font-black tracking-wide text-emerald-300">무엇부터 확보해야 하나 — 파급 순</div>
+        <div className="mb-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
+          「이것도 필요하고 저것도 필요하다」는 계획이 아닙니다. 채널마다 <b className="text-gray-300">몇 개 질문을 여는지</b>를 세면 순서가
+          정해집니다. 예산이 한정된 실증에서 합리적인 순서는 이것뿐입니다.
+        </div>
+        <div className="space-y-1">
+          {roadmap().slice(0, 10).map((r, i) => {
+            const ch = CHANNELS.find((x) => x.id === r.id)
+            return (
+              /* 고정폭 열을 좁은 화면에 그대로 두면 잘린다 — 375px에서는 세로로 쌓는다 */
+              <div key={r.id} className="rounded-lg border border-gray-800 bg-gray-900/50 px-2.5 py-1.5">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="shrink-0 text-[11px] font-black tabular-nums text-gray-600">{i + 1}</span>
+                  <span className="shrink-0 text-[12.5px] font-bold text-gray-100">{ch?.ko ?? r.id}</span>
+                  <span className="shrink-0 text-[10.5px] text-gray-600">{ch?.bus}</span>
+                  <span className="shrink-0 rounded bg-emerald-400/15 px-1.5 py-0.5 text-[10.5px] font-black text-emerald-300">
+                    질문 {r.count}개
+                  </span>
+                </div>
+                <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-gray-500">{r.questions.join(' · ')}</div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
