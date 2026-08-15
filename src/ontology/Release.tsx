@@ -205,6 +205,12 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
               )}
 
               <button
+                onClick={() => onGoto('compare')}
+                className="mt-2.5 mr-2 rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-2 text-[12px] font-bold text-sky-200 hover:bg-sky-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+              >
+                ⑫ 반영하면 무엇이 바뀌나 보기 →
+              </button>
+              <button
                 onClick={() => {
                   publish(who.trim(), snap.simTime)
                   setAck(false)
@@ -253,6 +259,12 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                   ))}
                 </ul>
                 <div className="mt-2 flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => onGoto('compare')}
+                    className="rounded-md border border-emerald-400/40 bg-emerald-400/10 px-2 py-1 text-[11px] font-bold text-emerald-200 hover:bg-emerald-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+                  >
+                    ⑫ 무엇이 바뀌었나 →
+                  </button>
                   <button
                     onClick={() => onGoto('validator')}
                     className="rounded-md border border-sky-400/40 bg-sky-400/10 px-2 py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"

@@ -19,6 +19,7 @@ export type StepId =
   | 'live'
   | 'quarantine'
   | 'release'
+  | 'compare'
   | 'export'
 
 export type Preset = {

@@ -13,6 +13,7 @@ import Live from './ontology/Live'
 // 파일명 주의: 컴포넌트를 Quarantine.tsx로 두면 저장소 quarantine.ts와 Windows에서 충돌한다 (TS1149)
 import Quarantine from './ontology/QuarantineView'
 import Release from './ontology/Release'
+import Compare from './ontology/Compare'
 import { currentVersion, useDraft, useGrammar } from './ontology/grammar'
 import Simulator from './ontology/Simulator'
 import StdAlign from './ontology/StdAlign'
@@ -63,7 +64,8 @@ const GROUPS = [
     ko: '개정', desc: '고치고 내보낸다',
     steps: [
       { id: 'release', n: '⑪', label: '문법 발행', desc: '제안에서 멈추지 않는다' },
-      { id: 'export', n: '⑫', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
+      { id: 'compare', n: '⑫', label: '문법 비교', desc: '개정 전후를 나란히' },
+      { id: 'export', n: '⑬', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
     ],
   },
 ] as const
@@ -159,16 +161,21 @@ export default function App() {
           </button>
         </div>
 
-        <div className="-mx-1 overflow-x-auto px-1">
-          <div className="flex min-w-[1920px] gap-3">
-            {GROUPS.map((g) => (
-              // 그룹 폭을 단계 수에 비례시킨다 — 균등 분배하면 단계가 많은 그룹의 라벨이 잘린다
-              <div key={g.ko} className="min-w-0 flex-1" style={{ flexGrow: g.steps.length }}>
+        {/* 단계가 늘 때마다 가로 스크롤이 길어지지 않게, 그룹 단위로 줄바꿈한다.
+            폭은 단계 수에 비례시킨다 — 균등 분배하면 단계가 많은 그룹의 라벨이 잘린다. */}
+        <div className="flex flex-wrap gap-3">
+          {GROUPS.map((g) => (
+            <div key={g.ko} className="min-w-0" style={{ flexGrow: g.steps.length, flexBasis: g.steps.length * 152 }}>
                 <div className="mb-1 flex items-baseline gap-1.5 px-0.5">
                   <span className="text-[11px] font-black text-pink-300">{g.ko}</span>
                   <span className="truncate text-[10.5px] text-gray-600">{g.desc}</span>
                 </div>
-                <div className={`grid gap-2 ${g.steps.length === 4 ? 'grid-cols-4' : g.steps.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {/* 좁은 화면에서는 그룹이 한 줄을 통째로 쓰므로 2열로 접는다 — 4열이면 한글 라벨이 잘린다 */}
+                <div
+                  className={`grid gap-2 max-[640px]:grid-cols-2 ${
+                    g.steps.length === 4 ? 'grid-cols-4' : g.steps.length === 3 ? 'grid-cols-3' : 'grid-cols-2'
+                  }`}
+                >
                   {g.steps.map((s) => {
                     const on = step === s.id
                     return (
@@ -198,9 +205,8 @@ export default function App() {
                     )
                   })}
                 </div>
-              </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
 
         <div key={gv}>
@@ -215,6 +221,7 @@ export default function App() {
           {step === 'live' && <Live snap={snap} onGoto={jump} faults={faults} setFaults={setFaults} />}
           {step === 'quarantine' && <Quarantine snap={snap} onGoto={jump} />}
           {step === 'release' && <Release snap={snap} onGoto={jump} />}
+          {step === 'compare' && <Compare onGoto={jump} />}
           {step === 'export' && <Export />}
         </div>
 
