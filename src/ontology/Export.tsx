@@ -9,6 +9,7 @@ import { currentVersion, diff, snapshotOf, useGrammar, type Release } from './gr
 import { can, denyReason, roleOf, useRole } from './policy'
 import { PROD_GROUPS, PROD_MAP, buildProductionMap } from './production'
 import { buildCroissant } from './croissant'
+import { buildHowto } from './howto'
 import { buildCatalog } from './catalog'
 import { useGate } from './gate'
 
@@ -358,6 +359,7 @@ const FORMATS = [
   { key: 'changelog', ko: '개정 이력', ext: 'md', mime: 'text/markdown', desc: '문법이 왜 이렇게 됐나 — 버전별 변경과 근거', build: buildChangelog, live: true },
   { key: 'prod', ko: '실서비스 대응표', ext: 'md', mime: 'text/markdown', desc: '데모에서 본 것이 실제로도 되나 — 제안서 첨부용', build: buildProductionMap },
   // 라이브 형식은 아래 text 분기에서 만든다(카탈로그·리니지를 받아야 하므로). build는 호출되지 않는다.
+  { key: 'howto', ko: '사용 안내서', ext: 'md', mime: 'text/markdown', desc: '이 도구를 어떻게 보나 — 회의 자료용', build: buildHowto },
   { key: 'croissant', ko: 'Croissant', ext: 'json', mime: 'application/ld+json', desc: 'AI 학습셋 서술 — 의미·단위·프로버넌스·이용 정책', build: () => '', live: true },
 ] as const
 
@@ -408,6 +410,8 @@ export default function Export() {
           ? `qdrive-개정이력.${f.ext}`
           : f.key === 'prod'
             ? `qdrive-실서비스대응표.${f.ext}`
+            : f.key === 'howto'
+            ? `qdrive-사용안내서.${f.ext}`
             : f.key === 'croissant'
             ? `qdrive-croissant.${f.ext}`
             : `qdrive-ontology-${currentVersion()}.${f.ext}`
@@ -438,7 +442,7 @@ export default function Export() {
                     <span className="rounded bg-rose-400/15 px-1 py-px text-[9px] font-black text-rose-300">라이브</span>
                   )}
                 </div>
-                <div className="mt-0.5 break-keep text-[10.5px] leading-relaxed text-gray-500">{x.desc}</div>
+                <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">{x.desc}</div>
                 <div className="mt-1 font-mono text-[10px] text-gray-600">.{x.ext}</div>
               </button>
             )
@@ -447,7 +451,7 @@ export default function Export() {
 
         {!mayExport && (
           <div
-            className="mt-3 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+            className="mt-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
             style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
           >
             🔒 <b>«{roleOf(role).ko}» 역할에는 원본 내보내기 권한이 없습니다</b> — {denyReason(role, 'exportRaw')}. 아래 미리보기는 볼 수 있지만
@@ -473,7 +477,7 @@ export default function Export() {
             ⬇ 파일로 저장
           </button>
           <span className="text-[11px] text-gray-500">
-            {f.key === 'audit' ? 'qdrive-격리이력' : f.key === 'changelog' ? 'qdrive-개정이력' : f.key === 'prod' ? 'qdrive-실서비스대응표' : f.key === 'croissant' ? 'qdrive-croissant' : `qdrive-ontology-${currentVersion()}`}.{f.ext}
+            {f.key === 'audit' ? 'qdrive-격리이력' : f.key === 'changelog' ? 'qdrive-개정이력' : f.key === 'prod' ? 'qdrive-실서비스대응표' : f.key === 'howto' ? 'qdrive-사용안내서' : f.key === 'croissant' ? 'qdrive-croissant' : `qdrive-ontology-${currentVersion()}`}.{f.ext}
           </span>
         </div>
 
@@ -484,7 +488,7 @@ export default function Export() {
 
       {/* 대응표 원문은 내보내기용 Markdown이라 **강조**를 품고 있다. 화면에서는 굵게 그린다. */}
       <Panel title="데모 ↔ 실서비스 — 이 화면에서 본 것이 실제로도 되나">
-        <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
+        <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">
           이 도구는 브라우저 안에서 온톨로지 위에 서비스를 돌립니다. 실서비스와{' '}
           <b className="text-gray-200">규모는 다르지만 순서는 같습니다</b> — 들어올 때 검증하고, 걸리면 격리하고, 통과분만 하류로
           내려보내고, 규칙을 고치려면 문법을 발행합니다. 다만{' '}
@@ -526,7 +530,7 @@ export default function Export() {
                           </div>
                         </div>
                       </div>
-                      <div className="mt-1.5 break-keep text-[10.5px] leading-relaxed text-gray-500">
+                      <div className="mt-1.5 break-keep text-[11.5px] leading-relaxed text-gray-500">
                         <b className="text-gray-400">전제</b> · <Emph t={r.need} cls="text-gray-400" />
                       </div>
                     </div>
@@ -538,7 +542,7 @@ export default function Export() {
         </div>
 
         <div
-          className="mt-3 rounded-lg border px-3 py-2.5 break-keep text-[11.5px] leading-relaxed"
+          className="mt-3 rounded-lg border px-3 py-2.5 break-keep text-[12.5px] leading-relaxed"
           style={{ borderColor: '#f59e0b44', background: '#f59e0b12', color: '#fcd34d' }}
         >
           ⚠ <b>가장 중요한 차이는 접근 통제입니다.</b> 이 데모의 역할 선택기는 «표시»를 가립니다. 실서비스에서 같은 방식을 쓰면
@@ -569,11 +573,11 @@ export default function Export() {
         </Panel>
 
         <Panel title="적재 시 문법 검사 — Cypher 감사 질의">
-          <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
+          <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">
             Cypher 탭의 마지막 질의는 <b className="text-gray-200">문법에 없는 관계를 찾아내는 감사 쿼리</b>입니다. 그래프 DB에 적재한 뒤 이 질의를
             돌려서 결과가 0행이면 문법이 지켜진 것이고, 행이 나오면 그 관계는 잘못 만들어진 것입니다.
           </div>
-          <pre className="mt-2 overflow-x-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-[10.5px] leading-relaxed text-emerald-300">
+          <pre className="mt-2 overflow-x-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-[11.5px] leading-relaxed text-emerald-300">
             <code>{`MATCH (a)-[r]->(b)
 WHERE NOT ( ...문법 조합... )
 RETURN labels(a), type(r), labels(b), count(*);`}</code>

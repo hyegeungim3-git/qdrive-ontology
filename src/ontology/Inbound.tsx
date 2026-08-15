@@ -50,7 +50,7 @@ export default function Inbound() {
 
   return (
     <div className="space-y-3">
-      <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
+      <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">
         위 표들은 <b className="text-gray-200">우리 어휘가 표준 어디에 붙는가</b>를 말합니다. 여기는 반대 방향입니다 —{' '}
         <b className="text-gray-200">표준으로 온 데이터를 우리가 받을 수 있는가.</b> 정렬만 하고 받지 못하면 그 정렬은 문서 장식입니다. 그리고
         발주처가 가장 실무적으로 묻는 질문이 이것입니다: <b className="text-gray-300">「우리 데이터를 어떻게 넣습니까」</b>
@@ -69,7 +69,7 @@ export default function Inbound() {
             >
               <div className={`text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{s.ko}</div>
               <div className="mt-0.5 text-[10px] text-gray-600">{s.org}</div>
-              <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">
+              <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-500">
                 <Emph t={s.what} cls="text-gray-300" />
               </div>
             </button>
@@ -80,7 +80,7 @@ export default function Inbound() {
       <div className="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1">
         <div>
           <div className="mb-1 text-[11px] font-black tracking-wide text-gray-500">원문 — {src.format}</div>
-          <pre className="max-h-[220px] overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-[10.5px] leading-relaxed text-gray-400">
+          <pre className="max-h-[220px] overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-[11.5px] leading-relaxed text-gray-400">
             <code>{src.raw}</code>
           </pre>
           <div className="mt-2 rounded-lg border px-3 py-2" style={{ borderColor: '#a78bfa33', background: '#a78bfa0d' }}>
@@ -88,7 +88,7 @@ export default function Inbound() {
             <div className="mt-1 font-mono text-[10.5px] text-gray-300">
               {out.resolved.from} → {out.resolved.to}
             </div>
-            <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">
+            <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-500">
               <Emph t={out.resolved.how} cls="text-gray-300" />
             </div>
           </div>
@@ -96,7 +96,7 @@ export default function Inbound() {
 
         <div>
           <div className="mb-1 text-[11px] font-black tracking-wide text-gray-500">옮긴 결과 — 우리 문법의 Turtle</div>
-          <pre className="max-h-[220px] overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-[10.5px] leading-relaxed text-emerald-300/80">
+          <pre className="max-h-[220px] overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 text-[11.5px] leading-relaxed text-emerald-300/80">
             <code>{out.turtle}</code>
           </pre>
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -122,20 +122,20 @@ export default function Inbound() {
                   <div className="font-mono text-[10px] text-rose-300">
                     {r.focus} · {r.path} · {r.constraint}
                   </div>
-                  <div className="mt-0.5 break-keep text-[10.5px] leading-relaxed text-gray-400">{r.message}</div>
+                  <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-400">{r.message}</div>
                 </div>
               ))}
             </div>
           )}
           <div className="mt-2 rounded-lg border px-2.5 py-2" style={{ borderColor: '#a78bfa33', background: '#a78bfa0d' }}>
             <div className="text-[11px] font-black text-violet-300">원천만으로는 문법을 지킬 수 없다</div>
-            <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-400">
+            <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-400">
               처음 돌렸을 때 <b className="text-gray-300">관측만 있고 판정이 없어</b> «뒷받침한다» 필수 관계가 위반이었습니다. 어느 표준도 판정을
               주지 않기 때문입니다. 그래서 어댑터가 판정을 <b className="text-gray-300">«검토 대기»</b>로 만듭니다 — 원천이 들어왔다고 감점이
               자동 확정되면 「불이익 결정 자동화 금지」를 어깁니다. <b className="text-gray-300">비워 둔 decidedBy가 그 규정의 실행입니다.</b>
             </div>
           </div>
-          <div className="mt-2 break-keep text-[10.5px] leading-relaxed text-gray-500">
+          <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
             이 검사는 <b className="text-gray-400">⑨ 실검증과 같은 셰이프 그래프</b>를 씁니다 — 적재 경로만 다르고 규칙은 하나여야 합니다.
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function Inbound() {
                         <span className="text-[10.5px] text-gray-600">—</span>
                       )}
                     </td>
-                    <td className="py-1.5 pr-3 break-keep text-[10.5px] leading-relaxed text-gray-500">
+                    <td className="py-1.5 pr-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
                       <Emph t={f.why} cls="text-gray-300" />
                     </td>
                   </tr>
@@ -198,12 +198,12 @@ export default function Inbound() {
           <div className="text-[11.5px] font-bold text-amber-300">이 원천에 없는 것 — 먼저 적는다</div>
           <div className="mt-1 space-y-1">
             {src.missing.map((m) => (
-              <div key={m.ko} className="break-keep text-[10.5px] leading-relaxed text-gray-400">
+              <div key={m.ko} className="break-keep text-[11.5px] leading-relaxed text-gray-400">
                 <b className="text-amber-200">{m.ko}</b> — <Emph t={m.why} cls="text-amber-100" />
               </div>
             ))}
           </div>
-          <div className="mt-1.5 break-keep text-[10.5px] leading-relaxed text-gray-500">
+          <div className="mt-1.5 break-keep text-[11.5px] leading-relaxed text-gray-500">
             「이 표준을 지원합니다」는 대개 <b className="text-gray-400">무엇을 못 받는지</b>를 안 적어서 성립합니다.
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function Inbound() {
               </span>
             ))}
           </div>
-          <div className="mt-1.5 break-keep text-[10.5px] leading-relaxed text-gray-500">
+          <div className="mt-1.5 break-keep text-[11.5px] leading-relaxed text-gray-500">
             노드 타입 <b className="text-gray-300">{cov.filled.length}종</b>을 채웁니다. 나머지는 원천이 아니라{' '}
             <b className="text-gray-300">판단</b>이 만듭니다 — 판정·성과·조치는 사람과 규칙이 만드는 것이라 어느 표준에도 없습니다.{' '}
             <b className="text-gray-400">그 빈자리가 이 온톨로지의 존재 이유입니다.</b>

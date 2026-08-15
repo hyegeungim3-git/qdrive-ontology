@@ -173,7 +173,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
               </table>
             </div>
 
-            <div className="mt-2.5 break-keep text-[11.5px] leading-relaxed text-gray-500">
+            <div className="mt-2.5 break-keep text-[12.5px] leading-relaxed text-gray-500">
               🧭 술어를 코드에 적지 않고 <b className="text-gray-300">문법에서 꺼내</b> 걷습니다. 그래서 ⑪에서 문법을 발행해 «관측 → 성과»를 열면{' '}
               <b className="text-gray-300">이 표와 사슬이 실제로 달라집니다</b> — 아래 판정·관측 칸은 이 순회 결과로 채워집니다.
             </div>
@@ -228,7 +228,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
                   ))}
                 </div>
                 {c.claimNote && (
-                  <div className="mt-1.5 rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 break-keep text-[10.5px] leading-relaxed text-emerald-300">
+                  <div className="mt-1.5 rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 break-keep text-[11.5px] leading-relaxed text-emerald-300">
                     {c.claimNote}
                   </div>
                 )}
@@ -261,7 +261,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
             {c.leverLines.map((l, i) => (
               <Row key={`${l.k}-${i}`} {...l} />
             ))}
-            <div className="mt-1 break-keep text-[10.5px] leading-relaxed text-gray-500">{c.leverNote}</div>
+            <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-500">{c.leverNote}</div>
           </Step>
           <Step space={S.ctx} title="맥락" rel="판정 보정">
             {c.contextLines.map((l, i) => (
@@ -282,7 +282,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
           <div className="mb-1 text-[11px] font-bold text-sky-300">이 숫자를 설명해야 한다면</div>
           <div className="break-keep text-[12.5px] leading-relaxed text-gray-200">{c.sentence}</div>
         </div>
-        <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-2 break-keep text-[12.5px] leading-relaxed text-gray-500">
           이 문장은 미리 써 둔 것이 아니라 <b className="text-gray-300">지금 데이터에서 사슬을 따라 조립된 것</b>입니다. 지표마다 근거의 성격이 달라서
           — 안전점수는 <b className="text-emerald-400">실측</b>, CO₂는 <b className="text-sky-400">환산</b>, 정시율은{' '}
           <b className="text-red-400">미측정</b> — 사슬도 다르게 그려집니다. <b className="text-gray-300">없는 숫자를 만들어내지 않는 것</b>이 원칙입니다.

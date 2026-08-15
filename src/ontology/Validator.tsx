@@ -80,7 +80,7 @@ export default function Validator({ preset }: { preset?: { from: SpaceId; to: Sp
           <Stat n={String(allowed)} label="문법이 허용하는 조합" sub={`${META_EDGES.length}개 방향에 정의된 것만`} color="#34d399" />
           <Stat n={`${pct}%`} label="허용률" sub={`나머지 ${(100 - Number(pct)).toFixed(1)}%는 만들 수 없습니다`} color="#fb7185" />
         </div>
-        <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-2 break-keep text-[12.5px] leading-relaxed text-gray-500">
           문법의 값어치는 <b className="text-gray-300">무엇을 할 수 있는지가 아니라 무엇을 못 하는지</b>에 있습니다. 관계를 자유롭게 만들 수 있으면
           당장은 편하지만, 반년 뒤에는 아무도 그 연결이 무슨 뜻인지 모릅니다.
         </div>
@@ -99,7 +99,7 @@ export default function Validator({ preset }: { preset?: { from: SpaceId; to: Sp
                 }`}
               >
                 <div className={`text-[12px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{c.ko}</div>
-                <div className="mt-0.5 break-keep text-[10.5px] leading-relaxed text-gray-500">{c.why}</div>
+                <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">{c.why}</div>
               </button>
             )
           })}
@@ -128,7 +128,7 @@ export default function Validator({ preset }: { preset?: { from: SpaceId; to: Sp
         {v.ok ? (
           <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5">
             <div className="text-[13px] font-black text-emerald-400">✅ 허용 — 문법에 정의된 관계입니다</div>
-            <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-300">
+            <div className="mt-1 break-keep text-[12.5px] leading-relaxed text-gray-300">
               {RELATION_GLOSSARY[rel] ?? ''} {v.edge.core && <b className="text-sky-300">핵심 사슬에 속한 관계입니다.</b>}
             </div>
             <div className="mt-1 text-[11px] text-gray-500">이 방향의 다른 어휘 — {v.edge.relations.filter((r) => r !== rel).join(' · ') || '없음'}</div>
@@ -140,11 +140,11 @@ export default function Validator({ preset }: { preset?: { from: SpaceId; to: Sp
               <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-300">{v.code}</span>
             </div>
             <div className="mt-1 break-keep text-[12px] font-semibold leading-relaxed text-gray-200">{v.reason}</div>
-            <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-400">→ {v.hint}</div>
+            <div className="mt-1 break-keep text-[12.5px] leading-relaxed text-gray-400">→ {v.hint}</div>
           </div>
         )}
 
-        <div className="mt-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-3 break-keep text-[12.5px] leading-relaxed text-gray-500">
           실서비스에서는 이 검사가 <b className="text-gray-300">적재 시점에 돌아갑니다</b> — 문법에 없는 관계를 만들려는 시도는 저장되지 않고 보류
           큐로 갑니다. 새 관계가 정말 필요하면 문법을 먼저 고치고 버전을 올립니다.
         </div>

@@ -51,7 +51,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
             </div>
           ))}
         </div>
-        <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-2 break-keep text-[12.5px] leading-relaxed text-gray-500">
           데이터 자체가 아니라 <b className="text-gray-300">그 데이터에 대한 사실</b>입니다. 이게 붙어 있어야 "이 숫자를 의회 보고에 써도 되나",
           "이 데이터를 외부에 줘도 되나"에 답할 수 있습니다.
         </div>
@@ -125,7 +125,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
                         <span className="rounded bg-rose-400/15 px-1 py-px text-[9px] font-black text-rose-300">라이브</span>
                       )}
                     </div>
-                    <div className="break-keep text-[11.5px] leading-relaxed text-gray-200">{metaValue(pick, a.key)}</div>
+                    <div className="break-keep text-[12.5px] leading-relaxed text-gray-200">{metaValue(pick, a.key)}</div>
                     {bhv && a.key === 'usage' && (
                       <div className="mt-0.5 break-keep text-[11px] leading-relaxed text-rose-300">
                         + 격리로 하류 전달이 막힌 레코드 {bhv.total}건 (보류 {bhv.held} · 처리 {bhv.total - bhv.held})
@@ -143,7 +143,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
           ))}
         </div>
 
-        <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 break-keep text-[11.5px] leading-relaxed text-gray-300">
+        <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 break-keep text-[12.5px] leading-relaxed text-gray-300">
           <b className="text-emerald-400">계보 · 의존성 · 사용량 · 파급은 손으로 적지 않습니다</b> — 문법(스페이스·관계)에서 계산됩니다. 관계를 하나
           추가하면 의존성과 파급이 자동으로 갱신되므로, 메타데이터가 실제와 어긋날 일이 없습니다. 여기에 더해{' '}
           <b className="text-rose-300">행동 계층은 격리 큐에서 실시간으로 갱신</b>됩니다 — 「액티브」라고 이름 붙였으면 실제로 움직여야 합니다.
@@ -198,7 +198,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
           </table>
         </div>
 
-        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[12.5px] leading-relaxed text-gray-500">
           ⚖️ <b className="text-gray-300">두 겹으로 막습니다</b> — <b className="text-gray-400">규정</b>은 «볼 수 있는 것»을(이 표),{' '}
           <b className="text-gray-400">SHACL</b>은 «들어올 수 있는 것»을(⑨) 막습니다. 실명이 원천에서 잘못 흘러들어오면 SHACL이 적재를 막고, 그래도
           화면에는 권한 없는 사람에게 보이지 않습니다. 한 겹만 있으면 어느 쪽이든 뚫립니다. 특히{' '}

@@ -42,7 +42,7 @@ export default function Standards() {
             )
           })}
         </div>
-        <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-2 break-keep text-[12.5px] leading-relaxed text-gray-500">
           정렬 강도는 <b className="text-gray-300">SKOS 매핑 관계를 그대로</b> 씁니다. 억지로 «정확 일치»를 주장하지 않는 것이 이 표의 값어치입니다 —
           «상위 개념»이라고 정직하게 적어야 나중에 합칠 때 사고가 나지 않습니다. 조치→성과의 인과 어휘(올린다·낮춘다)는 대응하는 표준이 없어
           <b className="text-gray-300"> 고유</b>로 둡니다.
@@ -74,10 +74,10 @@ export default function Standards() {
               <span className="text-[13px] font-black text-sky-300">{std.ko}</span>
               <code className="text-[10.5px] text-gray-500">{std.uri}</code>
             </div>
-            <div className="mt-1.5 break-keep text-[11.5px] leading-relaxed text-gray-300">
+            <div className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-gray-300">
               <b className="text-gray-400">무엇을 정의하나</b> — {std.what}
             </div>
-            <div className="mt-1 break-keep text-[11.5px] leading-relaxed text-gray-200">
+            <div className="mt-1 break-keep text-[12.5px] leading-relaxed text-gray-200">
               <b className="text-sky-300">왜 우리에게 필요한가</b> — {std.why}
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function Standards() {
         )}
       </Panel>
 
-      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-300">
+      <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 break-keep text-[12.5px] leading-relaxed text-gray-300">
         <b className="text-emerald-400">왜 정렬이 문법보다 중요할 수 있나</b> — 문법을 아무리 잘 만들어도 우리만 쓰면 반쪽입니다. 관측이
         <code className="mx-1 text-gray-200">sosa:Observation</code>이고 판정이 <code className="mx-1 text-gray-200">prov:wasDerivedFrom</code>으로 근거에
         매달려 있으면, 다른 도시가 만든 데이터도·검증기관의 도구도 우리 그래프를 그대로 읽습니다. 참고한 OpenCrab에는 이 정렬 층이 없습니다 —

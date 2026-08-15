@@ -56,14 +56,14 @@ export default function IssuePanel({ snap, jump }: { snap: SimSnapshot; jump: Ju
       title="조치 발행 — 시뮬레이션에서 멈추지 않는다"
       right={<span className="text-[11px] text-gray-500">발행 {issued.length}건</span>}
     >
-      <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
+      <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">
         여기까지는 전부 <b className="text-gray-200">읽는 쪽</b>이었습니다. 사람이 실제로 코칭을 내리고 배차를 조정하는 순간에는 온톨로지가 아무
         역할도 하지 않았습니다. 이제 <b className="text-gray-200">쓰기 경로가 온톨로지를 통과합니다</b> — 문법·규정·스키마·근거 네 겹을 지나야
         발행되고, 발행된 조치는 엔진이 만든 조치와 <b className="text-gray-200">같은 자격으로 그래프에 들어갑니다</b>.
       </div>
 
       {!mayIssue && (
-        <div className="mt-3 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed" style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}>
+        <div className="mt-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed" style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}>
           🔒 <b>«{roleOf(role).ko}» 역할에는 조치 발행 권한이 없습니다</b> — {denyReason(role, ISSUE)}. 아래에서 검사 결과는 볼 수 있지만 발행은
           잠깁니다.
         </div>
@@ -88,7 +88,7 @@ export default function IssuePanel({ snap, jump }: { snap: SimSnapshot; jump: Ju
                 <span className={`text-[12.5px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{x.ko}</span>
                 {x.adverse && <span className="rounded bg-rose-400/15 px-1 py-px text-[9px] font-black text-rose-300">불이익 가능</span>}
               </div>
-              <div className="mt-0.5 break-keep text-[10.5px] leading-relaxed text-gray-500">{x.desc}</div>
+              <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">{x.desc}</div>
               <div className="mt-1 font-mono text-[10px] text-gray-600">
                 {x.creates} —«{x.via}»→ 성과
               </div>
@@ -243,7 +243,7 @@ export default function IssuePanel({ snap, jump }: { snap: SimSnapshot; jump: Ju
               ⑭ 카탈로그에서 건수 확인 →
             </button>
           </div>
-          <div className="mt-2 break-keep text-[10.5px] leading-relaxed text-gray-500">
+          <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
             철회하면 그래프에서 노드가 빠지지만 <b className="text-gray-400">발행 활동(prov:Activity)은 남습니다</b> — 있었던 일을 지우지 않습니다.
           </div>
         </div>
@@ -267,7 +267,7 @@ function Row({ c }: { c: Check }) {
         </span>
         <span className="text-[11.5px] font-bold text-gray-200">{c.ko}</span>
       </div>
-      <div className="mt-0.5 break-keep text-[10.5px] leading-relaxed" style={{ color: c.ok ? '#9ca3af' : '#fda4af' }}>
+      <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed" style={{ color: c.ok ? '#9ca3af' : '#fda4af' }}>
         {c.why}
       </div>
     </div>

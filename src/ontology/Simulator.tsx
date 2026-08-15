@@ -213,7 +213,7 @@ export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jum
           </div>
         </div>
 
-        <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-2 break-keep text-[12.5px] leading-relaxed text-gray-500">
           이 시뮬레이션은 추측이 아니라 <b className="text-gray-300">온톨로지에 등록된 조치→성과 관계</b>를 따라 계산됩니다. 관계가 없으면 예측도
           없습니다. 실증에서는 각 계수를 실측으로 교체하고, 근거 유형이 «추정»인 항목부터 «실측»으로 승격시키는 것이 목표입니다.
         </div>

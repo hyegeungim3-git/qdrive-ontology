@@ -82,7 +82,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
         {/* 권한이 없으면 개정안을 담기 전에 알아야 한다 — 다 담고 나서 막히면 화가 난다 */}
         {!mayPublish && (
           <div
-            className="mb-3 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+            className="mb-3 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
             style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
           >
             🔒 <b>«{roleOf(role).ko}» 역할에는 문법 발행 권한이 없습니다</b> — {denyReason(role, 'publishGrammar')}. 개정안을 담아 제안하는 것까지는
@@ -143,7 +143,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                           </span>
                         )}
                       </div>
-                      <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-400">{a.detail}</div>
+                      <div className="mt-0.5 break-keep text-[12.5px] leading-relaxed text-gray-400">{a.detail}</div>
                     </div>
                     <button
                       onClick={() => removeFromDraft(a.id)}
@@ -160,7 +160,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                       {a.basis.held > 0 && <span className="text-gray-500"> · 보류 {a.basis.held}건</span>}
                     </div>
                     {a.basis.notes.length > 0 && (
-                      <div className="mt-1 border-l-2 border-gray-700 pl-2 break-keep text-[10.5px] leading-relaxed text-gray-500">
+                      <div className="mt-1 border-l-2 border-gray-700 pl-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
                         {a.basis.notes.map((n) => `“${n}”`).join(' · ')}
                       </div>
                     )}
@@ -214,7 +214,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
               {sensitive.length > 0 && (
                 <label className="mt-2.5 flex items-start gap-2 rounded-lg border border-rose-400/40 bg-rose-400/10 px-3 py-2">
                   <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5 shrink-0 accent-rose-400" />
-                  <span className="break-keep text-[11.5px] leading-relaxed text-rose-100">
+                  <span className="break-keep text-[12.5px] leading-relaxed text-rose-100">
                     이 개정안에는 <b>핵심 사슬을 느슨하게 하는 항목 {sensitive.length}건</b>이 들어 있습니다. 발행하면 «근거 없는 판정»이 만들어질 수
                     있게 됩니다 — 그 위험을 알고 승인합니다.
                   </span>
@@ -223,7 +223,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
 
               {!mayPublish && (
                 <div
-                  className="mb-2 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+                  className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
                   style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
                 >
                   🔒 <b>«{roleOf(role).ko}» 역할에는 문법 발행 권한이 없습니다</b> — {denyReason(role, 'publishGrammar')}
@@ -297,7 +297,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                 </div>
                 <ul className="mt-1.5 space-y-1">
                   {r.amendments.map((a) => (
-                    <li key={a.id} className="break-keep text-[11.5px] leading-relaxed text-gray-300">
+                    <li key={a.id} className="break-keep text-[12.5px] leading-relaxed text-gray-300">
                       <span style={{ color: KIND_TONE[a.kind] }}>●</span> {a.ko}
                       <span className="text-gray-500">
                         {' '}
@@ -331,7 +331,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
           </div>
         )}
 
-        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[12.5px] leading-relaxed text-gray-500">
           📜 <b className="text-gray-300">개정의 근거가 이력에 남습니다</b> — 「누가 언제 승인했나」만이 아니라 「무슨 데이터가 이 개정을 요구했나」까지.
           격리 몇 건이 예외 승인으로 풀렸고 담당자가 뭐라고 적었는지가 개정 사유입니다. 문법이 누군가의 취향으로 바뀌지 않았다는 증거가 됩니다.
         </div>

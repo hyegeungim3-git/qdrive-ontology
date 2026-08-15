@@ -8,6 +8,7 @@ import type { ChangeKind } from './impactmeta'
  * 사용자가 조건을 손으로 다시 맞춰야 한다. 넘어가는 쪽이 조건까지 들고 간다.
  */
 export type StepId =
+  | 'guide'
   | 'spaces'
   | 'grammar'
   | 'standards'

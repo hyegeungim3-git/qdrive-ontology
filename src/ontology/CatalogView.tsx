@@ -47,7 +47,7 @@ export default function Catalog({ jump }: { jump: Jump }) {
         title="데이터 카탈로그 — 무엇이 있고, 어디서 왔고, 누가 볼 수 있나"
         right={<span className="text-[11px] text-gray-500">전부 파생 — 손으로 적은 항목 0개</span>}
       >
-        <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
+        <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">
           AI가 이 데이터를 쓰려면 먼저 <b className="text-gray-200">무엇이 있는지</b> 알아야 합니다. 이 카탈로그는 손으로 적지 않습니다 —
           스키마는 SHACL과 같은 정의에서, 건수·통과율은 게이트에서, 신선도는 실행 리니지에서, 접근 권한은 규정 스페이스에서 나옵니다.{' '}
           <b className="text-gray-300">손으로 적는 카탈로그는 반드시 낡습니다.</b>
@@ -74,7 +74,7 @@ export default function Catalog({ jump }: { jump: Jump }) {
                 <div className="text-[12px] font-bold text-amber-200">
                   {g.ko} <span className="tabular-nums">{g.n}</span>개
                 </div>
-                <div className="mt-0.5 break-keep text-[10.5px] leading-relaxed text-gray-500">{g.why}</div>
+                <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">{g.why}</div>
               </div>
             ))}
           </div>
@@ -150,7 +150,7 @@ export default function Catalog({ jump }: { jump: Jump }) {
       {open && <Detail d={open} role={role} jump={jump} />}
 
       <Panel title="실행 리니지 — 신선도의 근거" right={<span className="text-[11px] text-gray-500">prov:Activity</span>}>
-        <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">
+        <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">
           17차에서 레코드마다 검증 스탬프를 붙였지만 스탬프는 <b className="text-gray-200">문법 버전</b>만 알았습니다. 이제 게이트 실행 한 번이{' '}
           <b className="text-gray-200">활동(prov:Activity)</b>으로 남고, 스탬프가 그 활동을 가리킵니다 — 「이 판정은 <b>어느 실행</b>이 만들었나」에
           답할 수 있습니다.
@@ -183,7 +183,7 @@ export default function Catalog({ jump }: { jump: Jump }) {
             </tbody>
           </table>
         </div>
-        <div className="mt-2 break-keep text-[10.5px] leading-relaxed text-gray-500">
+        <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
           실행 횟수가 있다는 것 자체가 근거입니다 — <b className="text-gray-400">「격리 0건」이 검사를 안 한 결과인지</b>는 이 표를 봐야 갈립니다.
           실서비스에서는 이 이력이 OpenLineage 이벤트로 리니지 저장소에 쌓입니다.
         </div>
@@ -199,10 +199,10 @@ function Detail({ d, role, jump }: { d: Dataset; role: RoleId; jump: Jump }) {
       title={`${d.ko} — 스키마 · 리니지 · 권한`}
       right={<span className="font-mono text-[11px] text-gray-500">{d.id}</span>}
     >
-      {d.note && <div className="break-keep text-[11.5px] leading-relaxed text-gray-400">{d.note}</div>}
+      {d.note && <div className="break-keep text-[12.5px] leading-relaxed text-gray-400">{d.note}</div>}
 
       {myDeny && (
-        <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed" style={{ borderColor: '#f43f5e44', background: '#f43f5e12', color: '#fda4af' }}>
+        <div className="mt-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed" style={{ borderColor: '#f43f5e44', background: '#f43f5e12', color: '#fda4af' }}>
           🔒 <b>«{roleOf(role).ko}» 역할은 이 데이터셋을 그대로 볼 수 없습니다</b> — {myDeny.why}
         </div>
       )}
@@ -330,7 +330,7 @@ function Lin({ label, rows, color, empty }: { label: string; rows: { ko: string;
           {rows.length > 6 && <div className="text-[10px] text-gray-600">외 {rows.length - 6}종</div>}
         </div>
       ) : (
-        <div className="mt-0.5 break-keep text-[10.5px] leading-relaxed text-gray-600">{empty}</div>
+        <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-600">{empty}</div>
       )}
     </div>
   )

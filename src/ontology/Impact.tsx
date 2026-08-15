@@ -116,7 +116,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
                   <span className={`text-[12px] font-bold ${on ? 'text-gray-100' : 'text-gray-600'}`}>{i.ko}</span>
                   {on && always && <span className="ml-auto text-[9.5px] font-bold text-gray-500">항상</span>}
                 </div>
-                <div className={`mt-0.5 break-keep text-[10.5px] leading-relaxed ${on ? 'text-gray-400' : 'text-gray-700'}`}>{i.q}</div>
+                <div className={`mt-0.5 break-keep text-[11.5px] leading-relaxed ${on ? 'text-gray-400' : 'text-gray-700'}`}>{i.q}</div>
               </div>
             )
           })}
@@ -167,7 +167,7 @@ export default function Impact({ onNavigate, preset }: { onNavigate?: (tab: stri
           </div>
         </div>
 
-        <div className="mt-3 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 break-keep text-[11.5px] leading-relaxed text-gray-300">
+        <div className="mt-3 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 break-keep text-[12.5px] leading-relaxed text-gray-300">
           <b className="text-sky-300">왜 이걸 미리 계산하나</b> — 데이터를 고치는 일은 늘 "고치면 뭐가 깨지나"에서 막힙니다. 스페이스와 관계가 문법으로
           정의돼 있으면 그 답을 사람이 기억하지 않아도 됩니다. 특히 <b className="text-gray-200">I4(권한)·I5(로직)</b>가 뜨면 담당자 승인 없이 바꾸지
           않는 것이 원칙입니다.

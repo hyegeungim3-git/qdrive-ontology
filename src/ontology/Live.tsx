@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Panel } from '../components/ui'
+import { nowSim, policyActive } from './validity'
 import { FAULTS, type FaultId } from './rdf'
 import { enqueue, qStats, useQuarantine } from './quarantine'
 import { runValidation, type Finding, type RunResult } from './validate'
@@ -145,7 +146,7 @@ function RecordAudit({ res, iri, onClear }: { res: RunResult; iri: string; onCle
       {block && (
         <details className="mt-2">
           <summary className="cursor-pointer text-[11.5px] font-semibold text-gray-400 hover:text-gray-200">검사받은 실제 트리플 보기</summary>
-          <pre className="mt-1.5 overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 font-mono text-[10.5px] leading-relaxed text-gray-400">
+          <pre className="mt-1.5 overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 font-mono text-[11.5px] leading-relaxed text-gray-400">
             {block}
           </pre>
         </details>
@@ -312,8 +313,15 @@ export default function Live({
                   <span className={`truncate text-[12px] font-bold ${on ? 'text-gray-50' : 'text-gray-300'}`}>{f.ko}</span>
                   <span className="ml-auto shrink-0 text-[11px]">{on ? '🔴' : '⚪'}</span>
                 </div>
-                <div className="mt-1 break-keep text-[10.5px] leading-snug text-gray-500">{f.desc}</div>
+                <div className="mt-1 break-keep text-[11.5px] leading-snug text-gray-500">{f.desc}</div>
                 <div className="mt-1 font-mono text-[10px] text-gray-600">→ {f.expect}</div>
+                {/* 규정에 시행일이 생기면서 「켰는데 안 걸린다」가 가능해졌다.
+                    이유를 안 적으면 사용자에게는 고장으로 읽힌다 — 막힌 것과 고장난 것은 달라야 한다. */}
+                {f.id === 'autoAdverse' && !policyActive('pol-noauto', nowSim()) && (
+                  <div className="mt-1 rounded px-1.5 py-1 break-keep text-[10px] leading-snug" style={{ background: '#f59e0b14', color: '#fcd34d' }}>
+                    ⏳ 이 규칙의 근거 규정이 <b>아직 시행 전</b>입니다 — 지금 켜도 걸리지 않습니다. ② 관계 문법에서 시행일을 확인하세요.
+                  </div>
+                )}
               </button>
             )
           })}
@@ -404,7 +412,7 @@ export default function Live({
               </div>
             )}
 
-            <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+            <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[12.5px] leading-relaxed text-gray-500">
               ⓘ <b className="text-gray-300">엔진이 못 하는 것도 적어 둡니다</b> — 브라우저 검증기(rdf-validate-shacl)는{' '}
               <span className="font-mono text-gray-400">sh:sparql</span> 기반 제약을 지원하지 않습니다. 그래서 「회차 연료 누적값」 규칙만 같은 조건을
               JS로 따로 돌리고 결과에 <b className="text-gray-300">보조 검사</b>로 표시했습니다. 내보내기 파일에는 원래대로{' '}
@@ -422,14 +430,14 @@ export default function Live({
                 </span>
               ))}
             </div>
-            <pre className="max-h-[420px] overflow-auto rounded-xl border border-gray-800 bg-gray-950 p-3 font-mono text-[10.5px] leading-relaxed text-gray-400">
+            <pre className="max-h-[420px] overflow-auto rounded-xl border border-gray-800 bg-gray-950 p-3 font-mono text-[11.5px] leading-relaxed text-gray-400">
               {res.graph.turtle}
             </pre>
           </>
         )}
 
         {tab === 'shapes' && res && (
-          <pre className="max-h-[420px] overflow-auto rounded-xl border border-gray-800 bg-gray-950 p-3 font-mono text-[10.5px] leading-relaxed text-gray-400">
+          <pre className="max-h-[420px] overflow-auto rounded-xl border border-gray-800 bg-gray-950 p-3 font-mono text-[11.5px] leading-relaxed text-gray-400">
             {res.shapesTurtle}
           </pre>
         )}

@@ -151,7 +151,7 @@ export default function Compare({ onGoto }: { onGoto: Jump }) {
 
       <Panel title="관계 문법 — 방향별로 나란히" right={<span className="text-[11px] text-gray-500">추가된 어휘는 초록 · 사라진 어휘는 취소선</span>}>
         <SideBySide a={A} b={B} leftKo={label(left)} rightKo={label(right)} />
-        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[12.5px] leading-relaxed text-gray-500">
           🧭 <b className="text-gray-300">문법 개정은 되돌릴 수 있어야 합니다</b> — 어느 버전에서 무엇이 열렸는지 이 화면으로 확인되고, ⑪에서 최초
           정의로 되돌리면 이 표도 그대로 되돌아갑니다. 「열어 봤더니 아니더라」를 감당할 수 없는 규격은 아무도 손대지 못합니다.
         </div>

@@ -103,7 +103,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
               <div className="text-[19px] font-black tabular-nums" style={{ color: k.tone }}>
                 {k.v}
               </div>
-              <div className="break-keep text-[10.5px] leading-snug text-gray-500">{k.sub}</div>
+              <div className="break-keep text-[11.5px] leading-snug text-gray-500">{k.sub}</div>
             </div>
           ))}
         </div>
@@ -173,7 +173,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
             </div>
           )}
 
-          <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+          <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[12.5px] leading-relaxed text-gray-500">
             🔗 <b className="text-gray-300">운영 플랫폼과의 관계</b> — 데이터 관리자의 품질 격리 큐는 룰별 <b className="text-gray-300">건수</b>를 다룹니다(6개
             룰 · 재처리 이력). 여기는 SHACL이 위반 노드를 정확히 지목하므로 <b className="text-gray-300">레코드 단위</b>로 다루고, 하류 영향을 관계로 계산합니다.
             둘은 같은 원칙 위에 있습니다 — 격리된 레코드는 버리지 않고, 원인을 고치면 재처리되며, 그 이력 자체가 관리의 근거가 됩니다.{' '}
@@ -251,7 +251,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
 
                   {block && (
                     <div
-                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
                       style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
                     >
                       ⛔ <b>예외 승인 불가</b> — {block}
@@ -259,7 +259,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
                   )}
                   {!mayWaive && (
                     <div
-                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[12.5px] leading-relaxed"
                       style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
                     >
                       🔒 <b>«{roleOf(role).ko}» 역할에는 예외 승인 권한이 없습니다</b> — {denyReason(role, 'approveWaiver')}
@@ -303,7 +303,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
                   <div className="mt-1 text-[11.5px] text-gray-400">
                     {open.decidedBy} · {open.doneAt !== undefined ? hhmm(open.doneAt) : '—'}
                   </div>
-                  {open.note && <div className="mt-1.5 break-keep text-[11.5px] leading-relaxed text-gray-300">“{open.note}”</div>}
+                  {open.note && <div className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-gray-300">“{open.note}”</div>}
                 </div>
                 <button
                   onClick={() => {
@@ -519,7 +519,7 @@ function Feedback({ rows, onGoto }: { rows: RuleFeedback[]; onGoto: Jump }) {
                 <td className="py-1.5 break-keep text-gray-400">
                   {r.suggestion}
                   {r.notes.length > 0 && (
-                    <div className="mt-1 border-l-2 border-gray-700 pl-2 text-[10.5px] leading-relaxed text-gray-500">
+                    <div className="mt-1 border-l-2 border-gray-700 pl-2 text-[11.5px] leading-relaxed text-gray-500">
                       담당자 사유: {r.notes.map((n) => `“${n}”`).join(' · ')}
                     </div>
                   )}
@@ -542,7 +542,7 @@ function Feedback({ rows, onGoto }: { rows: RuleFeedback[]; onGoto: Jump }) {
         </table>
       </div>
 
-      <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+      <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[12.5px] leading-relaxed text-gray-500">
         ⚖️ <b className="text-gray-300">완화하면 안 되는 규칙은 제외합니다</b> — 「불이익 결정 자동화 금지」·「가명 처리」처럼 규정에서 온 규칙은 예외가
         쌓여도 «규칙 재검토»로 올리지 않습니다. 예외가 많다는 건 그 규칙이 틀렸다는 뜻이 아니라{' '}
         <b className="text-gray-300">현실을 고쳐야 한다는 뜻</b>이기 때문입니다. 그렇지 않으면 이 화면 자체가 규정을 무력화하는 통로가 됩니다.
@@ -633,7 +633,7 @@ function RippleOfFix({ r, onGoto }: { r: RuleFeedback; onGoto: Jump }) {
         )}
       </div>
 
-      <div className="mt-2 break-keep text-[10.5px] leading-relaxed text-gray-500">
+      <div className="mt-2 break-keep text-[11.5px] leading-relaxed text-gray-500">
         ⓘ 이 표는 ⑦ 영향 분석과 <b className="text-gray-400">같은 전파 엔진</b>으로 계산합니다 — 여기서만 쓰는 별도 계산을 만들면 두 화면의 답이
         갈라집니다.
       </div>

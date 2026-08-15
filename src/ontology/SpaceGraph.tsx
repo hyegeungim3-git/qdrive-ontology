@@ -205,7 +205,7 @@ export default function SpaceGraph({
           </span>
           <span>· 굵은 테두리 = 핵심 4스페이스 · 스페이스에 올리면 걸린 관계만 표시</span>
         </div>
-        <div className="mt-2 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 break-keep text-[11.5px] leading-relaxed text-gray-300">
+        <div className="mt-2 rounded-lg border border-sky-500/25 bg-sky-500/10 px-3 py-2 break-keep text-[12.5px] leading-relaxed text-gray-300">
           <b className="text-sky-300">관측 → 판정 → 성과 ← 조치.</b> 이 네 칸이 Qdrive의 뼈대입니다 — 무슨 일이 있었고(관측), 그게 무슨 뜻이며(판정),
           결과가 어떻게 되었고(성과), 우리가 무엇을 당겼는가(조치). 어떤 숫자든 이 사슬을 거꾸로 되짚어 근거를 댈 수 있습니다.
         </div>

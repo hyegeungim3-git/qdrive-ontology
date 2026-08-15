@@ -64,7 +64,7 @@ export default function Grammar() {
             </tbody>
           </table>
         </div>
-        <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 break-keep text-[11.5px] leading-relaxed text-gray-300">
+        <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 break-keep text-[12.5px] leading-relaxed text-gray-300">
           <b className="text-emerald-400">이 표 밖의 관계는 만들지 않습니다.</b> 관계 어휘를 자유롭게 늘리면 당장은 편하지만, 나중에 다른 도시·다른
           사업자 데이터와 합칠 때 아무것도 맞지 않습니다. 스페이스 쌍마다 쓸 수 있는 말을 못 박아 두는 것이 확장성의 실체입니다.
         </div>
@@ -76,7 +76,7 @@ export default function Grammar() {
             {allRelations.map((r) => (
               <div key={r} className="flex gap-2.5 border-b border-gray-800/50 py-1 last:border-0">
                 <span className="w-[92px] shrink-0 rounded bg-gray-800 px-1.5 py-0.5 text-center text-[10.5px] font-bold text-gray-300">{r}</span>
-                <span className="break-keep text-[11.5px] leading-relaxed text-gray-500">{RELATION_GLOSSARY[r] ?? '—'}</span>
+                <span className="break-keep text-[12.5px] leading-relaxed text-gray-500">{RELATION_GLOSSARY[r] ?? '—'}</span>
               </div>
             ))}
           </div>

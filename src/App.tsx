@@ -23,6 +23,7 @@ import { LEVERS, META_EDGES, SPACES } from './ontology/meta'
 import { qStats, useQuarantine } from './ontology/quarantine'
 import { runGate } from './ontology/gate'
 import Catalog from './ontology/CatalogView'
+import Guide from './ontology/Guide'
 import { ROLES, setRole, useRole } from './ontology/policy'
 import type { Jump, Preset, StepId } from './ontology/nav'
 import type { FaultId } from './ontology/rdf'
@@ -39,52 +40,90 @@ import { fmt } from './ontology/util'
 
 const GROUPS = [
   {
-    ko: '정의', desc: '무엇이 무엇과 어떻게 연결되나',
+    // 화면이 14개가 되면서 첫인상이 «패널이 많다»가 됐다. 진입로를 앞에 둔다.
+    ko: '안내', desc: '처음이면 여기부터',
+    steps: [{ id: 'guide', n: '⓪', label: '시작하기', desc: '전체 흐름 한눈에' }],
+  },
+  {
+    ko: '정의', desc: '무엇을 무엇과 잇는가',
     steps: [
-      { id: 'spaces', n: '①', label: '스페이스', desc: '데이터가 서 있는 9개 자리' },
-      { id: 'grammar', n: '②', label: '관계 문법', desc: '허용된 관계만 만든다' },
-      { id: 'standards', n: '③', label: '표준 정렬', desc: '국제 표준 어디에 붙나' },
-      { id: 'validator', n: '④', label: '문법 검증', desc: '정말 막히는지 눌러보기' },
+      { id: 'spaces', n: '①', label: '데이터 자리', desc: '데이터가 놓이는 9개 자리' },
+      { id: 'grammar', n: '②', label: '연결 규칙', desc: '허용된 연결만 만든다' },
+      { id: 'standards', n: '③', label: '국제 표준', desc: '표준에 맞추고 받아온다' },
+      { id: 'validator', n: '④', label: '규칙 시험', desc: '정말 막히는지 눌러보기' },
     ],
   },
   {
     ko: '활용', desc: '그래서 무엇에 쓰나',
     steps: [
-      { id: 'chain', n: '⑤', label: '근거 사슬', desc: '이 숫자가 어디서 왔나' },
-      { id: 'sim', n: '⑥', label: '조치 시뮬레이션', desc: '손잡이를 당기면 성과가' },
-      { id: 'impact', n: '⑦', label: '영향 분석', desc: '바꾸면 어디까지 흔들리나' },
+      { id: 'chain', n: '⑤', label: '근거 따라가기', desc: '이 숫자가 어디서 왔나' },
+      { id: 'sim', n: '⑥', label: '조치와 효과', desc: '조치하면 얼마나 좋아지나' },
+      { id: 'impact', n: '⑦', label: '변경 영향', desc: '바꾸면 어디까지 번지나' },
     ],
   },
   {
-    ko: '운영', desc: '어떻게 관리하고 넘기나',
+    ko: '운영', desc: '어떻게 관리하나',
     steps: [
-      { id: 'meta', n: '⑧', label: '액티브 메타데이터', desc: '값에 대한 값 4계층 12속성' },
-      { id: 'live', n: '⑨', label: 'SHACL 실검증', desc: '제약을 실제로 돌려본다' },
-      { id: 'quarantine', n: '⑩', label: '격리 큐', desc: '막힌 레코드는 어디로 가나' },
+      { id: 'meta', n: '⑧', label: '데이터 설명서', desc: '출처·품질·권한 12가지' },
+      { id: 'live', n: '⑨', label: '규칙 검사', desc: '진짜 막히는지 돌려본다' },
+      { id: 'quarantine', n: '⑩', label: '막힌 데이터', desc: '누가 어떻게 풀어 주나' },
     ],
   },
   {
-    ko: '개정', desc: '고치고 내보낸다',
+    ko: '개정', desc: '규칙을 고친다',
     steps: [
-      { id: 'release', n: '⑪', label: '문법 발행', desc: '제안에서 멈추지 않는다' },
-      { id: 'compare', n: '⑫', label: '문법 비교', desc: '개정 전후를 나란히' },
-      { id: 'export', n: '⑬', label: '내보내기', desc: 'JSON-LD · OWL · SHACL' },
+      { id: 'release', n: '⑪', label: '새 버전 내기', desc: '고친 규칙을 실제 적용' },
+      { id: 'compare', n: '⑫', label: '버전 비교', desc: '무엇이 달라졌나' },
+      { id: 'export', n: '⑬', label: '파일로 받기', desc: '표준 형식 9가지' },
     ],
   },
   {
     // 화면 번호는 뒤에 붙인다 — 원문자가 코드 주석에서 목록 기호로도 쓰여
     // 기존 번호를 밀면 «⑨ 실검증»이 «⑩»으로 조용히 바뀐 것처럼 보이는 자리가 100군데 넘는다.
-    ko: '공급', desc: 'AI가 받아 쓸 수 있게',
-    steps: [{ id: 'catalog', n: '⑭', label: '데이터 카탈로그', desc: '무엇이 있고 어디서 왔나' }],
+    ko: '공급', desc: 'AI가 받아 쓰도록',
+    steps: [{ id: 'catalog', n: '⑭', label: '데이터 목록', desc: '무엇이 있고 어디서 왔나' }],
   },
 ] as const
 
 const PLATFORM = 'https://hyegeungim3-git.github.io/qdrive-unified/'
 
+/**
+ * 화면마다 «이 화면은 무엇에 답하나»를 한 문장으로.
+ *
+ * 각 화면은 저마다 정직하게 만들었지만, 처음 여는 사람에게는 패널 제목만으로 무엇을 보는지
+ * 알기 어려웠다. 화면 안에 흩어 놓지 않고 **한 곳에서 관리**한다 — 문구가 갈라지지 않게.
+ */
+const ASKS: Record<string, string> = {
+  guide: '데이터가 어디로 들어와서 어디로 나가는지 한 장으로 봅니다.',
+  spaces: '우리 데이터는 어떤 자리에 놓이나요? 9개 자리와 실제 연결을 봅니다.',
+  grammar: '어떤 연결을 만들 수 있나요? 그중 시간이 흐르면 바뀌는 연결은 무엇인가요?',
+  standards: '우리 용어가 국제 표준의 어디에 해당하나요? 표준 데이터를 받아올 수도 있나요?',
+  validator: '이 연결이 정말 막히는지 직접 눌러서 확인해 보세요.',
+  chain: '이 점수는 왜 이 숫자인가요? 성과에서 원본 기록까지 거꾸로 따라갑니다.',
+  sim: '조치를 하면 성과가 얼마나 좋아지나요? 실제로 조치를 내려볼 수도 있습니다.',
+  impact: '규칙 하나를 바꾸면 어느 화면까지 영향을 받나요?',
+  meta: '데이터를 설명하는 데이터입니다. 출처·품질·권한을 누가 관리하나요?',
+  live: '규칙이 진짜로 막는지 봅니다. 일부러 잘못된 데이터를 넣어 보세요.',
+  quarantine: '막힌 데이터는 어디로 가고, 누가 풀어 주나요?',
+  release: '규칙을 고쳐서 새 버전을 내보냅니다. 내보내면 다른 화면의 답도 바뀝니다.',
+  compare: '이전 버전과 무엇이 달라졌나요?',
+  export: '이 구조를 다른 곳에 넘기려면? 9가지 파일로 내려받습니다.',
+  catalog: '어떤 데이터가 있고, 어디서 왔고, 얼마나 믿을 만한가요?',
+}
+
+/** 그룹을 펼친 평평한 순서 — 이전/다음 이동과 «몇 번째»에 쓴다.
+    GROUPS가 as const라 flatMap이 좁은 유니온으로 추론된다 → 타입을 명시한다. */
+type Step = { id: StepId; n: string; label: string; desc: string }
+const FLAT: Step[] = GROUPS.flatMap((g) => g.steps as readonly Step[])
+
 export default function App() {
   const snap = useSim()
   const theme = useTheme()
-  const [step, setStep] = useState<StepId>('spaces')
+  const [step, setStep] = useState<StepId>('guide')
+  const stepIx = FLAT.findIndex((x) => x.id === step)
+  const cur = FLAT[stepIx]
+  const prev = stepIx > 0 ? FLAT[stepIx - 1] : null
+  const next = stepIx >= 0 && stepIx < FLAT.length - 1 ? FLAT[stepIx + 1] : null
   // 화면 이동 시 조건까지 들고 간다. seq는 같은 화면으로 다시 넘어와도 프리셋이 다시 먹게 하는 리마운트 키.
   const [preset, setPreset] = useState<Preset>({})
   // ⑨에서 주입한 결함은 ⑩을 다녀와도 유지된다
@@ -258,7 +297,15 @@ export default function App() {
           ))}
         </div>
 
+        {/* 화면마다 «이 화면은 무엇에 답하나»를 한 줄로. 처음 여는 사람은 패널 제목만으로는 모른다. */}
+        <div className="flex items-center gap-2 rounded-xl border border-pink-400/25 bg-pink-400/[0.07] px-4 py-2.5">
+          <span className="shrink-0 text-[15px] font-black text-pink-300">{cur?.n}</span>
+          <span className="shrink-0 text-[13.5px] font-bold text-gray-100">{cur?.label}</span>
+          <span className="break-keep text-[12px] leading-relaxed text-gray-400">{ASKS[step] ?? ''}</span>
+        </div>
+
         <div key={gv}>
+          {step === 'guide' && <Guide jump={jump} />}
           {step === 'spaces' && <SpaceGraph snap={snap} onGoto={jump} view={spaceView} setView={setSpaceView} />}
           {step === 'grammar' && <Grammar />}
           {step === 'standards' && <StdAlign />}
@@ -275,9 +322,32 @@ export default function App() {
           {step === 'catalog' && <Catalog jump={jump} />}
         </div>
 
-        <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
-          🧭 <b className="text-gray-300">왜 문법을 먼저 정하나</b> — 데이터가 늘어날 때 관계 어휘를 그때그때 만들면, 나중에 다른 도시·다른 사업자
-          데이터와 합칠 수 없습니다. 스페이스와 관계를 먼저 못 박아 두면 새 원천은 <b className="text-gray-300">기존 자리에 꽂기만</b> 하면 됩니다.{' '}
+        {/* 14화면을 순서대로 훑을 수 있게. 어디까지 봤는지도 함께 보인다. */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => prev && setStep(prev.id as StepId)}
+            disabled={!prev}
+            className="flex-1 rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5 text-left transition-colors hover:border-gray-700 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            <div className="text-[10.5px] text-gray-600">← 이전</div>
+            <div className="truncate text-[12.5px] font-bold text-gray-300">{prev ? `${prev.n} ${prev.label}` : '처음입니다'}</div>
+          </button>
+          <span className="shrink-0 rounded-lg bg-gray-800/60 px-2.5 py-1 text-[11.5px] font-bold tabular-nums text-gray-400">
+            {FLAT.findIndex((x) => x.id === step) + 1} / {FLAT.length}
+          </span>
+          <button
+            onClick={() => next && setStep(next.id as StepId)}
+            disabled={!next}
+            className="flex-1 rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5 text-right transition-colors hover:border-gray-700 disabled:cursor-not-allowed disabled:opacity-35 focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            <div className="text-[10.5px] text-gray-600">다음 →</div>
+            <div className="truncate text-[12.5px] font-bold text-gray-300">{next ? `${next.n} ${next.label}` : '마지막입니다'}</div>
+          </button>
+        </div>
+
+        <div className="rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[12.5px] leading-relaxed text-gray-500">
+          🧭 <b className="text-gray-300">왜 규칙을 먼저 정할까요?</b> 데이터가 늘 때마다 용어를 새로 만들면, 나중에 다른 도시나 다른 회사
+          데이터와 합칠 수 없습니다. 자리와 연결을 먼저 정해 두면 새 데이터는 <b className="text-gray-300">기존 자리에 꽂기만</b> 하면 됩니다.{' '}
           <a href={PLATFORM} target="_blank" rel="noreferrer" className="text-sky-400 underline-offset-2 hover:underline">
             운영 플랫폼
           </a>

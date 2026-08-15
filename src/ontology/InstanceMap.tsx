@@ -295,7 +295,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
         </svg>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 break-keep text-[11.5px] leading-relaxed text-gray-500">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 break-keep text-[12.5px] leading-relaxed text-gray-500">
         {pick ? (
           <>
             <span>
