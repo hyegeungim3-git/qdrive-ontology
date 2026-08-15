@@ -44,6 +44,8 @@ const OUTCOME_TYPE: Record<string, string> = {
   fuel: 'FuelSaving',
   co2: 'Co2Reduction',
   punctual: 'Punctuality',
+  // 배차 간격을 성과 스페이스 노드로 승격했으므로 이제 이 지표도 그래프로 걸을 수 있다
+  headway: 'Headway',
 }
 
 /** 문법이 이 방향에 허용한 관계 어휘 — 손으로 적지 않는다 */

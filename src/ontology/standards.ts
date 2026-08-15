@@ -224,6 +224,18 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1, note: '확신도 — 낮으면 사람에게 회부' },
     { name: 'decidedBy', datatype: 'xsd:string', required: false, note: '확정한 담당자 — 자동 확정 금지' },
   ],
+  // 배차 간격 — 성과 스페이스로 승격하면서 제약도 함께 정의한다. 노드만 만들고 규칙이 없으면
+  // «검사받지 않는 성과»가 하나 생기는 셈이다.
+  Headway: [
+    { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 60, note: '이상 간격 대비 편차(분)' },
+    { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },
+    { name: 'periodStart', datatype: 'xsd:dateTime', required: true },
+  ],
+  BunchingVerdict: [
+    { name: 'verdict', datatype: 'xsd:string', required: true, oneOf: ['정상', '몰림', '벌어짐'] },
+    { name: 'confidence', datatype: 'xsd:decimal', required: true, min: 0, max: 1 },
+    { name: 'decidedBy', datatype: 'xsd:string', required: false, note: '배차 조정 확정은 관제가 한다' },
+  ],
   SafetyScore: [
     { name: 'value', datatype: 'xsd:decimal', required: true, min: 0, max: 100 },
     { name: 'basis', datatype: 'xsd:string', required: true, oneOf: ['실측', '환산', '추정', '정성'] },

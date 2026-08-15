@@ -118,6 +118,13 @@ export const SPACES: Space[] = [
       { ko: '민원 사실 판정', en: 'ComplaintVerdict', count: (s) => s.complaints.filter((c) => c.evidence).length, live: true, note: '증빙 매칭 결과 + 사실 가능성 %' },
       { ko: '노선 준수 판정', en: 'RouteCompliance', count: (s) => s.trips.length, live: true, note: '인가노선 대조 — 정산 검증 근거' },
       { ko: '고장 예측', en: 'FaultPrediction', count: (s) => (s.fault ? 1 : 0) + s.workOrders.length, live: true, note: '센서 이상 징후 → 잔여수명 추정' },
+      {
+        ko: '몰림 판정',
+        en: 'BunchingVerdict',
+        count: (s) => s.vehicles.filter((v) => v.headway?.frontId).length,
+        live: true,
+        note: '앞차 간격이 이상값에서 얼마나 벗어났나 — 배차 간격 성과의 근거',
+      },
     ],
   },
   {
@@ -136,6 +143,13 @@ export const SPACES: Space[] = [
       { ko: '경제운전 점수', en: 'EcoScore', count: (s) => s.vehicles.length, live: true, note: '관성주행·조기 발떼기' },
       { ko: '연료 절감', en: 'FuelSaving', count: () => 1, live: true, note: '코칭 미적용 기준선 대비 순수 절감' },
       { ko: 'CO₂ 감축', en: 'Co2Reduction', count: () => 1, live: true, note: '연료 실측 × 배출계수' },
+      {
+        ko: '배차 간격',
+        en: 'Headway',
+        count: (s) => s.vehicles.filter((v) => v.headway?.frontId).length,
+        live: true,
+        note: '앞차 간격 편차 — 관측·판정을 거쳐 성과가 된다',
+      },
       { ko: '정시율', en: 'Punctuality', count: () => ROUTES.length, live: false, note: '노선별 — 2차 APC 연동 시 실측' },
     ],
   },

@@ -6,6 +6,7 @@ import { currentVersion, publish, removeFromDraft, revertAll, useDraft, useGramm
 import type { SimSnapshot } from '../sim/types'
 import type { Jump } from './nav'
 import { can, denyReason, roleOf, useRole } from './policy'
+import { revalidateAll, useGate } from './gate'
 
 /**
  * ⑪ 문법 발행 — 제안에서 멈추지 않는다.
@@ -33,6 +34,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
   const draft = useDraft()
   const releases = useGrammar()
   const role = useRole()
+  const gate = useGate()
   // 규정이 막는다 — 문법 발행은 데이터 책임자만
   const mayPublish = can(role, 'publishGrammar')
   const [who, setWho] = useState('데이터 책임자')
@@ -251,6 +253,29 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
           </>
         )}
       </Panel>
+
+      {/* 발행은 소급하지 않는다 — 그 말이 사실인지 여기서 숫자로 보인다 */}
+      {gate.stamped.stale > 0 && (
+        <Panel
+          title="옛 문법으로 검증된 레코드"
+          right={
+            <button
+              onClick={revalidateAll}
+              className="rounded-md border border-amber-400/50 bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold text-amber-200 hover:bg-amber-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              지금 문법으로 재검증
+            </button>
+          }
+        >
+          <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 break-keep text-[12px] leading-relaxed text-amber-100">
+            현재 문법은 <b>{gate.version}</b>인데, <b>{gate.stamped.stale}건</b>의 레코드가 그 이전 문법으로 검증된 스탬프를 달고 있습니다.
+            <div className="mt-1.5 text-[11.5px] text-gray-300">
+              발행은 소급하지 않기 때문입니다 — 새 문법은 앞으로 들어오는 데이터에 적용되고, 이미 검증된 레코드는 그대로 둡니다. 규칙이 바뀌었다고 지난
+              판정이 조용히 뒤집히면 그게 더 위험합니다. <b className="text-amber-200">소급할지는 결정이어야 합니다</b> — 오른쪽 버튼이 그 결정입니다.
+            </div>
+          </div>
+        </Panel>
+      )}
 
       <Panel
         title="개정 이력"

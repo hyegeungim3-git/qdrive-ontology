@@ -52,6 +52,8 @@ export type GateResult = {
   }
   ms: number
   error?: string
+  /** 이번 실행에서 새로 찍힌 스탬프 수 / 옛 문법 스탬프를 단 레코드 수 */
+  stamped: { fresh: number; stale: number }
 }
 
 const EMPTY: GateResult = {
@@ -68,6 +70,33 @@ const EMPTY: GateResult = {
     scores: [],
   },
   ms: 0,
+  stamped: { fresh: 0, stale: 0 },
+}
+
+/**
+ * 검증 스탬프 — 이 레코드는 **어느 문법으로** 검증됐나.
+ *
+ * ⑪에 «발행은 소급하지 않습니다»라고 적어 두었는데, 정작 레코드에는 아무 표시가 없었다.
+ * 그러면 v1.1 발행 후 «이 판정은 어느 규칙으로 나온 건가»에 답할 수 없다.
+ *
+ * 스탬프는 **처음 통과한 시점의 것을 유지한다**(sticky). 게이트가 3초마다 돌아도 덮어쓰지 않는다 —
+ * 그래야 «v1.0으로 검증된 레코드가 아직 N건 남아 있다»가 보이고, 재검증이 **결정**이 된다.
+ * PROV로 치면 `prov:wasGeneratedBy` + 활동의 버전에 해당한다.
+ */
+export type Stamp = { version: string; at: number; status: '통과' | '격리' }
+
+const stamps = new Map<string, Stamp>()
+export const stampOf = (iri: string) => stamps.get(iri)
+
+/** 지금 문법보다 옛 문법으로 검증된 레코드 — 재검증 대상 */
+export function staleStamps(current: string): { iri: string; stamp: Stamp }[] {
+  return [...stamps.entries()].filter(([, s]) => s.version !== current).map(([iri, stamp]) => ({ iri, stamp }))
+}
+
+/** 재검증 — 스탬프를 지우면 다음 게이트에서 현재 문법으로 다시 찍힌다. 소급은 «결정»이어야 한다. */
+export function revalidateAll() {
+  stamps.clear()
+  emit()
 }
 
 /* ── 저장소 ── */
@@ -140,9 +169,19 @@ export async function runGate(snap: SimSnapshot, faults: Set<FaultId>): Promise<
     }
   })
 
+  /* 스탬프 — 처음 본 레코드에만 찍는다(sticky). 이미 찍힌 건 건드리지 않는다. */
+  const version = currentVersion()
+  let fresh = 0
+  nodes.forEach((iri) => {
+    if (stamps.has(iri)) return
+    stamps.set(iri, { version, at: snap.simTime, status: held.has(iri) ? '격리' : '통과' })
+    fresh++
+  })
+  const stale = [...stamps.values()].filter((x) => x.version !== version).length
+
   result = {
     at: snap.simTime,
-    version: currentVersion(),
+    version,
     graph: r.graph,
     findings: r.findings,
     held,
@@ -155,6 +194,7 @@ export async function runGate(snap: SimSnapshot, faults: Set<FaultId>): Promise<
     },
     ms: Math.round(performance.now() - t0),
     error: r.error,
+    stamped: { fresh, stale },
   }
   running = false
   emit()

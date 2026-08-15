@@ -4,6 +4,8 @@ import { FAULTS, type FaultId } from './rdf'
 import { enqueue, qStats, useQuarantine } from './quarantine'
 import { runValidation, type Finding, type RunResult } from './validate'
 import { shapesFor } from './shacl'
+import { stampOf } from './gate'
+import { currentVersion } from './grammar'
 import type { Jump } from './nav'
 import type { SimSnapshot } from '../sim/types'
 
@@ -47,6 +49,8 @@ function RecordAudit({ res, iri, onClear }: { res: RunResult; iri: string; onCle
     )
   }
 
+  const stamp = stampOf(iri)
+  const now = currentVersion()
   const checks = shapesFor(type, space)
   const mine = res.findings.filter((f) => f.focusIri === iri)
   const failed = (c: ReturnType<typeof shapesFor>[number]) =>
@@ -61,7 +65,27 @@ function RecordAudit({ res, iri, onClear }: { res: RunResult; iri: string; onCle
           <div className="text-[13px] font-black text-violet-200">
             {label} <span className="font-mono text-[11px] font-semibold text-gray-500">{short}</span>
           </div>
-          <div className="mt-0.5 break-keep text-[11.5px] text-gray-400">
+          {/* 검증 스탬프 — 이 레코드가 어느 문법으로 검사됐나. 발행이 소급하지 않는다는 것의 증거. */}
+          {stamp && (
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10.5px]">
+              <span
+                className="rounded px-1.5 py-0.5 font-black"
+                style={
+                  stamp.version === now
+                    ? { color: '#6ee7b7', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.4)' }
+                    : { color: '#fcd34d', background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.45)' }
+                }
+              >
+                {stamp.version}으로 검증 · {stamp.status}
+              </span>
+              {stamp.version !== now && (
+                <span className="break-keep text-amber-300">
+                  지금 문법은 {now} — 이 레코드는 <b>옛 문법으로 검증</b>됐습니다. 발행은 소급하지 않습니다.
+                </span>
+              )}
+            </div>
+          )}
+          <div className="mt-1 break-keep text-[11.5px] text-gray-400">
             {type} · {space} — 이 레코드에 적용된 제약 <b className="text-gray-200">{checks.length}</b>개 중{' '}
             {violated > 0 ? (
               <b className="text-rose-300">{violated}개 위반</b>

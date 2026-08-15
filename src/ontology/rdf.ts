@@ -254,6 +254,36 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(s, 'qd:periodStart', dt(0))
     node(`qdi:eco-${key(v.id)}`, 'EcoScore', 'Outcome', `${v.id} 경제운전 점수`)
   })
+  /**
+   * 배차 간격 — 성과 스페이스로 승격했다.
+   * 그동안 «측정은 하는데 노드가 아닌» 지표였다. 그래서 ⑤에서 그래프로 걸을 수 없었다.
+   * 관측(위치) ─뒷받침한다→ 몰림 판정 ─반영된다→ 배차 간격 ←안정시킨다─ 배차 권고
+   * 로 사슬을 갖추면 다른 성과와 같은 방식으로 되짚을 수 있다.
+   */
+  // 위치 관측 노드가 만들어지는 범위(앞 8대) 안에서만 — 없는 노드를 가리키면 그래프가 끊긴다
+  const hwNodes = new Set<string>()
+  vehicles
+    .slice(0, 8)
+    .filter((v) => v.headway?.frontId)
+    .slice(0, 6)
+    .forEach((v) => {
+      const hw = `qdi:hw-${key(v.id)}`
+      const bv = `qdi:bv-${key(v.id)}`
+      hwNodes.add(hw)
+      node(hw, 'Headway', 'Outcome', `${v.id} 배차 간격`)
+      add(hw, 'qd:value', dec(Math.abs((v.headway?.frontGapMin ?? 0) - (v.headway?.idealMin ?? 0))))
+      add(hw, 'qd:basis', str('실측'))
+      add(hw, 'qd:periodStart', dt(0))
+
+      node(bv, 'BunchingVerdict', 'Claim', `${v.id} 몰림 판정`)
+      const st = v.headway?.status
+      add(bv, 'qd:verdict', str(st === 'bunching' ? '몰림' : st === 'gap' ? '벌어짐' : '정상'))
+      add(bv, 'qd:confidence', dec(0.9))
+      add(bv, 'qd:decidedBy', str('관제 담당 1'))
+      add(bv, P('반영된다'), hw)
+      add(`qdi:loc-${key(v.id)}`, P('뒷받침한다'), bv)
+    })
+
   node('qdi:out-fuelsaving', 'FuelSaving', 'Outcome', '연료 절감률')
   node('qdi:out-co2', 'Co2Reduction', 'Outcome', 'CO₂ 감축량')
   ROUTES.forEach((r) => node(`qdi:punc-${r.id}`, 'Punctuality', 'Outcome', `${r.name} 정시율`))
@@ -408,6 +438,8 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     const iri = `qdi:disp-${r.id}`
     node(iri, 'DispatchAdvice', 'Lever', `${r.routeId} 배차 권고`)
     add(iri, P('안정시킨다'), `qdi:punc-${r.routeId}`)
+    // 배차 권고가 실제로 움직이려는 성과 — 정시율만이 아니라 배차 간격이다
+    if (hwNodes.has(`qdi:hw-${key(r.vehicleId)}`)) add(iri, P('안정시킨다'), `qdi:hw-${key(r.vehicleId)}`)
   })
   snap.workOrders.slice(0, 3).forEach((w) => {
     const iri = `qdi:pm-${w.id}`
