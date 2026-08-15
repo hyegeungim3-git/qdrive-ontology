@@ -233,7 +233,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
                       textAnchor="middle"
                       fontSize={8.5}
                       fontWeight={700}
-                      fill={colorOf(l.to)}
+                      fill={ink(colorOf(l.to))}
                       style={{ paintOrder: 'stroke', stroke: 'var(--color-gray-900)', strokeWidth: 3.5, strokeLinejoin: 'round' }}
                     >
                       {relKo(l.p)}

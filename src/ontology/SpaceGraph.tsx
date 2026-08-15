@@ -171,7 +171,7 @@ export default function SpaceGraph({
                       textAnchor="middle"
                       fontSize={8.5}
                       fontWeight={700}
-                      fill={spaceOf(e.to).color}
+                      fill={ink(spaceOf(e.to).color)}
                     >
                       {label}
                     </text>
