@@ -459,7 +459,7 @@ export default function Export() {
             className="mt-3 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
             style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
           >
-            🔒 <b>«{roleOf(role).ko}» 역할에는 원본 내보내기 권한이 없습니다</b> — {denyReason(role, 'exportRaw')} 아래 미리보기는 볼 수 있지만
+            🔒 <b>«{roleOf(role).ko}» 역할에는 원본 내보내기 권한이 없습니다</b> — {denyReason(role, 'exportRaw')}. 아래 미리보기는 볼 수 있지만
             복사·저장은 잠깁니다.
           </div>
         )}

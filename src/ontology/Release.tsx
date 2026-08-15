@@ -85,7 +85,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
             className="mb-3 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
             style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
           >
-            🔒 <b>«{roleOf(role).ko}» 역할에는 문법 발행 권한이 없습니다</b> — {denyReason(role, 'publishGrammar')} 개정안을 담아 제안하는 것까지는
+            🔒 <b>«{roleOf(role).ko}» 역할에는 문법 발행 권한이 없습니다</b> — {denyReason(role, 'publishGrammar')}. 개정안을 담아 제안하는 것까지는
             할 수 있습니다.
           </div>
         )}

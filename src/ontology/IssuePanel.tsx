@@ -64,7 +64,7 @@ export default function IssuePanel({ snap, jump }: { snap: SimSnapshot; jump: Ju
 
       {!mayIssue && (
         <div className="mt-3 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed" style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}>
-          🔒 <b>«{roleOf(role).ko}» 역할에는 조치 발행 권한이 없습니다</b> — {denyReason(role, ISSUE)} 아래에서 검사 결과는 볼 수 있지만 발행은
+          🔒 <b>«{roleOf(role).ko}» 역할에는 조치 발행 권한이 없습니다</b> — {denyReason(role, ISSUE)}. 아래에서 검사 결과는 볼 수 있지만 발행은
           잠깁니다.
         </div>
       )}
