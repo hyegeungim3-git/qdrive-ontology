@@ -178,6 +178,61 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
   return L.join('\n')
 }
 
+/**
+ * 이 노드 타입에 **적용되는 제약 목록**.
+ *
+ * ⑨는 위반만 보여준다. 그런데 «이 레코드는 괜찮은가»를 물으러 온 사람에게 «위반 없음»만 답하면
+ * 무엇을 검사했는지 알 수 없다. 통과한 검사도 보여야 «검사를 하긴 한 건가»에 답이 된다.
+ * 발행으로 문법이 바뀌면 이 목록도 같이 바뀐다 — 셰이프를 만드는 곳과 같은 정의를 읽기 때문.
+ */
+export type ShapeCheck = { family: '속성' | '관계' | '문법' | '도메인'; name: string; detail: string; path: string; constraint?: string }
+
+export function shapesFor(type: string, spaceEn: string): ShapeCheck[] {
+  const out: ShapeCheck[] = []
+
+  ;(TYPE_PROPS[type] ?? []).forEach((p) => {
+    const bits = [p.datatype.replace('xsd:', '').replace('geo:', '')]
+    if (p.required) bits.push('필수')
+    if (p.min !== undefined || p.max !== undefined) bits.push(`${p.min ?? ''}~${p.max ?? ''}`)
+    if (p.oneOf) bits.push(`${p.oneOf.length}종 중 하나`)
+    out.push({ family: '속성', name: p.name, detail: bits.join(' · '), path: p.name })
+  })
+
+  META_EDGES.filter((e) => spaceOf(e.from).en === spaceEn).forEach((e) => {
+    e.relations.forEach((r) => {
+      const m = REL_META[r]
+      out.push({
+        family: '관계',
+        name: `«${r}»`,
+        detail: `도착 ${spaceOf(e.to).ko} · ${m.card}${m.required ? ' · 필수' : ''}`,
+        path: m.en,
+      })
+    })
+  })
+
+  const sp = SPACES.find((s) => s.en === spaceEn)
+  if (sp) {
+    const outs = META_EDGES.filter((e) => e.from === sp.id).flatMap((e) => e.relations)
+    out.push({ family: '문법', name: 'sh:closed', detail: `${sp.ko}에서 나갈 수 있는 관계 ${outs.length}종 밖은 금지`, path: '', constraint: 'Closed' })
+  }
+
+  // 도메인 규칙은 특정 타입에만 걸린다 — 안 걸리는 규칙을 «통과»로 적으면 거짓이다
+  if (spaceEn === 'Claim' && !DISABLED_RULES.has('ClaimNeedsEvidence'))
+    out.push({ family: '도메인', name: '근거 없는 판정 금지', detail: '뒷받침하는 관측이 하나 이상 있어야 한다', path: '← supports' })
+  if (type === 'JustifyVerdict') out.push({ family: '도메인', name: '감점 자동 확정 금지', detail: '확정 담당자(decidedBy)가 있어야 한다', path: 'decidedBy' })
+  if (type === 'Driver') out.push({ family: '도메인', name: '분석셋 실명 금지', detail: '실명(driverName)을 둘 수 없다 — 가명키만', path: 'driverName' })
+  if (type === 'Trip')
+    out.push({
+      family: '도메인',
+      name: '회차 연료 누적값 탐지',
+      detail: `주행거리 대비 ${perKm(FUEL_LIMIT.max)} m³/km 초과 금지`,
+      path: 'fuelM3',
+      constraint: 'SPARQL',
+    })
+
+  return out
+}
+
 /** 셰이프 개수 요약 */
 export function shaclStats() {
   const propShapes = Object.values(TYPE_PROPS).reduce((n, p) => n + p.length, 0)

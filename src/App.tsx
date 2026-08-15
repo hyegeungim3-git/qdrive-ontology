@@ -220,7 +220,7 @@ export default function App() {
           {step === 'sim' && <Simulator snap={snap} />}
           {step === 'impact' && <Impact key={`i${seq}`} preset={preset.impact} />}
           {step === 'meta' && <ActiveMeta onGoto={jump} />}
-          {step === 'live' && <Live snap={snap} onGoto={jump} faults={faults} setFaults={setFaults} />}
+          {step === 'live' && <Live key={`l${seq}`} snap={snap} onGoto={jump} faults={faults} setFaults={setFaults} preset={preset.live} />}
           {step === 'quarantine' && <Quarantine snap={snap} onGoto={jump} />}
           {step === 'release' && <Release snap={snap} onGoto={jump} />}
           {step === 'compare' && <Compare onGoto={jump} />}

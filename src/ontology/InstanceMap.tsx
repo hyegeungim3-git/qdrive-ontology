@@ -283,6 +283,12 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
               <b className="text-gray-300">{links.filter(litLink).length}</b>개 연결이 붙어 있습니다. 다시 누르면 전체로 돌아갑니다.
             </span>
             <ChainLink ix={ix} iri={pick} onGoto={onGoto} />
+            <button
+              onClick={() => onGoto('live', { live: { focusIri: pick } })}
+              className="rounded-md border border-pink-400/45 bg-pink-400/12 px-2.5 py-1 text-[11px] font-bold text-pink-200 hover:bg-pink-400/22 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⑨ 이 레코드가 받은 검사 →
+            </button>
           </>
         ) : (
           <span>

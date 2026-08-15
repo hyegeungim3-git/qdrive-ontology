@@ -3,6 +3,7 @@ import { Panel } from '../components/ui'
 import { FAULTS, type FaultId } from './rdf'
 import { enqueue, qStats, useQuarantine } from './quarantine'
 import { runValidation, type Finding, type RunResult } from './validate'
+import { shapesFor } from './shacl'
 import type { Jump } from './nav'
 import type { SimSnapshot } from '../sim/types'
 
@@ -21,18 +22,130 @@ const SEV: Record<Finding['severity'], { ko: string; fg: string; bg: string; bd:
 
 const FAMILY_TONE: Record<string, string> = { 속성: '#22d3ee', 관계: '#34d399', 문법: '#a78bfa', 도메인: '#fb7185' }
 
+/**
+ * 한 레코드의 검사 성적표.
+ *
+ * ⑨는 위반만 늘어놓는다. 그래프에서 «이 레코드는 괜찮은가»를 물으러 온 사람에게 «위반 없음»만
+ * 답하면 **무엇을 검사했는지**를 알 수 없다. 그래서 적용된 제약을 전부 세우고 통과/위반을 표시한다.
+ * 통과가 보여야 «검사를 하긴 한 건가»에 답이 된다.
+ */
+function RecordAudit({ res, iri, onClear }: { res: RunResult; iri: string; onClear: () => void }) {
+  const ix = res.graph.index
+  const type = ix.type[iri]
+  const space = ix.space[iri]
+  const label = ix.label[iri] ?? iri.replace('qdi:', '')
+  const short = iri.replace('qdi:', '')
+
+  if (!type) {
+    return (
+      <div className="mb-3 rounded-xl border border-gray-800 bg-gray-900/50 px-4 py-3 break-keep text-[12px] text-gray-400">
+        <b className="text-gray-200">{short}</b> 은(는) 지금 데이터 그래프에 없습니다 — 그래프를 다시 뜬 뒤 사라진 레코드입니다.{' '}
+        <button onClick={onClear} className="text-sky-400 underline-offset-2 hover:underline">
+          전체 결과 보기
+        </button>
+      </div>
+    )
+  }
+
+  const checks = shapesFor(type, space)
+  const mine = res.findings.filter((f) => f.focusIri === iri)
+  const failed = (c: ReturnType<typeof shapesFor>[number]) =>
+    mine.filter((f) => (c.constraint ? f.constraint === c.constraint : f.path === c.path))
+  const violated = checks.filter((c) => failed(c).length > 0).length
+  const block = res.graph.turtle.split('\n\n').find((b) => b.trim().startsWith(iri + ' '))
+
+  return (
+    <div className="mb-3 rounded-xl border border-violet-400/30 bg-violet-400/[0.07] px-4 py-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[13px] font-black text-violet-200">
+            {label} <span className="font-mono text-[11px] font-semibold text-gray-500">{short}</span>
+          </div>
+          <div className="mt-0.5 break-keep text-[11.5px] text-gray-400">
+            {type} · {space} — 이 레코드에 적용된 제약 <b className="text-gray-200">{checks.length}</b>개 중{' '}
+            {violated > 0 ? (
+              <b className="text-rose-300">{violated}개 위반</b>
+            ) : (
+              <b className="text-emerald-300">전부 통과</b>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={onClear}
+          className="shrink-0 rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
+        >
+          전체 결과 보기
+        </button>
+      </div>
+
+      <div className="mt-2.5 -mx-1 overflow-x-auto px-1">
+        <table className="w-full min-w-[640px] border-collapse text-[11.5px]">
+          <thead>
+            <tr className="border-b border-gray-800 text-left text-[10.5px] text-gray-500">
+              <th className="py-1.5 pr-2 font-semibold">계열</th>
+              <th className="py-1.5 pr-2 font-semibold">검사</th>
+              <th className="py-1.5 pr-2 font-semibold">내용</th>
+              <th className="py-1.5 font-semibold">결과</th>
+            </tr>
+          </thead>
+          <tbody>
+            {checks.map((c, i) => {
+              const bad = failed(c)
+              const tone = FAMILY_TONE[c.family] ?? '#94a3b8'
+              return (
+                <tr key={i} className="border-b border-gray-800/60 align-top">
+                  <td className="py-1.5 pr-2">
+                    <span
+                      className="whitespace-nowrap rounded px-1 py-0.5 text-[9.5px] font-black"
+                      style={{ color: tone, background: `${tone}1f`, border: `1px solid ${tone}55` }}
+                    >
+                      {c.family}
+                    </span>
+                  </td>
+                  <td className="py-1.5 pr-2 break-keep font-mono text-[11px] text-gray-300">{c.name}</td>
+                  <td className="py-1.5 pr-2 break-keep text-gray-500">{c.detail}</td>
+                  <td className="py-1.5 break-keep">
+                    {bad.length ? (
+                      <span className="font-bold text-rose-300">✗ {bad[0].message}</span>
+                    ) : (
+                      <span className="font-semibold text-emerald-300">✓ 통과</span>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {block && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-[11.5px] font-semibold text-gray-400 hover:text-gray-200">검사받은 실제 트리플 보기</summary>
+          <pre className="mt-1.5 overflow-auto rounded-lg border border-gray-800 bg-gray-950 p-2.5 font-mono text-[10.5px] leading-relaxed text-gray-400">
+            {block}
+          </pre>
+        </details>
+      )}
+    </div>
+  )
+}
+
 export default function Live({
   snap,
   onGoto,
   faults,
   setFaults,
+  preset,
 }: {
   snap: SimSnapshot
   onGoto: Jump
   // ⑩에 갔다 돌아와도 주입한 결함이 남아 있어야 한다 — 이 화면은 왕복을 전제로 만들어져 있다
   faults: Set<FaultId>
   setFaults: (f: Set<FaultId>) => void
+  // 인스턴스 그래프에서 «이 레코드가 어떤 검사를 받았나»로 넘어온 경우
+  preset?: { focusIri: string }
 }) {
+  const [focus, setFocus] = useState<string | null>(preset?.focusIri ?? null)
   const [res, setRes] = useState<RunResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(0)
@@ -124,6 +237,9 @@ export default function Live({
           )}
           {res?.error && <div className="text-[11.5px] text-gray-300">{res.error}</div>}
         </div>
+
+        {/* 레코드 성적표 — 그래프에서 «이 레코드는 괜찮은가»를 물으러 온 경우 */}
+        {focus && res && !res.error && <RecordAudit res={res} iri={focus} onClear={() => setFocus(null)} />}
 
         {/* 격리 큐로의 인계 — 「막았다」로 끝내지 않는다 */}
         {qStats(queue).total > 0 && (

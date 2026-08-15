@@ -49,6 +49,17 @@ const dt = (n: number) => `"${iso(n)}"^^xsd:dateTime`
 const str = (s: string) => `"${esc(s)}"`
 
 /**
+ * 인스턴스 IRI는 **내용에서 만든다** — 목록 순번을 쓰면 안 된다.
+ *
+ * 처음엔 `qdi:evt-1`처럼 인덱스로 붙였는데, 스냅샷이 바뀌면 같은 번호가 다른 레코드를 가리킨다.
+ * 그래프 화면에서 «이 판정» 링크를 눌렀더니 ⑨가 **다른 차량의 판정**을 열어 준 것이 그 결과였다.
+ * (차량, 시각)은 그 레코드를 실제로 특정하므로, 다시 떠도 같은 것은 같은 IRI를 갖는다.
+ * 내보낸 RDF를 다른 곳에서 쓸 때도 순번 IRI는 아무 뜻이 없다 — 이쪽이 맞다.
+ */
+const stamp = (t: number) => Math.round(t * 10)
+const iriOf = (prefix: string, vehicleId: string, t: number) => `qdi:${prefix}-${key(vehicleId)}-${stamp(t)}`
+
+/**
  * 그래프 색인 — 격리된 레코드의 하류 영향을 계산하려면 관계를 걸어야 한다.
  * Turtle 문자열을 다시 파싱하지 않고, 만드는 김에 인접 정보를 같이 낸다.
  */
@@ -272,9 +283,11 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
   const hit = (f: FaultId, i: number, n = 2) => on(f) && i < n
 
   const events = snap.events.slice(0, 14)
+  // 소명·위치가 «무엇을 뒷받침하는가»로 가리킬 대상 — 순번이 아니라 실제 IRI로 잡는다
+  const firstJv = events.length ? iriOf('jv', events[0].vehicleId, events[0].simTime) : ''
   events.forEach((e, i) => {
-    const ev = `qdi:evt-${i + 1}`
-    const cl = `qdi:jv-${i + 1}`
+    const ev = iriOf('evt', e.vehicleId, e.simTime)
+    const cl = iriOf('jv', e.vehicleId, e.simTime)
     node(ev, 'RiskEvent', 'Evidence', `${e.vehicleId} ${e.eventType}`)
     add(ev, 'qd:eventType', str(hit('badEventType', i, 3) ? '급브레이크' : e.eventType))
     add(ev, 'qd:speedKmh', dec(hit('speedOver', i) ? 137 + i : e.speedKmh))
@@ -293,7 +306,7 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     if (!hit('autoAdverse', i)) add(cl, 'qd:decidedBy', str('관제 담당 1'))
     add(cl, P('반영된다'), `qdi:score-${key(e.vehicleId)}`)
 
-    const co = `qdi:coach-${i + 1}`
+    const co = iriOf('coach', e.vehicleId, e.simTime)
     node(co, 'Coaching', 'Lever', `${e.vehicleId} 실시간 코칭`)
     add(co, 'qd:firedAt', dt(e.simTime))
     add(co, P('올린다'), `qdi:score-${key(e.vehicleId)}`)
@@ -334,10 +347,10 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
       : real
   // 결함 주입: 회차마다 리셋해야 할 연료 계량을 리셋하지 않은 상황 — 누적 합계가 들어온다
   let cumFuel = 0
-  trips.forEach((t, i) => {
+  trips.forEach((t) => {
     cumFuel += t.fuelM3
-    const tr = `qdi:trip-${i + 1}`
-    const rc = `qdi:rc-${i + 1}`
+    const tr = iriOf('trip', t.vehicleId, t.startSimTime)
+    const rc = iriOf('rc', t.vehicleId, t.startSimTime)
     node(tr, 'Trip', 'Evidence', `${t.vehicleId} ${t.routeName} 회차`)
     add(tr, 'qd:startTime', dt(t.startSimTime))
     add(tr, 'qd:endTime', dt(t.endSimTime))
@@ -352,11 +365,13 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(rc, P('반영된다'), 'qdi:out-fuelsaving')
   })
 
+  const firstRc = trips.length ? iriOf('rc', trips[0].vehicleId, trips[0].startSimTime) : ''
+
   /* 센서·위치 관측 — 차량마다 한 점씩, 지금 상태 그대로 */
-  vehicles.slice(0, 8).forEach((v, i) => {
-    const sr = `qdi:sr-${i + 1}`
-    const lo = `qdi:loc-${i + 1}`
-    const fp = `qdi:fp-${i + 1}`
+  vehicles.slice(0, 8).forEach((v) => {
+    const sr = `qdi:sr-${key(v.id)}`
+    const lo = `qdi:loc-${key(v.id)}`
+    const fp = `qdi:fp-${key(v.id)}`
     node(fp, 'FaultPrediction', 'Claim', `${v.id} 고장 예측`)
     add(fp, P('반영된다'), 'qdi:out-co2')
 
@@ -374,28 +389,28 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(lo, 'qd:accuracyM', dec(0.03))
     add(lo, 'qd:fixType', str('RTK Fixed'))
     add(lo, P('분류된다'), 'qdi:grade-A')
-    add(lo, P('뒷받침한다'), trips.length ? 'qdi:rc-1' : 'qdi:fp-1')
+    add(lo, P('뒷받침한다'), firstRc || fp)
     add(`qdi:dev-${key(v.id)}`, P('생성한다'), lo)
   })
 
   /* 상황 설명(소명) */
   if (events.length) {
-    snap.pleas.slice(0, 4).forEach((p, i) => {
-      const pl = `qdi:plea-${i + 1}`
+    snap.pleas.slice(0, 4).forEach((p) => {
+      const pl = `qdi:plea-${p.id}`
       node(pl, 'Plea', 'Evidence', `${p.vehicleId} 소명 — ${p.method}`)
       add(pl, P('분류된다'), `qdi:rt-${key(p.eventType)}`)
-      add(pl, P('뒷받침한다'), 'qdi:jv-1')
+      add(pl, P('뒷받침한다'), firstJv)
     })
   }
 
   /* ── 조치 ── */
-  snap.recommendations.slice(0, 4).forEach((r, i) => {
-    const iri = `qdi:disp-${i + 1}`
+  snap.recommendations.slice(0, 4).forEach((r) => {
+    const iri = `qdi:disp-${r.id}`
     node(iri, 'DispatchAdvice', 'Lever', `${r.routeId} 배차 권고`)
     add(iri, P('안정시킨다'), `qdi:punc-${r.routeId}`)
   })
-  snap.workOrders.slice(0, 3).forEach((w, i) => {
-    const iri = `qdi:pm-${i + 1}`
+  snap.workOrders.slice(0, 3).forEach((w) => {
+    const iri = `qdi:pm-${w.id}`
     node(iri, 'PredictiveMaint', 'Lever', `${w.vehicleId} 작업지시`)
     add(iri, 'qd:kind', str(w.kind))
     add(iri, 'qd:status', str(w.status))
