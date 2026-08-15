@@ -142,15 +142,19 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
     L.push('  ] .')
     L.push('')
   }
-  L.push('# 불이익으로 이어지는 판정은 사람이 확정해야 한다')
+  // 「확정된」 판정에만 담당자를 요구한다. 처음에는 모든 정당 판정에 걸었는데,
+  // 역방향 적재 어댑터가 원천 데이터로 만든 «검토 대기» 판정까지 담당자를 요구받았다.
+  // 아직 확정하지 않은 판정에 확정자를 적으라는 것은 규칙이 틀린 것이다 —
+  // 오히려 «검토 대기로 들어와서 사람이 확정한다»가 이 규정이 원하는 흐름이다.
+  L.push('# 확정된 판정은 사람이 확정해야 한다 — 검토 대기는 담당자 없이 존재할 수 있다')
   L.push('qd:RuleNoAutoAdverseShape a sh:NodeShape ;')
   L.push('  sh:targetClass qd:JustifyVerdict ;')
-  L.push('  sh:property [')
-  L.push('    sh:path qd:decidedBy ;')
-  L.push('    sh:minCount 1 ;')
-  L.push('    sh:severity sh:Violation ;')
-  L.push('    sh:message "감점 확정에는 담당자(decidedBy)가 반드시 있어야 합니다 — 자동 확정 금지"@ko ;')
-  L.push('  ] .')
+  L.push('  sh:or (')
+  L.push('    [ sh:property [ sh:path qd:verdict ; sh:hasValue "검토 대기" ; ] ]')
+  L.push('    [ sh:property [ sh:path qd:decidedBy ; sh:minCount 1 ; ] ]')
+  L.push('  ) ;')
+  L.push('  sh:severity sh:Violation ;')
+  L.push('  sh:message "확정 판정에는 담당자(decidedBy)가 반드시 있어야 합니다 — 자동 확정 금지. 미확정이면 verdict를 «검토 대기»로 두십시오"@ko .')
   L.push('')
   L.push('# 기사 식별정보는 분석셋에 들어올 수 없다')
   L.push('qd:RuleDriverPseudonymShape a sh:NodeShape ;')

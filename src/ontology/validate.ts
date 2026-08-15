@@ -142,3 +142,28 @@ export async function runValidation(snap: SimSnapshot, faults: Set<FaultId>): Pr
     return { ...base, ms: Math.round(performance.now() - t0), conforms: false, findings: [], error: e instanceof Error ? e.message : String(e) }
   }
 }
+
+/**
+ * 임의의 Turtle을 **같은 셰이프로** 검사한다 — 역방향 적재 어댑터가 쓴다.
+ *
+ * 외부 표준 레코드를 우리 문법으로 옮긴 결과가 «정말 통과하는가»는 말로 답할 수 없다.
+ * 시뮬레이터 스냅샷을 검사하는 것과 **완전히 같은 셰이프 그래프**를 쓴다 —
+ * 적재 경로만 다르고 규칙은 하나여야 한다.
+ */
+export async function validateTurtle(turtle: string): Promise<{ conforms: boolean; results: { focus: string; path: string; constraint: string; message: string }[]; error?: string }> {
+  try {
+    const { quads: shapeQuads } = shapes()
+    const dataQuads = new Parser().parse(turtle)
+    const validator = new SHACLValidator(D.dataset(shapeQuads))
+    const report = await validator.validate(D.dataset(dataQuads))
+    const results = report.results.map((r) => ({
+      focus: short(r.focusNode?.value).replace('qdi:', ''),
+      path: short((r.path as { value?: string } | undefined)?.value ?? ''),
+      constraint: short(r.sourceConstraintComponent?.value).replace(/ConstraintComponent$/, ''),
+      message: r.message.map((m) => m.value).join(' ') || '(메시지 없음)',
+    }))
+    return { conforms: results.length === 0, results }
+  } catch (e) {
+    return { conforms: false, results: [], error: e instanceof Error ? e.message : String(e) }
+  }
+}
