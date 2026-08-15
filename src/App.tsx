@@ -22,6 +22,7 @@ import Validator from './ontology/Validator'
 import { LEVERS, META_EDGES, SPACES } from './ontology/meta'
 import { qStats, useQuarantine } from './ontology/quarantine'
 import { runGate } from './ontology/gate'
+import { ROLES, setRole, useRole } from './ontology/policy'
 import type { Jump, Preset, StepId } from './ontology/nav'
 import type { FaultId } from './ontology/rdf'
 import { fmt } from './ontology/util'
@@ -110,6 +111,7 @@ export default function App() {
     return () => clearInterval(t)
   }, [])
 
+  const role = useRole()
   const held = qStats(useQuarantine()).held
   // 발행하면 문법 정의 자체가 바뀐다 — 화면이 옛 정의를 들고 있으면 안 되므로 통째로 다시 그린다
   const gv = `${currentVersion()}·${useGrammar().length}`
@@ -130,6 +132,22 @@ export default function App() {
           <div className="text-[10px] text-gray-500">대구 시내버스 데이터의 의미 구조 — 스페이스 · 문법 · 조치 시뮬레이션</div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* 누가 보고 있는가 — 규정이 막는 대상이 정해져야 규정이 작동한다 */}
+          <div className="flex items-center gap-1">
+            <span className="whitespace-nowrap text-[10px] font-semibold text-gray-600">보는 사람</span>
+            {ROLES.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setRole(r.id)}
+                title={`${r.org} · ${r.basis}`}
+                className={`whitespace-nowrap rounded-md border px-2 py-1 text-[11px] font-bold focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                  role === r.id ? 'border-amber-400/60 bg-amber-400/15 text-amber-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                {r.ko}
+              </button>
+            ))}
+          </div>
           <DemoControls snap={snap} />
           <a
             href={PLATFORM}

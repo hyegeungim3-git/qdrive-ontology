@@ -5,6 +5,7 @@ import { META_EDGES, spaceOf } from './meta'
 import { currentVersion, publish, removeFromDraft, revertAll, useDraft, useGrammar, type Amendment } from './grammar'
 import type { SimSnapshot } from '../sim/types'
 import type { Jump } from './nav'
+import { can, denyReason, roleOf, useRole } from './policy'
 
 /**
  * ⑪ 문법 발행 — 제안에서 멈추지 않는다.
@@ -31,6 +32,9 @@ const isSensitive = (a: Amendment) => a.kind === 'domainRuleOff'
 export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: Jump }) {
   const draft = useDraft()
   const releases = useGrammar()
+  const role = useRole()
+  // 규정이 막는다 — 문법 발행은 데이터 책임자만
+  const mayPublish = can(role, 'publishGrammar')
   const [who, setWho] = useState('데이터 책임자')
   const [ack, setAck] = useState(false)
 
@@ -38,7 +42,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
   const relations = new Set(META_EDGES.flatMap((e) => e.relations)).size
   const edges = META_EDGES.length
   const sensitive = draft.filter(isSensitive)
-  const canPublish = draft.length > 0 && who.trim() !== '' && (sensitive.length === 0 || ack)
+  const canPublish = mayPublish && draft.length > 0 && who.trim() !== '' && (sensitive.length === 0 || ack)
 
   // 개정안 전체가 건드리는 범위 — 항목별 영향의 합집합
   const merged = draft.reduce(
@@ -72,6 +76,17 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
           ⑩의 역제안을 개정안에 담아 여기서 발행합니다. <b className="text-gray-200">발행하면 문법이 실제로 바뀝니다</b> — 버전 라벨만 올라가는 것이
           아니라, ④ 문법 검증이 그 조합을 허용하고 ⑨ SHACL이 같은 결함을 더 이상 잡지 않으며 ⑫ 내보내기가 새 버전으로 나옵니다.
         </p>
+
+        {/* 권한이 없으면 개정안을 담기 전에 알아야 한다 — 다 담고 나서 막히면 화가 난다 */}
+        {!mayPublish && (
+          <div
+            className="mb-3 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+            style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+          >
+            🔒 <b>«{roleOf(role).ko}» 역할에는 문법 발행 권한이 없습니다</b> — {denyReason(role, 'publishGrammar')} 개정안을 담아 제안하는 것까지는
+            할 수 있습니다.
+          </div>
+        )}
 
         <div className="grid grid-cols-4 gap-2 max-[820px]:grid-cols-2">
           {[
@@ -204,6 +219,14 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                 </label>
               )}
 
+              {!mayPublish && (
+                <div
+                  className="mb-2 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+                  style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+                >
+                  🔒 <b>«{roleOf(role).ko}» 역할에는 문법 발행 권한이 없습니다</b> — {denyReason(role, 'publishGrammar')}
+                </div>
+              )}
               <button
                 onClick={() => onGoto('compare')}
                 className="mt-2.5 mr-2 rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-2 text-[12px] font-bold text-sky-200 hover:bg-sky-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"

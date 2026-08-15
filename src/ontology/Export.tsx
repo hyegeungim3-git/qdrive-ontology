@@ -6,6 +6,7 @@ import { buildShacl } from './shacl'
 import { REL_META, SPACE_ALIGN, STANDARDS, TYPE_ALIGN } from './standards'
 import { ruleFeedback, useQuarantine, waiverBlock, type QItem } from './quarantine'
 import { currentVersion, diff, snapshotOf, useGrammar, type Release } from './grammar'
+import { can, denyReason, roleOf, useRole } from './policy'
 
 /**
  * ⑧ 내보내기 — 문법을 표준 형식으로 꺼낸다.
@@ -358,6 +359,9 @@ export default function Export() {
   const [copied, setCopied] = useState(false)
   const queue = useQuarantine()
   const releases = useGrammar()
+  const role = useRole()
+  // 규정이 막는다 — 원본 그래프 반출은 권한이 필요하다
+  const mayExport = can(role, 'exportRaw')
   const f = FORMATS.find((x) => x.key === key)!
   // 라이브 상태를 받는 형식만 따로 부른다 — 나머지는 문법에서만 나온다
   const text =
@@ -417,16 +421,30 @@ export default function Export() {
           })}
         </div>
 
+        {!mayExport && (
+          <div
+            className="mt-3 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+            style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+          >
+            🔒 <b>«{roleOf(role).ko}» 역할에는 원본 내보내기 권한이 없습니다</b> — {denyReason(role, 'exportRaw')} 아래 미리보기는 볼 수 있지만
+            복사·저장은 잠깁니다.
+          </div>
+        )}
+
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             onClick={copy}
-            className="rounded-md border border-sky-500/40 bg-sky-500/12 px-3 py-1.5 text-[12px] font-bold text-sky-300 hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+            disabled={!mayExport}
+            title={mayExport ? undefined : denyReason(role, 'exportRaw')}
+            className="rounded-md border border-sky-500/40 bg-sky-500/12 px-3 py-1.5 text-[12px] font-bold text-sky-300 hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             {copied ? '✓ 복사됨' : '📋 복사'}
           </button>
           <button
             onClick={download}
-            className="rounded-md border border-emerald-500/40 bg-emerald-500/12 px-3 py-1.5 text-[12px] font-bold text-emerald-300 hover:bg-emerald-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+            disabled={!mayExport}
+            title={mayExport ? undefined : denyReason(role, 'exportRaw')}
+            className="rounded-md border border-emerald-500/40 bg-emerald-500/12 px-3 py-1.5 text-[12px] font-bold text-emerald-300 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             ⬇ 파일로 저장
           </button>

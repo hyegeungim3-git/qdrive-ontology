@@ -21,6 +21,7 @@ import {
 import { analyse } from './impactmeta'
 import { addToDraft } from './grammar'
 import { heldSummary, useGate } from './gate'
+import { can, denyReason, roleOf, useRole } from './policy'
 import { spaceOf } from './meta'
 import type { SimSnapshot } from '../sim/types'
 import type { Jump } from './nav'
@@ -46,6 +47,9 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
   const [openId, setOpenId] = useState<string | null>(null)
   const [tab, setTab] = useState<'held' | 'done'>('held')
   const [note, setNote] = useState('')
+  const role = useRole()
+  // 규정이 막는다 — 예외 승인은 아무나 못 한다
+  const mayWaive = can(role, 'approveWaiver')
   const [who, setWho] = useState('관제 담당 1')
 
   const s = qStats(list)
@@ -247,10 +251,18 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
                       ⛔ <b>예외 승인 불가</b> — {block}
                     </div>
                   )}
+                  {!mayWaive && (
+                    <div
+                      className="mb-2 rounded-lg border px-3 py-2 break-keep text-[11.5px] leading-relaxed"
+                      style={{ borderColor: '#f59e0b55', background: '#f59e0b14', color: '#fcd34d' }}
+                    >
+                      🔒 <b>«{roleOf(role).ko}» 역할에는 예외 승인 권한이 없습니다</b> — {denyReason(role, 'approveWaiver')}
+                    </div>
+                  )}
 
                   <div className="space-y-1.5">
                     {ACTIONS.map((a) => {
-                      const blocked = a.id === '예외 승인' && !!block
+                      const blocked = (a.id === '예외 승인' && !!block) || !mayWaive
                       const needNote = a.needsNote && !note.trim()
                       const off = blocked || needNote || !who.trim()
                       return (
@@ -258,7 +270,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
                           key={a.id}
                           onClick={() => act(a.id)}
                           disabled={off}
-                          title={blocked ? block : needNote ? '사유를 적어야 승인할 수 있습니다' : undefined}
+                          title={!mayWaive ? denyReason(role, 'approveWaiver') : blocked ? block : needNote ? '사유를 적어야 승인할 수 있습니다' : undefined}
                           className="w-full rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
                           style={{ borderColor: `${a.tone}55`, background: `${a.tone}12` }}
                         >

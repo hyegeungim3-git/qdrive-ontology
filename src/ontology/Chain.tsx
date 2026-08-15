@@ -5,6 +5,7 @@ import { spaceOf } from './meta'
 import { BASIS_TONE, METRICS, shortId, type Line } from './chains'
 import { mergeWalk, walkChain } from './chainwalk'
 import { useGate } from './gate'
+import { maskName, maskText, useRole, visibleVehicles } from './policy'
 
 /**
  * ⑤ 근거 사슬 — "이 숫자는 어디서 왔나"를 역추적한다. 성과 지표 6종 전체.
@@ -20,8 +21,11 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
   const [key, setKey] = useState(preset?.metric ?? 'safety')
   const [vid, setVid] = useState<string | null>(preset?.vehicleId ?? null)
   const gate = useGate()
+  const role = useRole()
   const metric = METRICS.find((m) => m.key === key)!
-  const v = snap.vehicles.find((x) => x.id === vid) ?? snap.vehicles[0]
+  // 규정이 막는다 — 기사 역할은 자기 차량만, 실명 권한이 없으면 가명키로만 보인다
+  const fleet = visibleVehicles(role, snap)
+  const v = fleet.find((x) => x.id === vid) ?? fleet[0]
 
   if (!v) return <Panel title="근거 사슬">엔진이 아직 차량을 만들지 않았습니다.</Panel>
 
@@ -30,7 +34,8 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
    * 판정·관측·조치·개념 칸은 순회 결과가 덮는다 — 그래야 문법을 고치면 사슬이 실제로 달라진다.
    */
   const walk = walkChain(gate, key, v.id)
-  const c = mergeWalk(metric.build(snap, v.id), walk)
+  const raw = mergeWalk(metric.build(snap, v.id), walk)
+  const c = { ...raw, subject: maskText(role, raw.subject, snap), sentence: maskText(role, raw.sentence, snap) }
 
   const S = {
     outcome: spaceOf('outcome'),
@@ -73,7 +78,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
           <div className="mt-3">
             <div className="mb-1.5 text-[11px] font-bold text-gray-400">대상 차량</div>
             <div className="flex flex-wrap gap-1.5">
-              {snap.vehicles.map((x) => {
+              {fleet.map((x) => {
                 const on = x.id === v.id
                 return (
                   <button
@@ -84,7 +89,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
                     }`}
                   >
                     <div className="text-[12px] font-bold">{shortId(x.id)}</div>
-                    <div className="text-[10.5px] opacity-75">{x.driverName}</div>
+                    <div className="text-[10.5px] opacity-75">{maskName(role, x.driverName, snap)}</div>
                   </button>
                 )
               })}

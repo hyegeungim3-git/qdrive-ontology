@@ -3,6 +3,7 @@ import { SPACES } from './meta'
 import { buildDataGraph, degreeOf, metricOf, relKo, vehicleOf, type GraphIndex } from './rdf'
 import { METRICS } from './chains'
 import { useGate } from './gate'
+import { can, maskName, useRole } from './policy'
 import type { Jump } from './nav'
 import type { SimSnapshot } from '../sim/types'
 
@@ -87,6 +88,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
     [ix],
   )
   const gate = useGate()
+  const role = useRole()
   const [seed, setSeed] = useState<string>('')
   const [pick, setPick] = useState<string | null>(null)
 
@@ -94,7 +96,11 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
   const pos = new Map(placed.map((p) => [p.iri, p]))
 
   const colorOf = (iri: string) => SPACES.find((s) => s.en === ix.space[iri])?.color ?? '#94a3b8'
-  const name = (iri: string) => ix.label[iri] ?? iri.replace('qdi:', '')
+  // 규정이 막는다 — 기사 노드 라벨은 실명 권한이 있어야 실명으로 보인다
+  const name = (iri: string) => {
+    const l = ix.label[iri] ?? iri.replace('qdi:', '')
+    return ix.type[iri] === 'Driver' && !can(role, 'seeDriverName') ? maskName(role, l, snap) : l
+  }
   /** 이 레코드가 어떤 표준 코드로 분류됐나 — 개념 스페이스로 나가는 «분류된다» */
   const classOf = (iri: string) => {
     const c = (ix.out[iri] ?? []).find((e) => ix.space[e.o] === 'Concept')

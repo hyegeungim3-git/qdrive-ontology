@@ -4,6 +4,7 @@ import { SPACES, spaceOf, type SpaceId } from './meta'
 import { META_LAYERS, SPACE_META, metaValue } from './impactmeta'
 import { spaceBehavior, useQuarantine, type SpaceBehavior } from './quarantine'
 import type { Jump } from './nav'
+import { PERMISSIONS, ROLES, can, denyReason, roleOf, useRole } from './policy'
 
 /**
  * ⑤ 액티브 메타데이터 — 노드마다 따라다니는 4계층 12속성.
@@ -14,6 +15,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
   const sp = spaceOf(pick)
   const pii = SPACE_META[pick].pii
   // 격리 이력 — 계보·의존성이 문법에서 나온다면, 사용량·파급의 라이브 부분은 실제로 있었던 일에서 나온다
+  const role = useRole()
   const queue = useQuarantine()
   const bhv = spaceBehavior(queue, sp.en)
   const anyQueue = queue.length > 0
@@ -145,6 +147,62 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
           <b className="text-emerald-400">계보 · 의존성 · 사용량 · 파급은 손으로 적지 않습니다</b> — 문법(스페이스·관계)에서 계산됩니다. 관계를 하나
           추가하면 의존성과 파급이 자동으로 갱신되므로, 메타데이터가 실제와 어긋날 일이 없습니다. 여기에 더해{' '}
           <b className="text-rose-300">행동 계층은 격리 큐에서 실시간으로 갱신</b>됩니다 — 「액티브」라고 이름 붙였으면 실제로 움직여야 합니다.
+        </div>
+      </Panel>
+
+      <Panel
+        title="규정이 실제로 막는 것 — 지금 보는 사람 기준"
+        right={
+          <span className="text-[11px] text-gray-500">
+            {roleOf(role).ko} · {roleOf(role).org}
+          </span>
+        }
+      >
+        <p className="mb-2.5 break-keep text-[12.5px] leading-relaxed text-gray-400">
+          ③에서 규정 스페이스를 ODRL에 정렬해 놓고도, 정작 «시 담당자는 기사 실명을 못 본다»가 코드에 없으면 그 규정은 문서 장식입니다. 지금은{' '}
+          <b className="text-gray-200">헤더의 «보는 사람»을 바꾸면 화면이 실제로 달라집니다</b> — 실명이 가명키로 바뀌고, 차량 범위가 좁아지고, 승인
+          버튼이 잠깁니다.
+        </p>
+
+        <div className="-mx-1 overflow-x-auto px-1">
+          <table className="w-full min-w-[720px] border-collapse text-[11.5px]">
+            <thead>
+              <tr className="border-b border-gray-800 text-left text-[10.5px] text-gray-500">
+                <th className="py-1.5 pr-3 font-semibold">권한</th>
+                {ROLES.map((r) => (
+                  <th key={r.id} className={`py-1.5 pr-3 text-center font-semibold ${r.id === role ? 'text-amber-300' : ''}`}>
+                    {r.ko}
+                  </th>
+                ))}
+                <th className="py-1.5 font-semibold">지금 역할에 막혔다면 그 근거</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PERMISSIONS.map((p) => (
+                <tr key={p.id} className="border-b border-gray-800/60 align-top">
+                  <td className="py-1.5 pr-3">
+                    <div className="font-semibold text-gray-300">{p.ko}</div>
+                    <div className="break-keep text-[10.5px] text-gray-600">{p.desc}</div>
+                  </td>
+                  {ROLES.map((r) => (
+                    <td key={r.id} className={`py-1.5 pr-3 text-center font-bold ${r.id === role ? 'bg-amber-400/[0.06]' : ''}`}>
+                      {can(r.id, p.id) ? <span className="text-emerald-300">허용</span> : <span className="text-rose-300">금지</span>}
+                    </td>
+                  ))}
+                  <td className="py-1.5 break-keep text-gray-500">
+                    {can(role, p.id) ? <span className="text-gray-600">—</span> : denyReason(role, p.id)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-4 py-3 break-keep text-[11.5px] leading-relaxed text-gray-500">
+          ⚖️ <b className="text-gray-300">두 겹으로 막습니다</b> — <b className="text-gray-400">규정</b>은 «볼 수 있는 것»을(이 표),{' '}
+          <b className="text-gray-400">SHACL</b>은 «들어올 수 있는 것»을(⑨) 막습니다. 실명이 원천에서 잘못 흘러들어오면 SHACL이 적재를 막고, 그래도
+          화면에는 권한 없는 사람에게 보이지 않습니다. 한 겹만 있으면 어느 쪽이든 뚫립니다. 특히{' '}
+          <b className="text-gray-300">데이터 책임자도 실명을 볼 수 없다는 것</b>이 요점입니다 — 관리 권한이 열람 권한을 주지 않습니다.
         </div>
       </Panel>
 
