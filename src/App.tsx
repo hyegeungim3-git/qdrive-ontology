@@ -264,7 +264,7 @@ export default function App() {
           {step === 'standards' && <StdAlign />}
           {step === 'validator' && <Validator key={`v${seq}`} preset={preset.validator} />}
           {step === 'chain' && <Chain key={`c${seq}`} snap={snap} preset={preset.chain} />}
-          {step === 'sim' && <Simulator snap={snap} />}
+          {step === 'sim' && <Simulator snap={snap} jump={jump} />}
           {step === 'impact' && <Impact key={`i${seq}`} preset={preset.impact} />}
           {step === 'meta' && <ActiveMeta onGoto={jump} />}
           {step === 'live' && <Live key={`l${seq}`} snap={snap} onGoto={jump} faults={faults} setFaults={applyFaults} preset={preset.live} />}

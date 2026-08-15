@@ -15,7 +15,7 @@ import type { SimSnapshot, VehicleState } from '../sim/types'
  * 한 겹만 있으면 어느 쪽이든 뚫린다.
  */
 
-export type Permission = 'seeDriverName' | 'seeAllVehicles' | 'seeRawLocation' | 'approveWaiver' | 'publishGrammar' | 'exportRaw'
+export type Permission = 'seeDriverName' | 'seeAllVehicles' | 'seeRawLocation' | 'approveWaiver' | 'publishGrammar' | 'exportRaw' | 'issueAction'
 
 export const PERMISSIONS: { id: Permission; ko: string; desc: string }[] = [
   { id: 'seeDriverName', ko: '기사 실명 열람', desc: '가명키가 아니라 실제 이름을 본다' },
@@ -24,6 +24,8 @@ export const PERMISSIONS: { id: Permission; ko: string; desc: string }[] = [
   { id: 'approveWaiver', ko: '예외 승인', desc: '격리된 레코드를 예외로 통과시킨다' },
   { id: 'publishGrammar', ko: '문법 발행', desc: '개정안을 승인해 문법 버전을 올린다' },
   { id: 'exportRaw', ko: '원본 내보내기', desc: '데이터 그래프 원문을 파일로 받는다' },
+  // 조치 발행은 «보는 권한»이 아니라 «바꾸는 권한»이다 — 쓰기 경로가 생기면서 필요해졌다
+  { id: 'issueAction', ko: '조치 발행', desc: '코칭·배차·정비 조치를 실제로 낸다' },
 ]
 
 export type RoleId = 'city' | 'operator' | 'driver' | 'steward'
@@ -52,6 +54,7 @@ export const ROLES: Role[] = [
       { p: 'approveWaiver', why: '품질 예외 승인은 데이터를 만드는 쪽의 책임입니다' },
       { p: 'publishGrammar', why: '문법 개정은 데이터 책임자가 승인합니다' },
       { p: 'exportRaw', why: '원본 그래프는 반출 대상이 아닙니다 — 집계·보고서로 받습니다' },
+      { p: 'issueAction', why: '조치는 운행을 책임지는 쪽이 냅니다 — 시는 정책·평가로 관여합니다' },
     ],
   },
   {
@@ -59,7 +62,7 @@ export const ROLES: Role[] = [
     ko: '운수사 관제',
     org: '대구버스운송',
     basis: '접근 권한 — 운수사는 자사 차량 범위',
-    permits: ['seeDriverName', 'seeAllVehicles', 'seeRawLocation', 'approveWaiver'],
+    permits: ['seeDriverName', 'seeAllVehicles', 'seeRawLocation', 'approveWaiver', 'issueAction'],
     denies: [
       { p: 'publishGrammar', why: '문법 개정은 데이터 책임자가 승인합니다 — 운수사는 제안까지' },
       { p: 'exportRaw', why: '원본 반출은 데이터 책임자 승인이 필요합니다' },
@@ -76,6 +79,7 @@ export const ROLES: Role[] = [
       { p: 'approveWaiver', why: '자기 데이터의 품질 판정을 스스로 승인할 수 없습니다' },
       { p: 'publishGrammar', why: '문법 개정 권한이 없습니다' },
       { p: 'exportRaw', why: '원본 반출 권한이 없습니다' },
+      { p: 'issueAction', why: '자기에게 내려질 조치를 스스로 발행할 수 없습니다 — 상황 설명은 제출할 수 있습니다' },
     ],
   },
   {
@@ -90,6 +94,7 @@ export const ROLES: Role[] = [
         why: '「가명 처리」 규정 — 분석셋 관리자에게도 적용됩니다. 관리 권한이 열람 권한을 주지 않습니다',
       },
       { p: 'seeRawLocation', why: '원본 궤적은 운영 목적에만 열립니다 — 분석셋은 가공값으로 다룹니다' },
+      { p: 'issueAction', why: '데이터를 관리하는 쪽이 운행 조치까지 내면 견제가 사라집니다 — 관리 권한이 운영 권한을 주지 않습니다' },
     ],
   },
 ]

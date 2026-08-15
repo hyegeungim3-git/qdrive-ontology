@@ -3,6 +3,7 @@ import { RISK_EVENT_TYPES } from '../sim/types'
 import type { SimSnapshot } from '../sim/types'
 import { REL_META } from './standards'
 import { FUEL_LIMIT, perKm } from './rules'
+import { issuedList } from './issued'
 
 /**
  * 시뮬레이터 스냅샷 → RDF 데이터 그래프(Turtle).
@@ -452,6 +453,22 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
   node('qdi:lev-incentive', 'Incentive', 'Lever', '안전 인센티브')
   add('qdi:lev-incentive', P('올린다'), `qdi:score-${key(vehicles[0]?.id ?? 'x')}`)
   add('qdi:lev-incentive', P('바꾼다'), 'qdi:rt-급가속')
+
+  /* ── 사람이 발행한 조치 ──
+     엔진이 만든 조치와 **같은 자격으로** 그래프에 넣는다. 별도 목록으로 두면
+     ⑤ 근거 사슬이 못 걷고 ⑨가 검사하지 못해 「발행했다」가 다시 연극이 된다.
+     대상 성과 IRI는 발행 시점에 그래프에서 찾아 둔 것이라 문자열로 조립하지 않는다. */
+  const declared = new Set(T.map((t) => t[0]))
+  issuedList().forEach((a) => {
+    if (!declared.has(a.targetIri)) return // 스냅샷이 바뀌어 대상이 사라졌으면 매달지 않는다
+    node(a.iri, a.creates, 'Lever', a.label)
+    add(a.iri, P(a.via), a.targetIri)
+    add(a.iri, 'qd:issuedBy', str(a.byKo))
+    // approvedBy는 props가 이미 낸다 — 여기서 또 쓰면 트리플이 중복된다
+    if (a.creates === 'Coaching') add(a.iri, 'qd:firedAt', dt(a.at))
+    if (a.creates === 'PredictiveMaint') add(a.iri, 'qd:status', str('발행됨'))
+    Object.entries(a.props).forEach(([k, v]) => add(a.iri, `qd:${k}`, typeof v === 'number' ? dec(v) : str(String(v))))
+  })
 
   /* ── 직렬화 ── */
   const head = [

@@ -249,6 +249,15 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   Coaching: [
     { name: 'firedAt', datatype: 'xsd:dateTime', required: true },
     { name: 'approvedBy', datatype: 'xsd:string', required: false, note: '불이익 조치는 승인 필수' },
+    // 사람이 발행한 조치의 발행 주체. 엔진이 만든 조치에는 없으므로 필수가 아니다 —
+    // 「누가 냈는지 모르는 조치」와 「기계가 낸 조치」를 구분하는 자리다.
+    { name: 'issuedBy', datatype: 'xsd:string', required: false, note: '사람이 발행한 경우의 발행 주체' },
+  ],
+  // 배차 권고에는 속성 스키마가 없었다 — ⑭ 카탈로그가 「검사받지 않는 데이터」로 잡아낸 자리.
+  // 조치 발행이 생기면서 값이 실제로 들어오게 되어 여기서 정의한다.
+  DispatchAdvice: [
+    { name: 'holdSec', datatype: 'xsd:decimal', required: false, min: 0, max: 300, unit: '초', qudt: 'unit:SEC', note: '정류장 추가 대기' },
+    { name: 'issuedBy', datatype: 'xsd:string', required: false, note: '사람이 발행한 경우의 발행 주체' },
   ],
   Stop: [
     { name: 'stopName', datatype: 'xsd:string', required: true },
@@ -263,6 +272,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'kind', datatype: 'xsd:string', required: true },
     { name: 'status', datatype: 'xsd:string', required: true, oneOf: ['초안', '발행됨'] },
     { name: 'estHours', datatype: 'xsd:decimal', required: true, min: 0, unit: 'h', qudt: 'unit:HR' },
+    { name: 'issuedBy', datatype: 'xsd:string', required: false, note: '사람이 발행한 경우의 발행 주체' },
   ],
 }
 

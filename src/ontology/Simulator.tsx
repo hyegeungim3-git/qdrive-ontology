@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Panel } from '../components/ui'
+import IssuePanel from './IssuePanel'
+import type { Jump } from './nav'
 import type { SimSnapshot } from '../sim/types'
 import { BASIS_CAP, IMPACT_ON_LEVER, LEVERS, simulate, spaceOf, type Basis, type LeverDef } from './meta'
 import { fmt } from './util'
@@ -23,7 +25,7 @@ const num = (v: number, d: number) => v.toLocaleString('ko-KR', { minimumFractio
  * 관계가 없으면 예측도 없다. 계수의 출처(근거 유형)를 함께 표시하고,
  * 근거가 약한 것은 신뢰도 상한 자체를 낮춘다.
  */
-export default function Simulator({ snap }: { snap: SimSnapshot }) {
+export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jump }) {
   const [key, setKey] = useState(LEVERS[0].key)
   const [mag, setMag] = useState(0.5)
   const lever = LEVERS.find((l) => l.key === key)!
@@ -216,6 +218,8 @@ export default function Simulator({ snap }: { snap: SimSnapshot }) {
           없습니다. 실증에서는 각 계수를 실측으로 교체하고, 근거 유형이 «추정»인 항목부터 «실측»으로 승격시키는 것이 목표입니다.
         </div>
       </Panel>
+
+      <IssuePanel snap={snap} jump={jump} />
     </div>
   )
 }
