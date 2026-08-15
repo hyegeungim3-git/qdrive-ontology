@@ -4,11 +4,12 @@ import { Emph } from '../components/ui'
 import { gapAnswer, measureAnswer, runAgent, tripSlice, type Answer } from './agent'
 import { buildReport, buildReportJson, weakest, type Section } from './report'
 import { copyToClipboard } from '../components/ui'
-import { useGate } from './gate'
+import ReportDoc from './ReportDoc'
+import { useGate, type GateResult } from './gate'
 import { currentVersion } from './grammar'
 import { SPACES } from './meta'
 import { REL_META } from './standards'
-import { roleOf, useRole } from './policy'
+import { roleOf, useRole, type RoleId } from './policy'
 import type { MissionId } from './missions'
 
 /**
@@ -121,11 +122,184 @@ function route(q: string): { kind: Kind; why: string; scope?: MissionId } {
   return { kind: 'unknown', why: '지표로 옮길 수 없는 질문 — 지어내지 않고 못 한다고 답한다' }
 }
 
+  /**
+   * 보고서 — **대화를 넘길 수 있는 문서로 바꾼다.**
+   * 채팅은 물어본 사람만 본다. 업무는 「그래서 문서로 주세요」에서 끝난다.
+   */
+/**
+ * 보고서 — **대화를 넘길 수 있는 문서로 바꾼다.**
+ * 채팅은 물어본 사람만 본다. 업무는 「그래서 문서로 주세요」에서 끝난다.
+ *
+ * **모듈 스코프에 둔다.** 부모 안에서 정의하면 렌더마다 새 컴포넌트 타입이 되어
+ * React가 언마운트 후 다시 만든다 — 게이트가 3초마다 도는 이 앱에서는
+ * 그때마다 문서 스크롤이 맨 위로 튕겨 읽을 수가 없다.
+ */
+function ReportView({
+  secs, gate, role, busy, runAll, docTab, setDocTab, copied, setCopied,
+}: {
+  secs: Section[]
+  gate: GateResult
+  role: RoleId
+  busy: boolean
+  runAll: () => void
+  docTab: 'doc' | 'raw'
+  setDocTab: (v: 'doc' | 'raw') => void
+  copied: boolean
+  setCopied: (v: boolean) => void
+}) {
+    const md = buildReport(secs, gate, role)
+    const w = weakest(secs)
+    const save = (text: string, ext: string, mime: string) => {
+      const url = URL.createObjectURL(new Blob([text], { type: `${mime};charset=utf-8` }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `qdrive-분석보고서.${ext}`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3">
+          <div>
+            <div className="text-[13px] font-black text-gray-100">분석 결과보고 — 공문서 서식</div>
+            <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">
+              지금까지 물어본 <b className="text-gray-300">{secs.length}개 항목</b>을 결재에 올릴 수 있는 서식으로 조립합니다 — 통계표·붙임·결재란까지.
+            </div>
+          </div>
+          <div className="ml-auto flex flex-wrap gap-1.5">
+            <button
+              onClick={runAll}
+              disabled={busy}
+              className="rounded-md border border-violet-500/40 bg-violet-500/15 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-violet-200 hover:bg-violet-500/25 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⚡ 대표 6항목 한 번에
+            </button>
+            <button
+              onClick={async () => {
+                setCopied(await copyToClipboard(md))
+                window.setTimeout(() => setCopied(false), 1600)
+              }}
+              disabled={!secs.length}
+              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              {copied ? '✓ 복사됨' : '📋 복사'}
+            </button>
+            <button
+              onClick={() => save(md, 'md', 'text/markdown')}
+              disabled={!secs.length}
+              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⬇ Markdown
+            </button>
+            <button
+              onClick={() => save(buildReportJson(secs, gate, role), 'json', 'application/ld+json')}
+              disabled={!secs.length}
+              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              ⬇ JSON-LD
+            </button>
+            <button
+              onClick={() => window.print()}
+              disabled={!secs.length}
+              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              🖨 인쇄 / PDF
+            </button>
+          </div>
+        </div>
+
+        {!!secs.length && (
+          <div className="grid grid-cols-4 gap-2 max-[820px]:grid-cols-2">
+            {[
+              { n: String(secs.length), ko: '분석 항목', sub: '질문 하나가 한 절', c: '#a78bfa' },
+              { n: String(secs.reduce((a, s) => a + s.cites.length, 0)), ko: '근거 노드', sub: '수치마다 되짚기 가능', c: '#34d399' },
+              /* 종합 등급은 최저 등급을 따른다 — 화면에도 그 이유를 적어 둬야 «왜 95가 아니지»가 안 생긴다 */
+              { n: w ? `${w.pct}%` : '—', ko: `신뢰도 상한 · ${w?.level ?? '—'}`, sub: '가장 약한 근거를 따름', c: '#fbbf24' },
+              { n: String(new Set(secs.flatMap((s) => s.limits)).size), ko: '못 하는 것', sub: '숨기지 않고 문서에', c: '#fb7185' },
+            ].map((k) => (
+              <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
+                <div className="text-xl font-black tabular-nums" style={{ color: ink(k.c) }}>
+                  {k.n}
+                </div>
+                <div className="mt-0.5 break-keep text-[11.5px] font-bold text-gray-300">{k.ko}</div>
+                <div className="break-keep text-[11px] text-gray-600">{k.sub}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="rounded-xl border border-gray-800 bg-gray-900/60 p-2.5">
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            {/* 문서 보기가 기본 — 받는 사람이 실제로 보게 될 모양이 먼저다.
+                원문 텍스트는 다른 문서에 붙여 넣을 때 쓴다. */}
+            {([['doc', '문서 보기'], ['raw', '원문 텍스트']] as const).map(([k, ko]) => (
+              <button
+                key={k}
+                onClick={() => setDocTab(k)}
+                className={`rounded-md border px-2.5 py-1 max-[640px]:min-h-[40px] text-[11.5px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                  docTab === k ? 'border-sky-400/50 bg-sky-400/15 text-sky-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                {ko}
+              </button>
+            ))}
+            <span className="ml-auto text-[11px] text-gray-600">
+              {docTab === 'doc' ? `절 ${secs.length}개 · 근거 ${secs.reduce((a, x) => a + x.cites.length, 0)}개` : `${md.length.toLocaleString()}자`}
+            </span>
+          </div>
+          {docTab === 'doc' ? (
+            <ReportDoc secs={secs} gate={gate} role={role} />
+          ) : (
+            <pre className="max-h-[34rem] overflow-auto rounded-lg bg-gray-950 px-3 py-2.5 text-[11.5px] leading-relaxed whitespace-pre-wrap break-words text-gray-300">
+              {md}
+            </pre>
+          )}
+        </div>
+
+        <div className="rounded-xl border px-4 py-3 break-keep text-[12px] leading-relaxed text-emerald-200" style={{ borderColor: '#34d39933', background: '#34d3990d' }}>
+          <b>규정이 「원본 그래프는 반출 대상이 아닙니다 — 집계·보고서로 받습니다」라고 적어 둔 자리입니다.</b> 원본 내보내기는 역할에 따라
+          막히지만, 이 보고서는 <b>모든 역할이 받을 수 있습니다</b> — 실명은 이미 가려졌고 수치는 집계이며, 되짚을 IRI만 남습니다. 금지에 대안이
+          없으면 그 규정은 지켜지지 않습니다.
+        </div>
+      </div>
+    )
+}
+
+  /**
+   * 이어서 물어보기 — 답변 아래에 붙는다.
+   *
+   * **지금 답과 같은 시나리오로 가는 칩은 거른다.** 검증에서 「감축 수단별로」를 눌렀더니
+   * 탄소 답이 그대로 반복됐다 — 칩은 「다른 것을 보여 주겠다」는 약속이라 어기면 안 된다.
+   * 목록을 손으로 적는 이상 또 틀릴 수 있으므로 화면에 나가기 전에 한 번 더 건다.
+   */
+function Follow({ qs, self, busy, ask }: { qs: string[]; self: Kind; busy: boolean; ask: (q: string) => void }) {
+    const ok = qs.filter((q) => route(q).kind !== self)
+    if (!ok.length) return null
+    return (
+    <div className="mt-2.5 border-t border-gray-800 pt-2">
+      <div className="mb-1 text-[10.5px] font-black tracking-wide text-gray-600">이어서 물어보기</div>
+      <div className="flex flex-wrap gap-1.5">
+        {ok.map((q) => (
+          <button
+            key={q}
+            onClick={() => ask(q)}
+            disabled={busy}
+            className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-1 max-[640px]:min-h-[40px] break-keep text-left text-[11.5px] text-violet-200 transition-colors hover:bg-violet-400/20 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+    </div>
+    )
+}
+
 export default function AgentChat() {
   const gate = useGate()
   const role = useRole()
   const [mode, setMode] = useState<'chat' | 'agent' | 'report'>('chat')
   const [copied, setCopied] = useState(false)
+  const [docTab, setDocTab] = useState<'doc' | 'raw'>('doc')
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -246,133 +420,6 @@ export default function AgentChat() {
     }
   }
 
-  /**
-   * 보고서 — **대화를 넘길 수 있는 문서로 바꾼다.**
-   * 채팅은 물어본 사람만 본다. 업무는 「그래서 문서로 주세요」에서 끝난다.
-   */
-  const ReportView = () => {
-    const md = buildReport(secs, gate, role)
-    const w = weakest(secs)
-    const save = (text: string, ext: string, mime: string) => {
-      const url = URL.createObjectURL(new Blob([text], { type: `${mime};charset=utf-8` }))
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `qdrive-분석보고서.${ext}`
-      a.click()
-      URL.revokeObjectURL(url)
-    }
-    return (
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-3">
-          <div>
-            <div className="text-[13px] font-black text-gray-100">분석 보고서</div>
-            <div className="mt-0.5 break-keep text-[11.5px] leading-relaxed text-gray-500">
-              지금까지 물어본 <b className="text-gray-300">{secs.length}개 항목</b>을 문서로 조립합니다. 모든 수치에 근거 노드가 붙습니다.
-            </div>
-          </div>
-          <div className="ml-auto flex flex-wrap gap-1.5">
-            <button
-              onClick={runAll}
-              disabled={busy}
-              className="rounded-md border border-violet-500/40 bg-violet-500/15 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-violet-200 hover:bg-violet-500/25 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
-            >
-              ⚡ 대표 6항목 한 번에
-            </button>
-            <button
-              onClick={async () => {
-                setCopied(await copyToClipboard(md))
-                window.setTimeout(() => setCopied(false), 1600)
-              }}
-              disabled={!secs.length}
-              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
-            >
-              {copied ? '✓ 복사됨' : '📋 복사'}
-            </button>
-            <button
-              onClick={() => save(md, 'md', 'text/markdown')}
-              disabled={!secs.length}
-              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
-            >
-              ⬇ Markdown
-            </button>
-            <button
-              onClick={() => save(buildReportJson(secs, gate, role), 'json', 'application/ld+json')}
-              disabled={!secs.length}
-              className="rounded-md border border-gray-700 bg-gray-800/60 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-gray-300 hover:text-gray-100 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
-            >
-              ⬇ JSON-LD
-            </button>
-          </div>
-        </div>
-
-        {!!secs.length && (
-          <div className="grid grid-cols-4 gap-2 max-[820px]:grid-cols-2">
-            {[
-              { n: String(secs.length), ko: '분석 항목', sub: '질문 하나가 한 절', c: '#a78bfa' },
-              { n: String(secs.reduce((a, s) => a + s.cites.length, 0)), ko: '근거 노드', sub: '수치마다 되짚기 가능', c: '#34d399' },
-              /* 종합 등급은 최저 등급을 따른다 — 화면에도 그 이유를 적어 둬야 «왜 95가 아니지»가 안 생긴다 */
-              { n: w ? `${w.pct}%` : '—', ko: `신뢰도 상한 · ${w?.level ?? '—'}`, sub: '가장 약한 근거를 따름', c: '#fbbf24' },
-              { n: String(new Set(secs.flatMap((s) => s.limits)).size), ko: '못 하는 것', sub: '숨기지 않고 문서에', c: '#fb7185' },
-            ].map((k) => (
-              <div key={k.ko} className="rounded-xl border border-gray-800 bg-gray-900/60 px-3 py-2.5">
-                <div className="text-xl font-black tabular-nums" style={{ color: ink(k.c) }}>
-                  {k.n}
-                </div>
-                <div className="mt-0.5 break-keep text-[11.5px] font-bold text-gray-300">{k.ko}</div>
-                <div className="break-keep text-[11px] text-gray-600">{k.sub}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="rounded-xl border border-gray-800 bg-gray-950/60">
-          <div className="flex items-center justify-between border-b border-gray-800 px-3 py-2">
-            <span className="text-[11.5px] font-black text-gray-400">미리보기 · Markdown</span>
-            <span className="text-[11px] text-gray-600">{md.length.toLocaleString()}자</span>
-          </div>
-          <pre className="max-h-[520px] overflow-auto px-3 py-2.5 text-[11.5px] leading-relaxed whitespace-pre-wrap break-words text-gray-300">
-            {md}
-          </pre>
-        </div>
-
-        <div className="rounded-xl border px-4 py-3 break-keep text-[12px] leading-relaxed text-emerald-200" style={{ borderColor: '#34d39933', background: '#34d3990d' }}>
-          <b>규정이 「원본 그래프는 반출 대상이 아닙니다 — 집계·보고서로 받습니다」라고 적어 둔 자리입니다.</b> 원본 내보내기는 역할에 따라
-          막히지만, 이 보고서는 <b>모든 역할이 받을 수 있습니다</b> — 실명은 이미 가려졌고 수치는 집계이며, 되짚을 IRI만 남습니다. 금지에 대안이
-          없으면 그 규정은 지켜지지 않습니다.
-        </div>
-      </div>
-    )
-  }
-
-  /**
-   * 이어서 물어보기 — 답변 아래에 붙는다.
-   *
-   * **지금 답과 같은 시나리오로 가는 칩은 거른다.** 검증에서 「감축 수단별로」를 눌렀더니
-   * 탄소 답이 그대로 반복됐다 — 칩은 「다른 것을 보여 주겠다」는 약속이라 어기면 안 된다.
-   * 목록을 손으로 적는 이상 또 틀릴 수 있으므로 화면에 나가기 전에 한 번 더 건다.
-   */
-  const Follow = ({ qs, self }: { qs: string[]; self: Kind }) => {
-    const ok = qs.filter((q) => route(q).kind !== self)
-    if (!ok.length) return null
-    return (
-    <div className="mt-2.5 border-t border-gray-800 pt-2">
-      <div className="mb-1 text-[10.5px] font-black tracking-wide text-gray-600">이어서 물어보기</div>
-      <div className="flex flex-wrap gap-1.5">
-        {ok.map((q) => (
-          <button
-            key={q}
-            onClick={() => ask(q)}
-            disabled={busy}
-            className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-1 max-[640px]:min-h-[40px] break-keep text-left text-[11.5px] text-violet-200 transition-colors hover:bg-violet-400/20 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-    </div>
-    )
-  }
-
   return (
     <div className="space-y-3">
       {/* 헤더 */}
@@ -405,7 +452,7 @@ export default function AgentChat() {
       </div>
 
       {mode === 'report' ? (
-        <ReportView />
+        <ReportView secs={secs} gate={gate} role={role} busy={busy} runAll={runAll} docTab={docTab} setDocTab={setDocTab} copied={copied} setCopied={setCopied} />
       ) : (
       <>
       {/* 대화 */}
@@ -553,7 +600,7 @@ export default function AgentChat() {
                       </>
                     )}
 
-                    <Follow qs={m.follow} self={m.self} />
+                    <Follow qs={m.follow} self={m.self} busy={busy} ask={ask} />
                   </div>
                 </div>
               )}
