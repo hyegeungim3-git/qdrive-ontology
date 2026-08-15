@@ -97,7 +97,7 @@ function RecordAudit({ res, iri, onClear }: { res: RunResult; iri: string; onCle
         </div>
         <button
           onClick={onClear}
-          className="shrink-0 rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="shrink-0 rounded-md border border-gray-700 bg-gray-900 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
         >
           전체 결과 보기
         </button>
@@ -222,7 +222,7 @@ export default function Live({
                   setFaults(new Set())
                   void run(new Set())
                 }}
-                className="rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="rounded-md border border-gray-700 bg-gray-900 px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 결함 모두 해제
               </button>
@@ -230,7 +230,7 @@ export default function Live({
             <button
               onClick={() => void run(faults)}
               disabled={busy}
-              className="rounded-md border border-pink-400/50 bg-pink-400/15 px-3 py-1 text-[11px] font-bold text-pink-200 hover:bg-pink-400/25 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="rounded-md border border-pink-400/50 bg-pink-400/15 px-3 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-pink-200 hover:bg-pink-400/25 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               {busy ? '검증 중…' : '↻ 지금 상태로 다시 검증'}
             </button>
@@ -278,7 +278,7 @@ export default function Live({
             </span>
             <button
               onClick={() => onGoto('quarantine')}
-              className="ml-auto whitespace-nowrap rounded-md border border-sky-400/50 bg-sky-400/15 px-2.5 py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="ml-auto whitespace-nowrap rounded-md border border-sky-400/50 bg-sky-400/15 px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               ⑩ 격리 큐에서 처리 →
             </button>
@@ -347,7 +347,7 @@ export default function Live({
               <button
                 key={k}
                 onClick={() => setTab(k)}
-                className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                className={`rounded-md border px-2 max-[640px]:min-h-[40px] py-0.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-sky-500 ${
                   tab === k ? 'border-sky-400/50 bg-sky-400/15 text-sky-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
                 }`}
               >

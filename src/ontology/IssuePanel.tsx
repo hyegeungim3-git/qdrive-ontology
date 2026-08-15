@@ -168,7 +168,7 @@ export default function IssuePanel({ snap, jump }: { snap: SimSnapshot; jump: Ju
           onClick={submit}
           disabled={!ok || !mayIssue}
           title={!mayIssue ? denyReason(role, ISSUE) : ok ? undefined : '검사를 통과하지 못했습니다'}
-          className="rounded-md border border-amber-500/40 bg-amber-500/12 px-3 py-1.5 text-[12px] font-bold text-amber-300 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="rounded-md border border-amber-500/40 bg-amber-500/12 px-3 py-1.5 max-[640px]:min-h-[40px] text-[12px] font-bold text-amber-300 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
         >
           ⚡ 이 조치를 발행
         </button>

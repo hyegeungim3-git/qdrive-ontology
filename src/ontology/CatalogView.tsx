@@ -300,13 +300,13 @@ function Detail({ d, role, jump }: { d: Dataset; role: RoleId; jump: Jump }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           onClick={() => jump('live')}
-          className="rounded-md border border-sky-500/40 bg-sky-500/12 px-3 py-1.5 text-[11.5px] font-bold text-sky-300 hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="rounded-md border border-sky-500/40 bg-sky-500/12 px-3 max-[640px]:min-h-[40px] py-1.5 text-[11.5px] font-bold text-sky-300 hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
         >
           ⑨ 이 규칙들이 실제로 도는지 보기 →
         </button>
         <button
           onClick={() => jump('export')}
-          className="rounded-md border border-emerald-500/40 bg-emerald-500/12 px-3 py-1.5 text-[11.5px] font-bold text-emerald-300 hover:bg-emerald-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="rounded-md border border-emerald-500/40 bg-emerald-500/12 px-3 max-[640px]:min-h-[40px] py-1.5 text-[11.5px] font-bold text-emerald-300 hover:bg-emerald-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
         >
           ⑬ Croissant으로 내보내기 →
         </button>

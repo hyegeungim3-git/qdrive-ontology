@@ -178,7 +178,13 @@ export function downstream(ix: GraphIndex, iri: string, maxDepth = 4): string[] 
 export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set()): GraphResult {
   const T: [string, string, string][] = []
   const add = (s: string, p: string, o: string) => {
-    if (p && o) T.push([s, p, o])
+    if (!p || !o) return
+    /* IRI에 공백이 들어가면 Turtle 파서가 그 줄에서 죽고, **그래프 전체가 안 만들어진다.**
+       ⑨도 게이트도 함께 멈추는데 화면에는 「검증 실행 실패」한 줄만 뜬다 —
+       원인을 찾는 데 시간이 걸리므로 만드는 자리에서 막는다.
+       실제로 «배차 최적화»의 공백이 이 사고를 냈다. */
+    if (/\s/.test(s)) throw new Error(`IRI에 공백: ${s} — key()를 통과시켰는지 확인할 것`)
+    T.push([s, p, o])
   }
   /** 인스턴스 선언 — 노드 타입 + 스페이스 양쪽으로 타입을 붙인다 */
   const node = (iri: string, type: string, space: string, label: string) => {
@@ -323,7 +329,10 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
       ['전기 전환', 25],
     ] as [string, number][]
   ).forEach(([m, share]) => {
-    const iri = `qdi:am-${m}`
+    /* key()를 반드시 통과시킨다 — «배차 최적화»의 공백이 IRI를 두 토큰으로 쪼개
+       `qdi:am-배차 최적화`가 되고, Turtle 파서가 그 줄에서 죽는다.
+       한 줄이 깨지면 그래프 전체가 안 만들어지므로 ⑨·게이트가 통째로 멈춘다. */
+    const iri = `qdi:am-${key(m)}`
     node(iri, 'AbatementMeasure', 'Concept', `감축 수단 ${m}`)
     add(iri, 'qd:measure', str(m))
     add(iri, 'qd:sharePct', dec(share))

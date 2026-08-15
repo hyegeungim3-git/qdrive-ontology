@@ -72,7 +72,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
           list.length > 0 && (
             <button
               onClick={clearAll}
-              className="rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-gray-400 hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="rounded-md border border-gray-700 bg-gray-900 px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-semibold text-gray-400 hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               큐 비우기
             </button>
@@ -116,7 +116,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
             </div>
             <button
               onClick={() => onGoto('live')}
-              className="mt-3 rounded-md border border-pink-400/50 bg-pink-400/15 px-3 py-1.5 text-[11.5px] font-bold text-pink-200 hover:bg-pink-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="mt-3 rounded-md border border-pink-400/50 bg-pink-400/15 px-3 max-[640px]:min-h-[40px] py-1.5 text-[11.5px] font-bold text-pink-200 hover:bg-pink-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               ⑨ 실검증으로 가기 →
             </button>
@@ -138,7 +138,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
                 <button
                   key={k}
                   onClick={() => setTab(k)}
-                  className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                  className={`rounded-md border px-2 max-[640px]:min-h-[40px] py-0.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-sky-500 ${
                     tab === k ? 'border-sky-400/50 bg-sky-400/15 text-sky-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
                   }`}
                 >
@@ -309,7 +309,7 @@ export default function Quarantine({ snap, onGoto }: { snap: SimSnapshot; onGoto
                   onClick={() => {
                     reopen(open.id)
                   }}
-                  className="mt-2 w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-[11.5px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
+                  className="mt-2 w-full rounded-md border border-gray-700 bg-gray-900 px-3 max-[640px]:min-h-[40px] py-1.5 text-[11.5px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
                 >
                   다시 격리로 되돌리기
                 </button>
@@ -528,7 +528,7 @@ function Feedback({ rows, onGoto }: { rows: RuleFeedback[]; onGoto: Jump }) {
                       <button
                         onClick={() => setOpenKey(openKey === r.key ? null : r.key)}
                         aria-expanded={openKey === r.key}
-                        className="mt-1.5 rounded-md border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-[11px] font-bold text-rose-200 hover:bg-rose-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="mt-1.5 rounded-md border border-rose-400/40 bg-rose-400/10 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-rose-200 hover:bg-rose-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
                       >
                         {openKey === r.key ? '▾' : '▸'} 이렇게 고치면 무엇이 흔들리나
                       </button>
@@ -604,7 +604,7 @@ function RippleOfFix({ r, onGoto }: { r: RuleFeedback; onGoto: Jump }) {
               const ok = addToDraft(amend)
               setSent(ok ? 'added' : 'dup')
             }}
-            className="rounded-md border border-emerald-400/50 bg-emerald-400/15 px-2 py-1 text-[11px] font-bold text-emerald-200 hover:bg-emerald-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="rounded-md border border-emerald-400/50 bg-emerald-400/15 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-emerald-200 hover:bg-emerald-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             {sent === 'added' ? '✓ 개정안에 담겼습니다' : sent === 'dup' ? '이미 담겨 있습니다' : '＋ 개정안에 담기'}
           </button>
@@ -612,21 +612,21 @@ function RippleOfFix({ r, onGoto }: { r: RuleFeedback; onGoto: Jump }) {
         {sent && (
           <button
             onClick={() => onGoto('release')}
-            className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="rounded-md border border-gray-700 bg-gray-900 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             ⑪ 문법 발행으로 →
           </button>
         )}
         <button
           onClick={() => onGoto('impact', { impact: { space: ch.space, change: ch.change } })}
-          className="rounded-md border border-violet-400/40 bg-violet-400/10 px-2 py-1 text-[11px] font-bold text-violet-200 hover:bg-violet-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+          className="rounded-md border border-violet-400/40 bg-violet-400/10 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-violet-200 hover:bg-violet-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
         >
           ⑦ 영향 분석에서 자세히 →
         </button>
         {preset && (
           <button
             onClick={() => onGoto('validator', { validator: preset })}
-            className="rounded-md border border-sky-400/40 bg-sky-400/10 px-2 py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="rounded-md border border-sky-400/40 bg-sky-400/10 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             ④ 문법 검증에서 이 조합 눌러보기 →
           </button>
@@ -697,7 +697,7 @@ function Row({ i, tab, onOpen, onReopen }: { i: QItem; tab: 'held' | 'done'; onO
         {tab === 'held' ? (
           <button
             onClick={onOpen}
-            className="whitespace-nowrap rounded-md border border-sky-500/40 bg-sky-500/12 px-2 py-1 text-[11px] font-bold text-sky-300 hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="whitespace-nowrap rounded-md border border-sky-500/40 bg-sky-500/12 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-sky-300 hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             처리하기
           </button>

@@ -190,7 +190,7 @@ export default function Guide({ jump }: { jump: Jump }) {
                   <button
                     key={s.id}
                     onClick={() => jump(s.id)}
-                    className="flex w-full items-start gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-2.5 py-2 text-left transition-colors hover:border-gray-700 focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="flex w-full items-start gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-2.5 py-2 max-[640px]:min-h-[40px] text-left transition-colors hover:border-gray-700 focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
                     <span className="mt-px shrink-0 rounded px-1 py-0.5 text-[10px] font-black tabular-nums" style={{ color: t.c, background: `${t.c}1a` }}>
                       {i + 1}

@@ -102,7 +102,7 @@ export default function Inbound() {
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
               onClick={() => setBad(!bad)}
-              className={`rounded-md border px-2.5 py-1 text-[11px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+              className={`rounded-md border px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
                 bad ? 'border-rose-500/50 bg-rose-500/15 text-rose-300' : 'border-gray-700 bg-gray-900 text-gray-400 hover:text-gray-200'
               }`}
             >

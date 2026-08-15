@@ -105,7 +105,7 @@ export default function Simulator({ snap, jump }: { snap: SimSnapshot; jump: Jum
                 <button
                   key={m}
                   onClick={() => setMag(m)}
-                  className={`rounded px-1.5 py-0.5 text-[10.5px] font-bold ${mag === m ? 'bg-pink-400/20 text-pink-300' : 'bg-gray-800 text-gray-500 hover:text-gray-300'}`}
+                  className={`rounded px-1.5 max-[640px]:min-h-[40px] py-0.5 text-[10.5px] font-bold ${mag === m ? 'bg-pink-400/20 text-pink-300' : 'bg-gray-800 text-gray-500 hover:text-gray-300'}`}
                 >
                   {m * 100}
                 </button>

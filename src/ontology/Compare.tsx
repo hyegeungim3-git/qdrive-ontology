@@ -103,7 +103,7 @@ export default function Compare({ onGoto }: { onGoto: Jump }) {
             {releases.length === 0 && !hasDraft && (
               <button
                 onClick={() => onGoto('quarantine')}
-                className="mt-3 rounded-md border border-pink-400/50 bg-pink-400/15 px-3 py-1.5 text-[11.5px] font-bold text-pink-200 hover:bg-pink-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="mt-3 rounded-md border border-pink-400/50 bg-pink-400/15 px-3 max-[640px]:min-h-[40px] py-1.5 text-[11.5px] font-bold text-pink-200 hover:bg-pink-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 ⑩ 격리 큐에서 개정안 만들기 →
               </button>
@@ -185,7 +185,7 @@ function Picker({
             <button
               key={o}
               onClick={() => onChange(o)}
-              className="rounded-md border px-2 py-1 text-[11.5px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="rounded-md border px-2 max-[640px]:min-h-[40px] py-1 text-[11.5px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-sky-500"
               style={
                 on
                   ? { borderColor: `${tone}88`, background: `${tone}22`, color: tone }

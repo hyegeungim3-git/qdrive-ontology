@@ -3,6 +3,8 @@ import { Emph } from '../components/ui'
 import { runAgent, tripSlice, type Answer } from './agent'
 import { useGate } from './gate'
 import { currentVersion } from './grammar'
+import { SPACES } from './meta'
+import { REL_META } from './standards'
 import { roleOf, useRole } from './policy'
 import type { MissionId } from './missions'
 
@@ -30,7 +32,9 @@ type Msg =
 type Call = { fn: string; arg: string; out: string; ok: boolean }
 
 const PRESETS: { q: string; tag: string; c: string }[] = [
-  { q: '이번 운행 1회에서 온톨로지가 무엇을 했나요?', tag: '대표 시연', c: '#f472b6' },
+  /* 처음에는 «온톨로지가 무엇을 했나요»였다. 시스템이 주어인 질문은 아무도 던지지 않는다 —
+     사용자가 궁금한 것은 도구가 한 일이 아니라 **자기가 무엇을 알 수 있는가**다. */
+  { q: '이번 운행에서 데이터로 무엇까지 알 수 있나요?', tag: '대표 시연', c: '#f472b6' },
   { q: '724번 노선을 증차해야 합니까?', tag: '정책 수립', c: '#38bdf8' },
   { q: '오늘 가장 위험한 기사에게 무엇을 코칭해야 합니까?', tag: '안전 운전', c: '#fb7185' },
   { q: '이번 운행에서 얼마나 배출했고, 검증기관이 믿을 수 있습니까?', tag: '탄소중립', c: '#34d399' },
@@ -71,7 +75,7 @@ export default function AgentChat() {
     window.setTimeout(() => {
       const r = route(q)
       const base: Call[] = [
-        { fn: 'grammar.load', arg: currentVersion(), out: `스페이스 9 · 관계 30종`, ok: true },
+        { fn: 'grammar.load', arg: currentVersion(), out: `스페이스 ${SPACES.length} · 관계 ${Object.keys(REL_META).length}종`, ok: true },
         { fn: 'intent.map', arg: `"${q.slice(0, 22)}${q.length > 22 ? '…' : ''}"`, out: r.why, ok: r.kind !== 'unknown' },
       ]
       if (r.kind === 'unknown') {

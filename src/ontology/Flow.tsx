@@ -213,7 +213,7 @@ export function Connections({ jump }: { jump: Jump }) {
           <button
             key={`${r.from.en}-${r.to.en}`}
             onClick={() => jump('spaces')}
-            className="flex w-full items-center gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-2.5 py-1.5 text-left transition-colors hover:border-gray-700 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="flex w-full items-center gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-2.5 py-1.5 max-[640px]:min-h-[40px] text-left transition-colors hover:border-gray-700 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             <span className="w-[132px] shrink-0 text-[11.5px] font-bold" style={{ color: r.from.color }}>
               {r.from.ko}

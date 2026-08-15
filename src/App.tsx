@@ -5,7 +5,7 @@ import { toggleTheme, useTheme } from './theme'
 import { useSim } from './sim/store'
 import ActiveMeta from './ontology/ActiveMeta'
 import Chain from './ontology/Chain'
-import Export from './ontology/Export'
+import Export, { FORMAT_COUNT } from './ontology/Export'
 // 파일명 주의: 컴포넌트를 Grammar.tsx로 두면 저장소 grammar.ts와 Windows에서 충돌한다 (TS1149)
 import Grammar from './ontology/GrammarView'
 import Impact from './ontology/Impact'
@@ -75,7 +75,7 @@ const GROUPS = [
     steps: [
       { id: 'release', n: '⑪', label: '새 버전 내기', desc: '고친 규칙을 실제 적용' },
       { id: 'compare', n: '⑫', label: '버전 비교', desc: '무엇이 달라졌나' },
-      { id: 'export', n: '⑬', label: '파일로 받기', desc: '표준 형식 9가지' },
+      { id: 'export', n: '⑬', label: '파일로 받기', desc: `표준 형식 ${FORMAT_COUNT}가지` },
     ],
   },
   {
@@ -108,7 +108,7 @@ const ASKS: Record<string, string> = {
   quarantine: '막힌 데이터는 어디로 가고, 누가 풀어 주나요?',
   release: '규칙을 고쳐서 새 버전을 내보냅니다. 내보내면 다른 화면의 답도 바뀝니다.',
   compare: '이전 버전과 무엇이 달라졌나요?',
-  export: '이 구조를 다른 곳에 넘기려면? 9가지 파일로 내려받습니다.',
+  export: `이 구조를 다른 곳에 넘기려면? ${FORMAT_COUNT}가지 파일로 내려받습니다.`,
   catalog: '어떤 데이터가 있고, 어디서 왔고, 얼마나 믿을 만한가요?',
 }
 
@@ -221,7 +221,7 @@ export default function App() {
           </a>
           <button
             onClick={toggleTheme}
-            className="whitespace-nowrap rounded-md border border-gray-800 bg-gray-900 px-2.5 py-1 text-xs font-semibold text-gray-300 hover:text-gray-100"
+            className="whitespace-nowrap rounded-md border border-gray-800 bg-gray-900 px-2.5 max-[640px]:min-h-[40px] py-1 text-xs font-semibold text-gray-300 hover:text-gray-100"
             title="라이트/다크 모드 전환"
           >
             {theme === 'dark' ? '☀️ 밝게' : '🌙 다크'}
@@ -342,7 +342,7 @@ export default function App() {
           {step === 'catalog' && <Catalog jump={jump} />}
         </div>
 
-        {/* 14화면을 순서대로 훑을 수 있게. 어디까지 봤는지도 함께 보인다. */}
+        {/* 화면을 순서대로 훑을 수 있게. 어디까지 봤는지도 함께 보인다. */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => prev && setStep(prev.id as StepId)}

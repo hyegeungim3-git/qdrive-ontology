@@ -137,14 +137,14 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
           {pick && (
             <button
               onClick={() => setPick(null)}
-              className="whitespace-nowrap rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="whitespace-nowrap rounded-md border border-gray-700 bg-gray-900 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               전체 보기
             </button>
           )}
           <button
             onClick={() => setGen((g) => g + 1)}
-            className="whitespace-nowrap rounded-md border border-sky-500/40 bg-sky-500/12 px-2 py-1 text-[11px] font-bold text-sky-300 hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="whitespace-nowrap rounded-md border border-sky-500/40 bg-sky-500/12 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-sky-300 hover:bg-sky-500/20 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             ↻ 지금 상태로
           </button>
@@ -160,7 +160,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
               setSeed('')
               setPick(null)
             }}
-            className={`rounded-md border px-2 py-1 text-[11px] font-bold focus-visible:ring-2 focus-visible:ring-sky-500 ${
+            className={`rounded-md border px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold focus-visible:ring-2 focus-visible:ring-sky-500 ${
               seed === '' ? 'border-sky-400/60 bg-sky-400/15 text-sky-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
             }`}
           >
@@ -173,7 +173,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
                 setSeed(v)
                 setPick(null)
               }}
-              className={`rounded-md border px-2 py-1 text-[11px] font-bold focus-visible:ring-2 focus-visible:ring-sky-500 ${
+              className={`rounded-md border px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold focus-visible:ring-2 focus-visible:ring-sky-500 ${
                 seed === v ? 'border-sky-400/60 bg-sky-400/15 text-sky-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
               }`}
             >
@@ -305,7 +305,7 @@ export default function InstanceMap({ snap, onGoto }: { snap: SimSnapshot; onGot
             <ChainLink ix={ix} iri={pick} onGoto={onGoto} />
             <button
               onClick={() => onGoto('live', { live: { focusIri: pick } })}
-              className="rounded-md border border-pink-400/45 bg-pink-400/12 px-2.5 py-1 text-[11px] font-bold text-pink-200 hover:bg-pink-400/22 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="rounded-md border border-pink-400/45 bg-pink-400/12 px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-pink-200 hover:bg-pink-400/22 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               ⑨ 이 레코드가 받은 검사 →
             </button>
@@ -335,7 +335,7 @@ function ChainLink({ ix, iri, onGoto }: { ix: GraphIndex; iri: string; onGoto: J
   return (
     <button
       onClick={() => onGoto('chain', { chain: { metric, vehicleId } })}
-      className="rounded-md border border-violet-400/45 bg-violet-400/12 px-2.5 py-1 text-[11px] font-bold text-violet-200 hover:bg-violet-400/22 focus-visible:ring-2 focus-visible:ring-sky-500"
+      className="rounded-md border border-violet-400/45 bg-violet-400/12 px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-violet-200 hover:bg-violet-400/22 focus-visible:ring-2 focus-visible:ring-sky-500"
     >
       ⑤ 근거 사슬에서 되짚기 — {vehicleId ? `${vehicleId} ` : ''}
       {ko} →

@@ -107,7 +107,7 @@ export default function SpaceGraph({
                 <button
                   key={k}
                   onClick={() => setView(k)}
-                  className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                  className={`whitespace-nowrap rounded-md border px-2 max-[640px]:min-h-[40px] py-0.5 text-[11px] font-semibold focus-visible:ring-2 focus-visible:ring-sky-500 ${
                     view === k ? 'border-sky-400/50 bg-sky-400/15 text-sky-200' : 'border-gray-800 bg-gray-900 text-gray-400 hover:text-gray-200'
                   }`}
                 >

@@ -67,7 +67,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
           releases.length > 0 && (
             <button
               onClick={revertAll}
-              className="rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-gray-400 hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="rounded-md border border-gray-700 bg-gray-900 px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-semibold text-gray-400 hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               v1.0으로 되돌리기
             </button>
@@ -117,7 +117,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
             </div>
             <button
               onClick={() => onGoto('quarantine')}
-              className="mt-3 rounded-md border border-pink-400/50 bg-pink-400/15 px-3 py-1.5 text-[11.5px] font-bold text-pink-200 hover:bg-pink-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="mt-3 rounded-md border border-pink-400/50 bg-pink-400/15 px-3 max-[640px]:min-h-[40px] py-1.5 text-[11.5px] font-bold text-pink-200 hover:bg-pink-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               ⑩ 격리 큐로 가기 →
             </button>
@@ -147,7 +147,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                     </div>
                     <button
                       onClick={() => removeFromDraft(a.id)}
-                      className="shrink-0 rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-[11px] font-semibold text-gray-400 hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-sky-500"
+                      className="shrink-0 rounded-md border border-gray-700 bg-gray-900 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-semibold text-gray-400 hover:text-gray-200 focus-visible:ring-2 focus-visible:ring-sky-500"
                     >
                       빼기
                     </button>
@@ -261,7 +261,7 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
           right={
             <button
               onClick={revalidateAll}
-              className="rounded-md border border-amber-400/50 bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold text-amber-200 hover:bg-amber-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="rounded-md border border-amber-400/50 bg-amber-400/15 px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-amber-200 hover:bg-amber-400/25 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               지금 문법으로 재검증
             </button>
@@ -309,19 +309,19 @@ export default function Release({ snap, onGoto }: { snap: SimSnapshot; onGoto: J
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <button
                     onClick={() => onGoto('compare')}
-                    className="rounded-md border border-emerald-400/40 bg-emerald-400/10 px-2 py-1 text-[11px] font-bold text-emerald-200 hover:bg-emerald-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="rounded-md border border-emerald-400/40 bg-emerald-400/10 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-emerald-200 hover:bg-emerald-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
                     ⑫ 무엇이 바뀌었나 →
                   </button>
                   <button
                     onClick={() => onGoto('validator')}
-                    className="rounded-md border border-sky-400/40 bg-sky-400/10 px-2 py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="rounded-md border border-sky-400/40 bg-sky-400/10 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-sky-200 hover:bg-sky-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
                     ④ 문법 검증에서 확인 →
                   </button>
                   <button
                     onClick={() => onGoto('live')}
-                    className="rounded-md border border-pink-400/40 bg-pink-400/10 px-2 py-1 text-[11px] font-bold text-pink-200 hover:bg-pink-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="rounded-md border border-pink-400/40 bg-pink-400/10 px-2 max-[640px]:min-h-[40px] py-1 text-[11px] font-bold text-pink-200 hover:bg-pink-400/20 focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
                     ⑨ 실검증에서 확인 →
                   </button>

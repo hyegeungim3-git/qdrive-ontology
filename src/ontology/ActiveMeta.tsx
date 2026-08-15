@@ -211,7 +211,7 @@ export default function ActiveMeta({ onGoto }: { onGoto: Jump }) {
         right={
           <button
             onClick={() => onGoto('quarantine')}
-            className="rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="rounded-md border border-gray-700 bg-gray-900 px-2.5 max-[640px]:min-h-[40px] py-1 text-[11px] font-semibold text-gray-300 hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             ⑩ 격리 큐 →
           </button>

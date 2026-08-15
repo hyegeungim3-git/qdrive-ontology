@@ -84,7 +84,7 @@ export default function Chain({ snap, preset }: { snap: SimSnapshot; preset?: { 
                   <button
                     key={x.id}
                     onClick={() => setVid(x.id)}
-                    className={`rounded-md px-2.5 py-1.5 text-left transition-colors ${
+                    className={`rounded-md px-2.5 max-[640px]:min-h-[40px] py-1.5 text-left transition-colors ${
                       on ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40' : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
                     }`}
                   >

@@ -363,6 +363,10 @@ const FORMATS = [
   { key: 'croissant', ko: 'Croissant', ext: 'json', mime: 'application/ld+json', desc: 'AI 학습셋 서술 — 의미·단위·프로버넌스·이용 정책', build: () => '', live: true },
 ] as const
 
+/** 형식 개수. App의 화면 부제가 이 값을 읽는다 —
+  * 손으로 적었더니 형식이 9개일 때 쓴 「9가지」가 10개가 된 뒤에도 남아 있었다. */
+export const FORMAT_COUNT = FORMATS.length
+
 export default function Export() {
   const [key, setKey] = useState<(typeof FORMATS)[number]['key']>('jsonld')
   const [copied, setCopied] = useState(false)
@@ -464,7 +468,7 @@ export default function Export() {
             onClick={copy}
             disabled={!mayExport}
             title={mayExport ? undefined : denyReason(role, 'exportRaw')}
-            className="rounded-md border border-sky-500/40 bg-sky-500/12 px-3 py-1.5 text-[12px] font-bold text-sky-300 hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="rounded-md border border-sky-500/40 bg-sky-500/12 px-3 max-[640px]:min-h-[40px] py-1.5 text-[12px] font-bold text-sky-300 hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             {copied ? '✓ 복사됨' : '📋 복사'}
           </button>
@@ -472,7 +476,7 @@ export default function Export() {
             onClick={download}
             disabled={!mayExport}
             title={mayExport ? undefined : denyReason(role, 'exportRaw')}
-            className="rounded-md border border-emerald-500/40 bg-emerald-500/12 px-3 py-1.5 text-[12px] font-bold text-emerald-300 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
+            className="rounded-md border border-emerald-500/40 bg-emerald-500/12 px-3 max-[640px]:min-h-[40px] py-1.5 text-[12px] font-bold text-emerald-300 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             ⬇ 파일로 저장
           </button>
