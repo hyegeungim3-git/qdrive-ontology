@@ -120,7 +120,7 @@ export default function SpaceGraph({
       >
         {view === 'instance' && <InstanceMap snap={snap} onGoto={onGoto} />}
         <div className={view === 'meta' ? 'overflow-x-auto' : 'hidden'}>
-          <svg viewBox="0 0 1020 460" className="w-full min-w-[980px]" role="img" aria-label="메타 온톨로지 스페이스 그래프">
+          <svg viewBox="-6 26 932 403" className="w-full min-w-[980px]" role="img" aria-label="메타 온톨로지 스페이스 그래프">
             {/* ① 간선 */}
             <g fill="none">
               {META_EDGES.map((e) => {
