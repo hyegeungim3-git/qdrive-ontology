@@ -6,6 +6,7 @@ import { useQuarantine } from './quarantine'
 import { roleOf, useRole } from './policy'
 import { POLICY_VALIDITY, clock, policyActive } from './validity'
 import type { Jump, StepId } from './nav'
+import { Connections, Pipeline } from './Flow'
 
 /**
  * ⓪ 시작하기 — 처음 여는 사람이 3분 안에 「이게 무엇이고 어떻게 도는가」를 잡게 하는 화면.
@@ -18,131 +19,6 @@ import type { Jump, StepId } from './nav'
  *
  * 안내 화면은 «설명»이 아니라 «진입로»여야 한다. 그래서 모든 항목이 눌러서 이동한다.
  */
-
-/* ── 흐름도 ──
-   렌더 규칙: 엣지 → 라벨 → 노드 3레이어. 엣지는 노드 경계에서 끊고,
-   가로 접선 곡선(Sankey)으로 그려 상자를 관통하지 않게 한다. */
-
-type N = { id: string; x: number; y: number; w: number; h: number; ko: string; sub: string; c: string; step?: StepId }
-
-const NODES: N[] = [
-  { id: 'src', x: 12, y: 96, w: 108, h: 54, ko: '들어오는 데이터', sub: 'DTG · GTFS · BIS', c: '#94a3b8', step: 'standards' },
-  { id: 'adp', x: 150, y: 96, w: 96, h: 54, ko: '말 바꾸기', sub: '남의 용어 → 우리 용어', c: '#38bdf8', step: 'standards' },
-  { id: 'gate', x: 276, y: 96, w: 104, h: 54, ko: '검사대', sub: '규칙에 맞는지 확인', c: '#f472b6', step: 'live' },
-  { id: 'graph', x: 410, y: 96, w: 104, h: 54, ko: '연결된 데이터', sub: '점과 선으로 저장', c: '#34d399', step: 'spaces' },
-  { id: 'q', x: 276, y: 194, w: 104, h: 46, ko: '막힌 데이터', sub: '통과 못 한 것', c: '#fb7185', step: 'quarantine' },
-  { id: 'rel', x: 410, y: 194, w: 104, h: 46, ko: '규칙 고치기', sub: '새 버전을 낸다', c: '#c084fc', step: 'release' },
-  { id: 'chain', x: 552, y: 20, w: 112, h: 44, ko: '근거 따라가기', sub: '이 숫자가 어디서', c: '#a78bfa', step: 'chain' },
-  { id: 'act', x: 552, y: 76, w: 112, h: 44, ko: '조치 내리기', sub: '코칭·배차·정비', c: '#fbbf24', step: 'sim' },
-  { id: 'cat', x: 552, y: 132, w: 112, h: 44, ko: '데이터 목록', sub: '무엇이 있나', c: '#38bdf8', step: 'catalog' },
-  { id: 'ai', x: 552, y: 188, w: 112, h: 44, ko: 'AI에 넘기기', sub: '표준 파일로', c: '#34d399', step: 'export' },
-]
-
-type E = { a: string; b: string; ko: string; dashed?: boolean; c?: string }
-const EDGES: E[] = [
-  { a: 'src', b: 'adp', ko: '' },
-  { a: 'adp', b: 'gate', ko: '옮겨서' },
-  { a: 'gate', b: 'graph', ko: '통과한 것만' },
-  { a: 'gate', b: 'q', ko: '어긋나면 막고', c: '#fb7185' },
-  { a: 'q', b: 'rel', ko: '자꾸 막히면', c: '#c084fc' },
-  { a: 'rel', b: 'gate', ko: '고친 규칙이 검사대에 반영된다', dashed: true, c: '#c084fc' },
-  { a: 'graph', b: 'chain', ko: '' },
-  { a: 'graph', b: 'act', ko: '' },
-  { a: 'graph', b: 'cat', ko: '' },
-  { a: 'graph', b: 'ai', ko: '' },
-]
-
-const byId = (id: string) => NODES.find((n) => n.id === id)!
-
-/** 가로 접선 곡선 — 상자 오른쪽에서 수평 출발, 왼쪽으로 수평 도착 */
-function path(a: N, b: N) {
-  if (a.id === 'rel' && b.id === 'gate') {
-    /* 되먹임 — **상자 아래 복도로 직선 우회**한다.
-       처음엔 곡선으로 질러갔는데 격리 큐를 관통했고(getPointAtLength 계측 7군데),
-       제어점을 조정해도 새는 지점이 계속 생겼다. 모든 상자 밑변(240)보다 아래로 내려간 뒤
-       빈 세로 복도(x=258 — 어댑터 오른쪽 246과 게이트 왼쪽 276 사이)로 올라오면
-       기하학적으로 관통이 불가능하다. 곡선을 고집하는 것보다 이쪽이 읽기도 쉽다. */
-    const x1 = a.x + a.w / 2
-    const y1 = a.y + a.h
-    const floor = 256
-    const lane = 258
-    const y2 = b.y + b.h / 2
-    return `M ${x1} ${y1} L ${x1} ${floor} L ${lane} ${floor} L ${lane} ${y2} L ${b.x} ${y2}`
-  }
-  const vertical = Math.abs(a.x - b.x) < 4
-  if (vertical) {
-    const x = a.x + a.w / 2
-    return `M ${x} ${a.y + a.h} L ${x} ${b.y}`
-  }
-  const x1 = a.x + a.w
-  const y1 = a.y + a.h / 2
-  const x2 = b.x
-  const y2 = b.y + b.h / 2
-  const dx = Math.max(24, (x2 - x1) * 0.55)
-  return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`
-}
-
-function Flow({ jump }: { jump: Jump }) {
-  return (
-    <div className="overflow-x-auto">
-      <svg viewBox="0 0 690 268" className="w-full min-w-[660px]" role="img" aria-label="데이터 흐름도">
-        {/* 1) 엣지 */}
-        {EDGES.map((e) => {
-          const a = byId(e.a)
-          const b = byId(e.b)
-          return (
-            <path
-              key={`${e.a}-${e.b}`}
-              d={path(a, b)}
-              fill="none"
-              stroke={e.c ?? '#475569'}
-              strokeWidth={1.6}
-              strokeDasharray={e.dashed ? '5 4' : undefined}
-              opacity={0.85}
-            />
-          )
-        })}
-        {/* 2) 라벨 */}
-        {EDGES.filter((e) => e.ko).map((e) => {
-          const a = byId(e.a)
-          const b = byId(e.b)
-          const vertical = Math.abs(a.x - b.x) < 4
-          const feedback = e.a === 'rel' && e.b === 'gate'
-          const x = feedback ? 355 : vertical ? a.x + a.w / 2 : (a.x + a.w + b.x) / 2
-          const y = feedback ? 249 : vertical ? (a.y + a.h + b.y) / 2 + 4 : (a.y + a.h / 2 + b.y + b.h / 2) / 2 - 6
-          return (
-            <text
-              key={`l-${e.a}-${e.b}`}
-              x={x}
-              y={y}
-              textAnchor="middle"
-              fontSize={9.5}
-              fontWeight={700}
-              fill={e.c ?? '#94a3b8'}
-              stroke="var(--color-gray-950, #030712)"
-              strokeWidth={3}
-              paintOrder="stroke"
-            >
-              {e.ko}
-            </text>
-          )
-        })}
-        {/* 3) 노드 */}
-        {NODES.map((n) => (
-          <g key={n.id} onClick={() => n.step && jump(n.step)} style={{ cursor: n.step ? 'pointer' : 'default' }}>
-            <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={9} fill={`${n.c}14`} stroke={`${n.c}77`} strokeWidth={1.2} />
-            <text x={n.x + n.w / 2} y={n.y + (n.h > 48 ? 23 : 20)} textAnchor="middle" fontSize={11.5} fontWeight={800} fill={n.c}>
-              {n.ko}
-            </text>
-            <text x={n.x + n.w / 2} y={n.y + (n.h > 48 ? 39 : 34)} textAnchor="middle" fontSize={9} fill="#94a3b8">
-              {n.sub}
-            </text>
-          </g>
-        ))}
-      </svg>
-    </div>
-  )
-}
 
 /* ── 추천 경로 ── */
 type Tour = { who: string; why: string; c: string; steps: { n: string; id: StepId; ko: string; what: string }[] }
@@ -207,10 +83,16 @@ export default function Guide({ jump }: { jump: Jump }) {
         </div>
 
         <div className="mt-3">
-          <Flow jump={jump} />
+          <Pipeline jump={jump} />
         </div>
 
-        <div className="mt-2 grid grid-cols-3 gap-2 max-[820px]:grid-cols-1">
+        {/* 흐름도만 보면 «한 줄로 지나간다»로 읽힌다. 실제 연결이 몇 개인지를 바로 아래에 붙인다. */}
+        <div className="mt-3 rounded-xl border border-gray-800 bg-gray-900/40 px-3 py-3">
+          <div className="mb-1 text-[11.5px] font-black tracking-wide text-gray-400">데이터가 얼마나 연결돼 있나</div>
+          <Connections jump={jump} />
+        </div>
+
+        <div className="mt-3 grid grid-cols-3 gap-2 max-[820px]:grid-cols-1">
           {[
             ['1. 들어올 때 검사합니다', '남의 용어로 온 데이터를 우리 용어로 바꾸고, 규칙에 맞는지 봅니다. 안 맞으면 들여보내지 않습니다.'],
             ['2. 통과한 것만 씁니다', '막힌 데이터는 점수와 집계에서 실제로 빠집니다. 잘못된 데이터를 넣어 보면 숫자가 바로 움직입니다.'],
