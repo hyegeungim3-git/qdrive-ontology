@@ -638,7 +638,7 @@ export default function AgentChat() {
                         <div className="mb-2 flex flex-wrap items-center gap-1">
                           <span className="text-[10.5px] font-semibold text-gray-500">근거 사슬</span>
                           {m.res.path.map((p, k) => (
-                            <span key={k} className="rounded border border-violet-500/25 bg-violet-500/10 px-1.5 py-0.5 text-[10.5px] font-semibold text-violet-300">
+                            <span key={k} className="rounded border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[10.5px] font-semibold text-sky-300">
                               {p}
                             </span>
                           ))}
