@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ink } from './ink'
 import { Emph } from '../components/ui'
 import { gapAnswer, measureAnswer, runAgent, tripSlice, type Answer } from './agent'
+import { answerQuestion, type QaResult } from '../sim/ontologyQa'
+import { useSim } from '../sim/store'
 import { buildReport, buildReportJson, weakest, type Section } from './report'
 import { copyToClipboard } from '../components/ui'
 import ReportDoc from './ReportDoc'
@@ -31,12 +33,13 @@ type Msg =
   | { role: 'user'; text: string }
   | { role: 'agent'; kind: 'answer'; ans: Answer; calls: Call[]; follow: string[]; self: Kind; sec: Section }
   | { role: 'agent'; kind: 'trip'; calls: Call[]; follow: string[]; self: Kind; sec: Section }
+  | { role: 'agent'; kind: 'onto'; res: QaResult; calls: Call[]; follow: string[]; self: Kind; sec: Section }
   | { role: 'agent'; kind: 'unknown'; text: string; need: string[]; calls: Call[]; follow: string[]; self: Kind }
 
 type Call = { fn: string; arg: string; out: string; ok: boolean }
 
 /** 시나리오. gap은 «그럼 뭐가 있어야 하나요»의 종착지 — 후속 질문이 갈 곳이 있어야 대화가 돈다 */
-type Kind = 'trip' | MissionId | 'gap' | 'measure' | 'unknown'
+type Kind = 'trip' | MissionId | 'gap' | 'measure' | 'onto' | 'unknown'
 
 const PRESETS: { q: string; tag: string; c: string }[] = [
   /* 처음에는 «온톨로지가 무엇을 했나요»였다. 시스템이 주어인 질문은 아무도 던지지 않는다 —
@@ -49,9 +52,12 @@ const PRESETS: { q: string; tag: string; c: string }[] = [
 
 /** 더 물어볼 수 있는 것들 — 빈 화면에서 «이 넷만 되나»로 읽히지 않게 펼쳐 둔다 */
 const MORE: string[] = [
+  '이 주행은 영업인가 공차인가',
+  '이 급감속은 어떤 노선·날씨에서 났나',
+  '이 차고지가 만든 공차는 얼마인가',
+  '이 감축은 코칭 때문인가 유가 때문인가',
   '무엇이 있으면 더 답할 수 있나요?',
   '정시율은 왜 못 답하나요?',
-  '공차 거리를 알 수 있나요?',
   '이 노선의 혼잡은 어느 정도인가요?',
   '급가속이 연료를 얼마나 더 쓰게 하나요?',
   '전기버스로 바꾸면 배출이 0인가요?',
@@ -96,15 +102,34 @@ const FOLLOW: Record<Kind, string[]> = {
     '724번 노선을 증차해야 합니까?',
     '이번 운행에서 얼마나 배출했고, 검증기관이 믿을 수 있습니까?',
   ],
+  /* 공차·운행유형은 오래 「못 답하는 질문」이었다. 운행 단위에 유형·차고지 축이 붙으면서
+     답이 나오게 됐으니, 후속 칩도 gap이 아니라 **나머지 세 질문**으로 잇는다. */
+  onto: [
+    '이 차고지가 만든 공차는 얼마인가',
+    '이 감축은 코칭 때문인가 유가 때문인가',
+    '무엇이 있으면 더 답할 수 있나요?',
+  ],
   unknown: [
     '이번 운행에서 데이터로 무엇까지 알 수 있나요?',
     '무엇이 있으면 더 답할 수 있나요?',
   ],
 }
 
+/**
+ * 「맥락이 붙으면 비로소 답할 수 있는 질문」 4종으로 가는 길.
+ *
+ * 일반 키워드 라우터를 그대로 앞에 두면 «724번 노선을 증차해야 합니까»가 «노선»에 걸려
+ * 정책 시나리오를 가로챈다. 그래서 **이 시나리오에만 있는 말**(공차·영업·차고지·유가 …)이
+ * 실제로 나온 질문만 여기로 보낸다.
+ */
+const ONTO_SIGNAL = /공차|영업|차고지|회송|운행유형|유가|급감속.*(노선|날씨)|(노선|날씨).*급감속/
+
 /** 질문 → 시나리오. 실서비스에서는 LLM이 하지만, **매핑 결과를 반드시 보여 줘야** 한다 */
 function route(q: string): { kind: Kind; why: string; scope?: MissionId } {
   const t = q.replace(/\s/g, '')
+  /* 운행유형·차고지 축이 붙어 답이 가능해진 질문들. 「무엇이 있으면」보다 앞에 둔다 —
+     «공차 거리를 알 수 있나요»는 이제 gap이 아니라 실제로 답이 나오는 질문이기 때문이다. */
+  if (ONTO_SIGNAL.test(t)) return { kind: 'onto', why: '「운행 단위에 맥락이 붙어야 답하는 질문」으로 인식 — 운행유형·차고지·기상 축을 건다' }
   /* 「무엇이 있으면」류를 **맨 앞에서** 잡는다. 뒤에 두면 «무엇이 있으면 배출을»이
      탄소로 빠져 후속 질문이 원래 답으로 되돌아간다 — 대화가 제자리를 돈다. */
   if (/있으면|없나요|왜못|못답|더답|필요한데이터|무엇이필요/.test(t)) {
@@ -304,6 +329,10 @@ export default function AgentChat() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  /* 답은 «누른 순간»의 스냅샷으로 계산한다. setTimeout 안에서 읽으므로 ref로 최신값을 들고 간다 */
+  const snap = useSim()
+  const snapRef = useRef(snap)
+  snapRef.current = snap
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -333,6 +362,54 @@ export default function AgentChat() {
               '질문을 우리 지표로 옮길 수 없습니다 — 증차·코칭·배출처럼 그래프에 있는 개념으로 물어 주세요',
               '없는 지표를 물으면 만들어 내지 않습니다. 정시율처럼 원천이 없는 것은 「미측정」으로만 답합니다',
             ],
+            calls: base,
+            follow,
+            self: r.kind,
+          },
+        ])
+        setBusy(false)
+        return
+      }
+      if (r.kind === 'onto') {
+        const res = answerQuestion(snapRef.current, q)
+        if (res) {
+          setMsgs((m) => [
+            ...m,
+            {
+              role: 'agent',
+              kind: 'onto',
+              res,
+              calls: [
+                ...base,
+                { fn: 'graph.walk', arg: res.path.join(' '), out: `근거 ${res.evidence.length}항목`, ok: !res.empty },
+                { fn: 'engine.aggregate', arg: res.id, out: res.empty ? '아직 쌓인 데이터 없음' : '스냅샷에서 실계산', ok: !res.empty },
+                { fn: 'limits.collect', arg: '못 하는 것', out: res.caveat ? '예시 상수 1건 고지' : '없음', ok: true },
+              ],
+              follow,
+              self: r.kind,
+              sec: {
+                q,
+                kind: 'trip',
+                answer: `${res.headline} — ${res.detail.replace(/\*\*/g, '')}`,
+                cites: res.evidence.map((e) => ({ iri: `qd:${res.id}/${e.k}`, label: e.k, space: '운행', value: e.v })),
+                conf: res.caveat
+                  ? { level: '환산', pct: 85, why: '회송거리는 예시 상수이며 나머지는 엔진 실측입니다' }
+                  : { level: '실측', pct: 95, why: '지금 돌아가는 엔진의 집계값입니다' },
+                limits: res.caveat ? [res.caveat] : ['이 답은 실증 9대 범위의 집계입니다 — 시 전체로 확대 해석하지 않습니다'],
+              },
+            },
+          ])
+          setBusy(false)
+          return
+        }
+        /* 신호는 걸렸는데 어느 질문인지 못 좁힌 경우 — 지어내지 않고 못 한다고 답한다 */
+        setMsgs((m) => [
+          ...m,
+          {
+            role: 'agent',
+            kind: 'unknown',
+            text: '운행유형·차고지 쪽 질문 같은데, 어느 것을 묻는지 좁히지 못했습니다.',
+            need: ['「이 주행은 영업인가 공차인가」처럼 물어 주세요 — 아래 칩을 눌러도 됩니다'],
             calls: base,
             follow,
             self: r.kind,
@@ -555,6 +632,40 @@ export default function AgentChat() {
                     )}
 
                     {m.kind === 'trip' && <TripAnswer />}
+
+                    {m.kind === 'onto' && (
+                      <>
+                        <div className="mb-2 flex flex-wrap items-center gap-1">
+                          <span className="text-[10.5px] font-semibold text-gray-500">근거 사슬</span>
+                          {m.res.path.map((p, k) => (
+                            <span key={k} className="rounded border border-violet-500/25 bg-violet-500/10 px-1.5 py-0.5 text-[10.5px] font-semibold text-violet-300">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="break-keep text-[13.5px] font-bold leading-relaxed text-gray-50">{m.res.headline}</div>
+                        <div className="mt-1.5 break-keep text-[12.5px] leading-relaxed text-gray-300">
+                          <Emph t={m.res.detail} cls="text-gray-100" />
+                        </div>
+                        {m.res.evidence.length > 0 && (
+                          <div className="mt-2.5 overflow-x-auto rounded-lg border border-gray-800 bg-gray-950/50 px-3 py-1.5">
+                            <table className="w-full text-left text-[11.5px]">
+                              <tbody>
+                                {m.res.evidence.map((e, k) => (
+                                  <tr key={k} className="border-b border-gray-800/50 last:border-0">
+                                    <td className="w-[42%] py-1.5 pr-3 break-keep align-top text-gray-500">{e.k}</td>
+                                    <td className="py-1.5 break-keep font-semibold text-gray-200">{e.v}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                        {m.res.caveat && (
+                          <div className="mt-2 break-keep text-[11px] leading-relaxed text-amber-200/80">※ {m.res.caveat}</div>
+                        )}
+                      </>
+                    )}
 
                     {m.kind === 'answer' && (
                       <>

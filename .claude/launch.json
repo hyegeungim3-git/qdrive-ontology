@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "qdrive-ontology",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "C:\\Qdrive 통합\\qdrive-ontology",
+      "port": 5174
+    }
+  ]
+}
