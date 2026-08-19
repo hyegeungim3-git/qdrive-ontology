@@ -1,3 +1,4 @@
+import { DEPOTS } from '../sim/depots'
 import { ROUTES } from '../sim/routes'
 import { RISK_EVENT_TYPES, type SimSnapshot } from '../sim/types'
 
@@ -82,6 +83,8 @@ export const SPACES: Space[] = [
       { ko: '노선', en: 'Route', count: () => ROUTES.length, live: true, note: '인가노선 폴리라인 = 정산 검증 기준' },
       { ko: '정류장', en: 'Stop', count: () => ROUTES.reduce((n, r) => n + r.stops.length, 0), live: true, note: '정차 품질·배차 간격의 기준점' },
       { ko: '차내 단말', en: 'Device', count: (s) => s.vehicles.length, live: true, note: 'DTG·OBD·RTK 통합 수집 지점' },
+      // 차고지가 없으면 «수입 없이 달린 거리(공차)»를 걸 자리가 없다 — 엔진·AI Q는 이미 이 축으로 답한다
+      { ko: '차고지', en: 'Depot', count: () => DEPOTS.length, live: true, note: '출·입고 지점 — 기점과 떨어진 만큼 공차가 생긴다' },
     ],
   },
   {
@@ -97,7 +100,7 @@ export const SPACES: Space[] = [
     id: 'evidence', ko: '관측', en: 'Evidence', color: '#22d3ee', x: 335, y: 280,
     desc: '실제로 일어난 일의 기록 — 판정의 근거가 되는 원 데이터',
     types: [
-      { ko: '운행 기록', en: 'Trip', count: (s) => s.trips.length, live: true, note: 'DTG 521 — 온톨로지의 시간 축' },
+      { ko: '운행 기록', en: 'Trip', count: (s) => s.trips.length + s.deadheads.length, live: true, note: 'DTG 521 — 온톨로지의 시간 축 (영업 + 공차)' },
       { ko: '위험운전 패킷', en: 'RiskEvent', count: (s) => s.kpi.totalEvents, live: true, note: 'DTG 409 — 공단 표준 8종' },
       { ko: '센서 측정', en: 'SensorReading', count: sensorRows, live: true, note: 'OBD/CAN 21종 · 1초' },
       { ko: '위치 관측', en: 'Location', count: sensorRows, live: true, note: 'RTK cm급 — 차로 단위' },
@@ -122,6 +125,7 @@ export const SPACES: Space[] = [
       { ko: '혼잡 등급', en: 'CrowdLevel', count: () => 3, live: false, note: '여유 · 보통 · 혼잡 — 재차율 구간' },
       { ko: '낭비 요인', en: 'WasteFactor', count: () => 4, live: false, note: '공회전 · 급조작 · 습관 · 냉난방' },
       { ko: '연료 종류', en: 'FuelType', count: () => 2, live: false, note: 'CNG · 전기' },
+      { ko: '운행유형', en: 'TripKind', count: () => 2, live: true, note: '영업 · 공차 — 거리·연료만으로는 갈라지지 않는 축' },
     ],
   },
   {
@@ -149,7 +153,7 @@ export const SPACES: Space[] = [
     desc: '비슷한 것끼리 묶은 군 — 개인이 아니라 군 단위로 봐야 보이는 것',
     types: [
       { ko: '운전군', en: 'DriverCohort', count: () => 3, live: false, note: '모범 · 평균 · 코칭 대상 — A/B 효과 검증 단위' },
-      { ko: '운수사', en: 'Operator', count: () => 1, live: false, note: '경영·서비스 평가의 단위' },
+      { ko: '운수사', en: 'Operator', count: (s) => new Set([...s.trips, ...s.deadheads].map((t) => t.company)).size, live: true, note: '차고지·차량·기사를 묶는 정산·평가 단위' },
       { ko: '시간대군', en: 'TimeBand', count: () => 4, live: false, note: '출근 · 낮 · 퇴근 · 심야 — 증차·감차 판단의 축' },
       { ko: '노선군', en: 'RouteCluster', count: () => 2, live: false, note: '급행 · 순환' },
     ],
