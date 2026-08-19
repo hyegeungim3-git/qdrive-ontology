@@ -501,7 +501,7 @@ export default function AgentChat() {
     <div className="space-y-3">
       {/* 헤더 */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-violet-400/25 bg-violet-400/[0.07] px-4 py-3">
-        <span className="text-[15px] font-black text-violet-300">🤖 AI 에이전트</span>
+        <span className="text-[15px] font-black text-violet-300">💬 AI Q</span>
         <span className="break-keep text-[12px] leading-relaxed text-gray-400">
           온톨로지 <b className="text-gray-200">위에서 도는</b> 서비스입니다. 답의 모든 숫자가 그래프에서 나오고, 못 하는 것은 못 한다고 답합니다.
         </span>

@@ -206,9 +206,9 @@ export default function App() {
                 ? 'border-violet-400/60 bg-violet-500/20 text-violet-200'
                 : 'border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20'
             }`}
-            title="온톨로지 위에서 도는 AI 에이전트 — 채팅·에이전트 두 형태"
+            title="온톨로지 위에서 도는 AI — 채팅·에이전트 두 형태. 운영 플랫폼의 «AI Q»와 같은 이름을 쓴다"
           >
-            {agentMode ? '← 스튜디오로' : '🤖 AI 에이전트'}
+            {agentMode ? '← 스튜디오로' : '💬 AI Q'}
           </button>
           <a
             href={PLATFORM}
