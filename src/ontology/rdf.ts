@@ -1,3 +1,4 @@
+import { DEPOTS, depotOfRoute } from '../sim/depots'
 import { ROUTES } from '../sim/routes'
 import { RISK_EVENT_TYPES } from '../sim/types'
 import type { SimSnapshot } from '../sim/types'
@@ -27,7 +28,9 @@ const P = (ko: string): string => {
 }
 
 /** 결함 주입 — 일부러 규칙을 깨서 SHACL이 정말로 잡는지 보이는 장치 */
-export type FaultId = 'badEventType' | 'speedOver' | 'noClassify' | 'illegalRelation' | 'claimNoEvidence' | 'autoAdverse' | 'realName' | 'cumulativeFuel'
+export type FaultId =
+  | 'badEventType' | 'speedOver' | 'noClassify' | 'illegalRelation' | 'claimNoEvidence' | 'autoAdverse' | 'realName' | 'cumulativeFuel'
+  | 'badTripKind' | 'unknownDepot' | 'noDepot' | 'deadheadFar'
 
 export const FAULTS: { id: FaultId; ko: string; desc: string; expect: string; family: string }[] = [
   { id: 'badEventType', ko: '표준 밖 이벤트 코드', desc: '위험운전 유형에 «급브레이크»를 넣는다 — 공단 표준 8종에 없는 말', expect: 'sh:in', family: '속성' },
@@ -37,6 +40,10 @@ export const FAULTS: { id: FaultId; ko: string; desc: string; expect: string; fa
   { id: 'claimNoEvidence', ko: '근거 없는 판정', desc: '뒷받침하는 관측이 하나도 없는 감점 판정을 만든다', expect: 'sh:minCount · 역경로', family: '도메인' },
   { id: 'autoAdverse', ko: '감점 자동 확정', desc: '감점 판정에서 확정 담당자(decidedBy)를 지운다', expect: 'sh:minCount', family: '도메인' },
   { id: 'realName', ko: '기사 실명 노출', desc: '분석셋 기사 노드에 실명(driverName)을 붙인다', expect: 'sh:maxCount 0', family: '도메인' },
+  { id: 'badTripKind', ko: '운행유형 표준 밖 값', desc: '운행유형에 «회송»을 넣는다 — 운수사마다 달리 부르는 말이 그대로 들어온 상황', expect: 'sh:in', family: '속성' },
+  { id: 'unknownDepot', ko: '미등재 차고지명', desc: '기준정보에 없는 «성서車»로 차고지 이름을 보낸다', expect: 'sh:in', family: '속성' },
+  { id: 'noDepot', ko: '소속차고지 누락', desc: '회차에서 소속차고지를 뗀다 — 공차 비용을 걸 자리가 사라진다', expect: 'sh:minCount', family: '관계' },
+  { id: 'deadheadFar', ko: '편도 회송거리 이상', desc: '차고지 편도거리를 68km로 적는다 — 자릿수 오입력', expect: 'sh:maxInclusive', family: '속성' },
   { id: 'cumulativeFuel', ko: '회차 연료 누적값', desc: '회차마다 리셋해야 할 연료 계량을 리셋하지 않는다 — 누적 합계가 들어온다', expect: 'sh:sparql', family: '도메인' },
 ]
 
@@ -425,6 +432,7 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
   /* 정책은 개인이 아니라 **군 단위**로 결정한다 — 운수사·시간대가 집계 축이다 */
   node('qdi:op-1', 'Operator', 'Community', '대구버스운송')
   add('qdi:op-1', 'qd:operatorId', str('OP-대구1'))
+  add('qdi:op-1', 'qd:companyName', str('대구버스운송'))
   add('qdi:op-1', 'qd:fleetSize', int(vehicles.length))
   add('qdi:op-1', P('요약한다'), 'qdi:grade-A')
   ;(
@@ -500,8 +508,9 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
   // 회차는 시간이 지나야 쌓인다. 누적값 결함은 회차 2건 이상이라야 드러나므로, 아직 덜 쌓였으면
   // 지금 달리는 차량으로 회차를 채운다 — 결함을 눌렀는데 아무 일도 없으면 규칙이 없는 것처럼 보인다.
   const real = snap.trips.slice(0, 10)
+  const needsTrips = on('cumulativeFuel') || on('badTripKind') || on('noDepot')
   const trips =
-    on('cumulativeFuel') && real.length < 3
+    needsTrips && real.length < 3
       ? [
           ...real,
           ...vehicles.slice(0, 3 - real.length).map((v, k) => {
@@ -514,10 +523,28 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
               distanceKm: km,
               fuelM3: km * 0.55, // 실측 회차 연비 중앙값
               co2Kg: km * 0.55 * 1.94,
+              // 소속 축까지 채워야 «회차 하나»가 성립한다 — 빠지면 보충 회차만 제약을 위반한다
+              kind: '영업' as const,
+              seq: k + 1,
+              depot: depotOfRoute(v.routeId).name,
             }
           }),
         ]
       : real
+  /* ── 차고지·운수사 — 공차가 생기는 자리와 그 비용을 지는 주체 ── */
+  DEPOTS.forEach((d, i) => {
+    const di = `qdi:dep-${key(d.name)}`
+    const oi = `qdi:op-${key(d.company)}`
+    node(di, 'Depot', 'Resource', d.name)
+    add(di, 'qd:depotName', str(on('unknownDepot') && i === 0 ? '성서車' : d.name))
+    add(di, 'qd:deadheadKm', dec(on('deadheadFar') && i === 0 ? d.deadheadKm * 10 : d.deadheadKm))
+    node(oi, 'Operator', 'Community', d.company)
+    add(oi, 'qd:operatorId', str(`OP-${d.id}`))
+    add(oi, 'qd:companyName', str(d.company))
+    add(oi, 'qd:fleetSize', int(3))
+    add(di, P('운영주체'), oi)
+  })
+
   // 결함 주입: 회차마다 리셋해야 할 연료 계량을 리셋하지 않은 상황 — 누적 합계가 들어온다
   let cumFuel = 0
   trips.forEach((t) => {
@@ -530,6 +557,9 @@ export function buildDataGraph(snap: SimSnapshot, faults: Set<FaultId> = new Set
     add(tr, 'qd:distanceKm', dec(t.distanceKm))
     add(tr, 'qd:fuelM3', dec(on('cumulativeFuel') ? cumFuel : t.fuelM3))
     add(tr, 'qd:co2Kg', dec(t.co2Kg))
+    add(tr, 'qd:kind', str(on('badTripKind') ? '회송' : t.kind))
+    add(tr, 'qd:seq', int(t.seq))
+    if (!on('noDepot')) add(tr, P('소속차고지'), `qdi:dep-${key(t.depot)}`)
     add(tr, P('분류된다'), 'qdi:grade-A')
     add(tr, P('뒷받침한다'), rc)
     add(`qdi:veh-${key(t.vehicleId)}`, P('기록된다'), tr)

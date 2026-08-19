@@ -209,6 +209,10 @@ export type MetaEdge = {
 export const META_EDGES: MetaEdge[] = [
   { from: 'subject', to: 'resource', relations: ['운전한다', '관리한다', '조회권한', '승인권한'], desc: '주체는 자산에 대한 역할과 권한을 가진다' },
   { from: 'resource', to: 'evidence', relations: ['생성한다', '기록된다'], desc: '자산이 움직이면 관측이 남는다' },
+  // 관측 → 자산: 「이 운행이 어느 차고지 소속인가」. 자산 → 관측(생성한다)과 방향이 반대인 별개 관계다
+  { from: 'evidence', to: 'resource', relations: ['소속차고지'], desc: '관측이 어느 자산에 소속돼 일어났는가' },
+  // 자산 → 집단: 책임 소재. 운수사는 사람이 아니라 «집단»이라 주체가 아닌 집단 스페이스에 선다
+  { from: 'resource', to: 'community', relations: ['운영주체'], desc: '그 자산의 운영 책임이 어느 집단(운수사)에 있는가' },
   { from: 'evidence', to: 'concept', relations: ['분류된다', '예시가 된다'], desc: '관측은 표준 어휘로 분류된다' },
   { from: 'evidence', to: 'claim', relations: ['뒷받침한다', '반박한다', '시각을 고정한다'], desc: '판정은 관측 없이 성립하지 않는다', core: true },
   { from: 'claim', to: 'outcome', relations: ['반영된다', '보정한다'], desc: '판정이 확정되면 성과 수치에 반영된다', core: true },
@@ -227,6 +231,8 @@ export const RELATION_GLOSSARY: Record<string, string> = {
   조회권한: '그 자산의 데이터를 볼 수 있다.',
   승인권한: '그 자산에 대한 조치를 승인할 수 있다.',
   생성한다: '자산이 움직이면서 그 관측을 만들어냈다.',
+  소속차고지: '그 운행이 출·입고한 차고지. 회차마다 정확히 하나여야 한다.',
+  운영주체: '그 차고지·차량을 운영하는 운수사. 정산·평가의 책임 단위다.',
   기록된다: '자산의 상태가 그 관측으로 기록됐다.',
   분류된다: '관측이 표준 어휘의 어느 값에 해당한다.',
   '예시가 된다': '그 개념의 구체 사례다.',

@@ -143,6 +143,37 @@ export function buildShacl(opts: { sparql?: boolean } = {}): string {
     L.push('  ] .')
     L.push('')
   }
+  /*
+   * 소속 축은 «회차»와 «차고지»에만 걸어야 한다.
+   * 관계 셰이프(2절)는 스페이스 전체를 대상으로 하므로 거기에 required를 두면
+   * 이벤트·센서·날씨까지 차고지를 요구받는다 — 실제로 정상 데이터가 71건 위반으로 잡혔다.
+   */
+  if (!DISABLED_RULES.has('TripNeedsDepot')) {
+    L.push('# 회차는 어느 차고지에서 나갔는지가 정확히 하나여야 한다 — 공차 비용을 걸 자리')
+    L.push('qd:RuleTripNeedsDepotShape a sh:NodeShape ;')
+    L.push('  sh:targetClass qd:Trip ;')
+    L.push('  sh:property [')
+    L.push('    sh:path qd:fromDepot ;')
+    L.push('    sh:minCount 1 ;')
+    L.push('    sh:maxCount 1 ;')
+    L.push('    sh:severity sh:Violation ;')
+    L.push('    sh:message "회차에는 소속차고지가 정확히 하나 있어야 합니다"@ko ;')
+    L.push('  ] .')
+    L.push('')
+  }
+  if (!DISABLED_RULES.has('DepotNeedsOperator')) {
+    L.push('# 차고지의 운영 책임 주체는 하나로 정해져야 한다 — 정산 분쟁을 막는다')
+    L.push('qd:RuleDepotNeedsOperatorShape a sh:NodeShape ;')
+    L.push('  sh:targetClass qd:Depot ;')
+    L.push('  sh:property [')
+    L.push('    sh:path qd:operatedBy ;')
+    L.push('    sh:minCount 1 ;')
+    L.push('    sh:maxCount 1 ;')
+    L.push('    sh:severity sh:Violation ;')
+    L.push('    sh:message "차고지에는 운영 운수사가 정확히 하나 있어야 합니다"@ko ;')
+    L.push('  ] .')
+    L.push('')
+  }
   /* 규정에 시행일이 있다. **미시행 규정은 셰이프를 만들지 않는다** —
      「시행 예정이라 아직 안 막습니다」를 화면 문구로만 적으면 그것은 다시 연극이다.
      시행 시각이 지나면 이 규칙이 생기고, 그때부터 실제로 막힌다. */

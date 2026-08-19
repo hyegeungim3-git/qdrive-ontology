@@ -146,6 +146,9 @@ export const REL_META: Record<string, RelMeta> = {
   조회권한: { en: 'canView', card: 'N:M', required: false, inverse: '조회허용', align: { std: 'odrl', term: 'odrl:permission', match: 'close' } },
   승인권한: { en: 'canApprove', card: 'N:M', required: false, inverse: '승인허용', align: { std: 'odrl', term: 'odrl:permission', match: 'close' } },
 
+  소속차고지: { en: 'fromDepot', card: 'N:1', required: false, inverse: '출입고운행', align: { std: 'prov', term: 'prov:atLocation', match: 'close', note: '장소 귀속이라는 뜻은 같지만, 여기서는 «운영 소속»까지 포함한다' } },
+  운영주체: { en: 'operatedBy', card: 'N:1', required: false, inverse: '운영자산', align: { std: 'prov', term: 'prov:wasAttributedTo', match: 'close' } },
+
   생성한다: { en: 'produces', card: '1:N', required: false, inverse: '생성됨', align: { std: 'sosa', term: 'sosa:isFeatureOfInterestOf', match: 'close' } },
   기록된다: { en: 'loggedAs', card: '1:N', required: false, inverse: '기록대상', align: { std: 'sosa', term: 'sosa:madeObservation', match: 'close', note: '단말(Platform) 기준' } },
 
@@ -202,6 +205,12 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
     { name: 'distanceKm', datatype: 'xsd:decimal', required: true, min: 0, unit: 'km', qudt: 'unit:KiloM' },
     { name: 'fuelM3', datatype: 'xsd:decimal', required: true, min: 0, unit: 'm³', qudt: 'unit:M3', note: '구간값 — 누적값 금지' },
     { name: 'co2Kg', datatype: 'xsd:decimal', required: true, min: 0, unit: 'kg', qudt: 'unit:KiloGM' },
+    { name: 'kind', datatype: 'xsd:string', required: true, note: '영업/공차 — 운수사마다 «회송»·«DH»로 달리 부르면 공차율이 조용히 과소집계된다', oneOf: ['영업', '공차'] },
+    { name: 'seq', datatype: 'xsd:integer', required: true, min: 1, note: '그날 운행 순번 — 같은 차량·같은 시각의 두 회차를 가르는 값' },
+  ],
+  Depot: [
+    { name: 'depotName', datatype: 'xsd:string', required: true, note: '기준정보에 등재된 이름만 — 「성서」·「성서車」가 별개 차고지로 집계되는 것을 막는다', oneOf: ['성서차고지', '북부차고지', '칠곡차고지'] },
+    { name: 'deadheadKm', datatype: 'xsd:decimal', required: true, min: 0.5, max: 30, unit: 'km', qudt: 'unit:KiloM', note: '차고지↔기점 편도. 30km를 넘으면 기준정보 오입력이다' },
   ],
   RiskEvent: [
     { name: 'eventType', datatype: 'xsd:string', required: true, note: '공단 표준 8종만', oneOf: ['급가속', '급출발', '급감속', '급정지', '급진로변경', '급앞지르기', '급좌우회전', '급유턴'] },
@@ -330,6 +339,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   /* ── 정책 — 집계 단위 ── */
   Operator: [
     { name: 'operatorId', datatype: 'xsd:string', required: true },
+    { name: 'companyName', datatype: 'xsd:string', required: true, note: '정산·평가의 책임 단위 — 차고지·차량·기사가 모두 여기로 귀속된다' },
     { name: 'fleetSize', datatype: 'xsd:integer', required: true, min: 0, unit: '대', qudt: 'unit:UNITLESS' },
   ],
   TimeBand: [
@@ -428,7 +438,7 @@ export const TYPE_PROPS: Record<string, PropDef[]> = {
   Controller: [{ name: 'operatorId', datatype: 'xsd:string', required: true }],
   Officer: [{ name: 'orgName', datatype: 'xsd:string', required: true }],
   Plea: [
-    { name: 'method', datatype: 'xsd:string', required: true, oneOf: ['앱', '전화', '대면'] },
+    { name: 'method', datatype: 'xsd:string', required: true, oneOf: ['음성', '버튼'], note: '기사 앱 접수 수단 — 급조작 직후 음성 또는 버튼' },
     { name: 'submittedAt', datatype: 'xsd:dateTime', required: true },
   ],
   ComplaintVerdict: [
